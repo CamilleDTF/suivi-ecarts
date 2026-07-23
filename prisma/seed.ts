@@ -19,6 +19,19 @@ async function main() {
     },
   });
   console.log("Utilisateur admin prêt : admin@example.com / admin1234");
+
+  const iliasPasswordHash = await bcrypt.hash("DanielleCasanova13014", 10);
+  await prisma.user.upsert({
+    where: { email: "hammadi.ilias@dtffrance.com" },
+    update: {},
+    create: {
+      email: "hammadi.ilias@dtffrance.com",
+      name: "Ilias Hammadi",
+      passwordHash: iliasPasswordHash,
+      role: "UTILISATEUR",
+    },
+  });
+  console.log("Utilisateur prêt : hammadi.ilias@dtffrance.com");
 }
 
 main()

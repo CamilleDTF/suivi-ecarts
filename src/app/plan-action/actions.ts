@@ -8,21 +8,27 @@ import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
 import { TypeAction, StatutAction } from "@/generated/prisma/enums";
 
-const actionSchema = z.object({
-  ecartId: z.string().min(1, "Écart requis"),
-  type: z.enum(Object.values(TypeAction) as [string, ...string[]]),
-  action: z.string().min(1, "Description de l'action requise"),
-  responsable: z.string().min(1, "Responsable requis"),
-  echeance: z.string().optional(),
-  obligatoire: z.string().optional(),
-});
+const actionSchema = z
+  .object({
+    ecartId: z.string().optional(),
+    ficheSSEId: z.string().optional(),
+    type: z.enum(Object.values(TypeAction) as [string, ...string[]]),
+    action: z.string().min(1, "Description de l'action requise"),
+    responsable: z.string().min(1, "Responsable requis"),
+    echeance: z.string().optional(),
+    obligatoire: z.string().optional(),
+  })
+  .refine((v) => v.ecartId || v.ficheSSEId, {
+    message: "Écart ou évènement requis",
+  });
 
 export async function creerAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) redirect("/connexion");
 
   const parsed = actionSchema.parse({
-    ecartId: formData.get("ecartId"),
+    ecartId: formData.get("ecartId") || undefined,
+    ficheSSEId: formData.get("ficheSSEId") || undefined,
     type: formData.get("type"),
     action: formData.get("action"),
     responsable: formData.get("responsable"),
@@ -36,6 +42,7 @@ export async function creerAction(formData: FormData) {
     data: {
       reference,
       ecartId: parsed.ecartId,
+      ficheSSEId: parsed.ficheSSEId,
       type: parsed.type as TypeAction,
       action: parsed.action,
       responsable: parsed.responsable,
@@ -44,7 +51,8 @@ export async function creerAction(formData: FormData) {
     },
   });
 
-  revalidatePath(`/ecarts/${parsed.ecartId}`);
+  if (parsed.ecartId) revalidatePath(`/ecarts/${parsed.ecartId}`);
+  if (parsed.ficheSSEId) revalidatePath(`/fiches-sse/${parsed.ficheSSEId}`);
   redirect(`/plan-action/${action.id}`);
 }
 

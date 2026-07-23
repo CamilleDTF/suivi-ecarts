@@ -6,37 +6,57 @@ import { TypeAction } from "@/generated/prisma/enums";
 export default async function NouvelleActionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ecartId?: string }>;
+  searchParams: Promise<{ ecartId?: string; ficheSSEId?: string }>;
 }) {
-  const { ecartId } = await searchParams;
-  const ecarts = await prisma.ecart.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { dossier: true },
-  });
+  const { ecartId, ficheSSEId } = await searchParams;
+
+  const fiche = ficheSSEId
+    ? await prisma.ficheSSE.findUnique({ where: { id: ficheSSEId } })
+    : null;
+
+  const ecarts = fiche
+    ? []
+    : await prisma.ecart.findMany({
+        orderBy: { createdAt: "desc" },
+        include: { dossier: true },
+      });
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
       <h1 className="mb-6 text-2xl font-semibold text-slate-900">Nouvelle action</h1>
 
       <form action={creerAction} className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Écart</label>
-          <select
-            name="ecartId"
-            required
-            defaultValue={ecartId ?? ""}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="" disabled>
-              Sélectionner un écart
-            </option>
-            {ecarts.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.reference} — {e.dossier.chantier}
+        {fiche ? (
+          <div>
+            <input type="hidden" name="ficheSSEId" value={fiche.id} />
+            <label className="mb-1 block text-sm font-medium text-slate-700">Rattachée à</label>
+            <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              Évènement {fiche.reference}
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Cette action sera rattachée uniquement à l&apos;évènement, pas à l&apos;écart ou l&apos;écart amiante lié.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Écart</label>
+            <select
+              name="ecartId"
+              required
+              defaultValue={ecartId ?? ""}
+              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="" disabled>
+                Sélectionner un écart
               </option>
-            ))}
-          </select>
-        </div>
+              {ecarts.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.reference} — {e.dossier.chantier}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">Type</label>
