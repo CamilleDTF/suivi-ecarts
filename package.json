@@ -2,7 +2,7 @@
   "name": "suivi-ecarts",
   "version": "0.1.0",
   "private": true,
-    "scripts": {
+  "scripts": {
     "dev": "next dev",
     "build": "prisma migrate deploy && prisma db seed && next build",
     "start": "next start",

@@ -131,13 +131,15 @@ model Ecart {
 }
 
 model FicheSSE {
-  id                           String      @id @default(cuid())
-  reference                    String      @unique
-  ecart                        Ecart?      @relation(fields: [ecartId], references: [id])
+  id                           String        @id @default(cuid())
+  reference                    String        @unique
+  ecart                        Ecart?        @relation(fields: [ecartId], references: [id])
   ecartId                      String?
+  ecartAmiante                 EcartAmiante? @relation(fields: [ecartAmianteId], references: [id])
+  ecartAmianteId               String?
   typeEvenement                String?
   numeroInterne                String?
-  statutFiche                  StatutFiche @default(BROUILLON)
+  statutFiche                  StatutFiche   @default(BROUILLON)
   emetteur                     String?
   nomChantier                  String?
   dateHeure                    DateTime?
@@ -167,8 +169,47 @@ model FicheSSE {
   domaine                      String?
   theme                        String?
   referencePreuve              String?
-  createdAt                    DateTime    @default(now())
-  updatedAt                    DateTime    @updatedAt
+  createdAt                    DateTime      @default(now())
+  updatedAt                    DateTime      @updatedAt
+}
+
+// Suivi des écarts amiante — entité autonome, comme dans l'app d'origine
+// (EcartAmiante_1 n'était pas rattachée à Dossier/Ecart, seulement, en option,
+// à une Fiche SSE quand un événement SSE en découlait).
+model EcartAmiante {
+  id                             String     @id @default(cuid())
+  reference                      String     @unique
+  date                           DateTime
+  nomChantier                    String
+  numeroChantier                 String
+  conducteur                     String
+  chef                           String
+  zone                           String?
+  processus                      String?
+  typeAnalyse                    String?
+  referenceAnalyse               String?
+  typeEcart                      String?
+  resultatAttendu                String?
+  resultatObtenu                 String?
+  description                    String?
+  expositionAccidentelle         Boolean?
+  personneConcernee              String?
+  fie                            Boolean?
+  medecinTravail                 String?
+  besoinNouvelleAnalyse          Boolean?
+  pasNouvelleAnalyse             String?
+  dateNouvelleAnalyse            DateTime?
+  laboratoireNouvelleAnalyse     String?
+  chantierNouvelleAnalyse        String?
+  resultatAttenduNouvelleAnalyse String?
+  resultatObtenuNouvelleAnalyse  String?
+  actionCloture                  String?
+  clotureEcartAmiante            Boolean    @default(false)
+  dateCloture                    DateTime?
+  evenementSSE                   Boolean    @default(false)
+  createdAt                      DateTime   @default(now())
+  updatedAt                      DateTime   @updatedAt
+  fichesSSE                      FicheSSE[]
 }
 
 model Action {

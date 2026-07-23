@@ -6,6 +6,7 @@ const LIENS = [
   { href: "/ecarts", label: "Écarts" },
   { href: "/fiches-sse", label: "Fiches SSE" },
   { href: "/plan-action", label: "Plan d'action" },
+  { href: "/ecart-amiante", label: "Écart amiante" },
 ];
 
 export async function NavBar() {
