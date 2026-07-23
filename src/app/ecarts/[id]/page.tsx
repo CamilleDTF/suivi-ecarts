@@ -54,7 +54,7 @@ export default async function EcartDetailPage({
             href={`/fiches-sse/nouveau?ecartId=${ecart.id}`}
             className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
-            + Fiche SSE
+            + Évènement SSE
           </Link>
           <Link
             href={`/plan-action/nouveau?ecartId=${ecart.id}`}
@@ -127,7 +127,7 @@ export default async function EcartDetailPage({
 
       <div className="mb-8">
         <h2 className="mb-3 text-lg font-semibold text-slate-900">
-          Fiches SSE ({ecart.fichesSSE.length})
+          Évènements SSE ({ecart.fichesSSE.length})
         </h2>
         <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
@@ -155,7 +155,7 @@ export default async function EcartDetailPage({
               {ecart.fichesSSE.length === 0 && (
                 <tr>
                   <td colSpan={3} className="px-4 py-6 text-center text-slate-400">
-                    Aucune fiche SSE.
+                    Aucun évènement SSE.
                   </td>
                 </tr>
               )}

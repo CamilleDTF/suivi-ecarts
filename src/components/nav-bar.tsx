@@ -2,9 +2,10 @@ import Link from "next/link";
 import { auth, signOut } from "@/auth";
 
 const LIENS = [
+  { href: "/synthese", label: "Synthèse" },
   { href: "/dossiers", label: "Dossiers" },
   { href: "/ecarts", label: "Écarts" },
-  { href: "/fiches-sse", label: "Fiches SSE" },
+  { href: "/fiches-sse", label: "Évènements SSE" },
   { href: "/plan-action", label: "Plan d'action" },
   { href: "/ecart-amiante", label: "Écart amiante" },
 ];

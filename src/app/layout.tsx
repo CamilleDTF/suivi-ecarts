@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Suivi des écarts",
-  description: "Suivi des écarts SSE, fiches SSE et plans d'action",
+  description: "Suivi des écarts SSE, évènements SSE et plans d'action",
 };
 
 export default function RootLayout({

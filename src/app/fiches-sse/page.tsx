@@ -12,12 +12,12 @@ export default async function FichesSSEPage() {
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">Fiches SSE</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">Évènements SSE</h1>
         <Link
           href="/fiches-sse/nouveau"
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          + Nouvelle fiche SSE
+          + Nouvel évènement SSE
         </Link>
       </div>
 
@@ -59,7 +59,7 @@ export default async function FichesSSEPage() {
             {fiches.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                  Aucune fiche SSE pour l&apos;instant.
+                  Aucun évènement SSE pour l&apos;instant.
                 </td>
               </tr>
             )}
