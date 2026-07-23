@@ -34,13 +34,13 @@ function CauseNode({
           </span>
         )}
         {!disabled && (
-          <form action={supprimerCause}>
-            <input type="hidden" name="id" value={cause.id} />
-            <input type="hidden" name="ficheSSEId" value={ficheSSEId} />
-            <button type="submit" className="text-xs text-slate-400 hover:text-red-600">
-              supprimer
-            </button>
-          </form>
+          <button
+            type="submit"
+            formAction={supprimerCause.bind(null, cause.id, ficheSSEId)}
+            className="text-xs text-slate-400 hover:text-red-600"
+          >
+            supprimer
+          </button>
         )}
       </div>
       {cause.enfants.length > 0 && (
@@ -79,13 +79,11 @@ export function ArbreCauses({
       </ul>
 
       {!disabled && (
-        <form action={ajouterCause} className="mt-4 space-y-2 border-t border-slate-100 pt-4">
-          <input type="hidden" name="ficheSSEId" value={ficheSSEId} />
+        <div className="mt-4 space-y-2 border-t border-slate-100 pt-4">
           <div>
             <label className="mb-1 block text-xs font-medium text-slate-600">Nouvelle cause</label>
             <input
               name="libelle"
-              required
               className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
               placeholder="Description de la cause"
             />
@@ -105,12 +103,13 @@ export function ArbreCauses({
             </label>
             <button
               type="submit"
+              formAction={ajouterCause.bind(null, ficheSSEId)}
               className="ml-auto rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
             >
               Ajouter
             </button>
           </div>
-        </form>
+        </div>
       )}
     </div>
   );

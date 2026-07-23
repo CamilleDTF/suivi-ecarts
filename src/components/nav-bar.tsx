@@ -1,14 +1,6 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
-
-const LIENS = [
-  { href: "/synthese", label: "Synthèse" },
-  { href: "/dossiers", label: "Dossiers" },
-  { href: "/ecarts", label: "Écarts" },
-  { href: "/fiches-sse", label: "Évènements SSE" },
-  { href: "/plan-action", label: "Plan d'action" },
-  { href: "/ecart-amiante", label: "Écart amiante" },
-];
+import { NavLinks } from "@/components/nav-links";
 
 export async function NavBar() {
   const session = await auth();
@@ -19,23 +11,11 @@ export async function NavBar() {
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="text-sm font-semibold text-slate-900">
-            Suivi des écarts
-          </Link>
-          <nav className="flex gap-5">
-            {LIENS.map((lien) => (
-              <Link
-                key={lien.href}
-                href={lien.href}
-                className="text-sm text-slate-600 hover:text-slate-900"
-              >
-                {lien.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-        <div className="flex items-center gap-3">
+        <Link href="/" className="flex-1 text-2xl font-bold text-slate-900">
+          Suivi des écarts
+        </Link>
+        <NavLinks />
+        <div className="ml-10 flex items-center gap-3 border-l border-slate-200 pl-6">
           <span className="text-sm text-slate-500">{session.user.name}</span>
           <form
             action={async () => {

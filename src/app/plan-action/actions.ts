@@ -30,7 +30,7 @@ export async function creerAction(formData: FormData) {
     obligatoire: formData.get("obligatoire") || undefined,
   });
 
-  const reference = await generateReference("Action", "PA");
+  const reference = await generateReference("Action", "ACT");
 
   const action = await prisma.action.create({
     data: {

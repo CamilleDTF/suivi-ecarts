@@ -11,6 +11,7 @@ const str = (v: FormDataEntryValue | null) => (v ? String(v) : undefined);
 const bool = (v: FormDataEntryValue | null) => v === "on";
 const datetime = (v: FormDataEntryValue | null) => (v ? new Date(String(v)) : undefined);
 const date = (v: FormDataEntryValue | null) => (v ? new Date(String(v)) : undefined);
+const liste = (formData: FormData, name: string) => formData.getAll(name).map(String);
 
 function parseFiche(formData: FormData) {
   return {
@@ -31,10 +32,10 @@ function parseFiche(formData: FormData) {
     declarationExterneNecessaire: bool(formData.get("declarationExterneNecessaire")),
     declarationExterneA: str(formData.get("declarationExterneA")),
     typeAnalyse: str(formData.get("typeAnalyse")),
-    domaine: str(formData.get("domaine")),
-    theme: str(formData.get("theme")),
+    domaine: liste(formData, "domaine"),
+    theme: liste(formData, "theme"),
     referencePreuve: str(formData.get("referencePreuve")),
-    miseAJourNecessaire: str(formData.get("miseAJourNecessaire")),
+    miseAJourNecessaire: liste(formData, "miseAJourNecessaire"),
     procedureLaquelle: str(formData.get("procedureLaquelle")),
     referenceDUERP: str(formData.get("referenceDUERP")),
     nouveauRisqueNecessaire: bool(formData.get("nouveauRisqueNecessaire")),
@@ -116,11 +117,10 @@ export async function mettreAJourFicheSSE(formData: FormData) {
   if (fiche.ecartId) revalidatePath(`/ecarts/${fiche.ecartId}`);
 }
 
-export async function ajouterCause(formData: FormData) {
+export async function ajouterCause(ficheSSEId: string, formData: FormData) {
   const session = await auth();
   if (!session?.user) redirect("/connexion");
 
-  const ficheSSEId = String(formData.get("ficheSSEId"));
   const libelle = String(formData.get("libelle") ?? "").trim();
   const parentId = String(formData.get("parentId") ?? "") || undefined;
   const estCauseRacine = formData.get("estCauseRacine") === "on";
@@ -134,17 +134,14 @@ export async function ajouterCause(formData: FormData) {
   revalidatePath(`/fiches-sse/${ficheSSEId}`);
 }
 
-export async function supprimerCause(formData: FormData) {
+export async function supprimerCause(causeId: string, ficheSSEId: string) {
   const session = await auth();
   if (!session?.user) redirect("/connexion");
 
-  const id = String(formData.get("id"));
-  const ficheSSEId = String(formData.get("ficheSSEId"));
-
   // Détache d'abord les enfants éventuels (sinon la contrainte de clé
   // étrangère parentId empêcherait la suppression), puis supprime la cause.
-  await prisma.causeArbre.updateMany({ where: { parentId: id }, data: { parentId: null } });
-  await prisma.causeArbre.delete({ where: { id } });
+  await prisma.causeArbre.updateMany({ where: { parentId: causeId }, data: { parentId: null } });
+  await prisma.causeArbre.delete({ where: { id: causeId } });
 
   revalidatePath(`/fiches-sse/${ficheSSEId}`);
 }

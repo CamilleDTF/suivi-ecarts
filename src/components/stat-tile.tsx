@@ -20,8 +20,8 @@ export function StatTile({
   }[tone];
 
   return (
-    <div className={`rounded-lg border p-4 ${toneClasses}`}>
-      <div className="text-sm text-slate-500">{label}</div>
+    <div className={`flex flex-col rounded-lg border p-4 ${toneClasses}`}>
+      <div className="min-h-[2.5rem] text-sm text-slate-500">{label}</div>
       <div className={`mt-1 text-3xl font-semibold ${valueClasses}`}>{value}</div>
     </div>
   );

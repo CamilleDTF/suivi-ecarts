@@ -56,7 +56,11 @@ export default async function FicheSSEDetailPage({
         className="space-y-6 rounded-lg border border-slate-200 bg-white p-6"
       >
         <input type="hidden" name="id" value={fiche.id} />
-        <FicheSSEFields v={fiche} disabled={lecture} />
+        <FicheSSEFields
+          v={fiche}
+          disabled={lecture}
+          apresTypeAnalyse={<ArbreCauses ficheSSEId={fiche.id} causes={fiche.causes} disabled={lecture} />}
+        />
 
         {!lecture && (
           <div className="flex justify-end gap-3 pt-2">
@@ -74,10 +78,6 @@ export default async function FicheSSEDetailPage({
           </p>
         )}
       </form>
-
-      <div className="mt-6">
-        <ArbreCauses ficheSSEId={fiche.id} causes={fiche.causes} disabled={lecture} />
-      </div>
     </div>
   );
 }

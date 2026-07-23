@@ -2,13 +2,28 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { StatTile } from "@/components/stat-tile";
 import { Badge } from "@/components/badge";
+import { GraphiqueBarres } from "@/components/graphique-barres";
 import {
   STATUT_DOSSIER_ECART_COLORS,
   STATUT_DOSSIER_ECART_LABELS,
+  STATUT_FICHE_COLORS,
+  STATUT_FICHE_LABELS,
   STATUT_ACTION_COLORS,
   STATUT_ACTION_LABELS,
   TYPE_ACTION_LABELS,
 } from "@/lib/labels";
+
+const STATUT_ORDER = ["A_QUALIFIER", "OUVERT", "EN_COURS", "CLOTURE"] as const;
+const STATUT_FICHE_ORDER = ["BROUILLON", "FINALISEE"] as const;
+
+const ECART_AMIANTE_LABELS: Record<string, string> = {
+  ouvert: "Ouvert",
+  cloture: "Clôturé",
+};
+const ECART_AMIANTE_COLORS: Record<string, string> = {
+  ouvert: "bg-amber-100 text-amber-800",
+  cloture: "bg-green-100 text-green-800",
+};
 
 export default async function SynthesePage() {
   const now = new Date();
@@ -20,6 +35,9 @@ export default async function SynthesePage() {
     ecartAmianteOuverts,
     actionsEnRetard,
     dossiersParStatut,
+    ecartsParStatut,
+    fichesParStatut,
+    ecartAmianteParCloture,
   ] = await Promise.all([
     prisma.dossier.count({ where: { statut: { not: "CLOTURE" } } }),
     prisma.ecart.count({ where: { statut: { not: "CLOTURE" } } }),
@@ -34,10 +52,17 @@ export default async function SynthesePage() {
       orderBy: { echeance: "asc" },
     }),
     prisma.dossier.groupBy({ by: ["statut"], _count: { _all: true } }),
+    prisma.ecart.groupBy({ by: ["statut"], _count: { _all: true } }),
+    prisma.ficheSSE.groupBy({ by: ["statutFiche"], _count: { _all: true } }),
+    prisma.ecartAmiante.groupBy({ by: ["clotureEcartAmiante"], _count: { _all: true } }),
   ]);
 
-  const statutOrder = ["A_QUALIFIER", "OUVERT", "EN_COURS", "CLOTURE"] as const;
   const statutCounts = Object.fromEntries(dossiersParStatut.map((d) => [d.statut, d._count._all]));
+  const ecartsStatutCounts = Object.fromEntries(ecartsParStatut.map((d) => [d.statut, d._count._all]));
+  const fichesStatutCounts = Object.fromEntries(fichesParStatut.map((d) => [d.statutFiche, d._count._all]));
+  const ecartAmianteCounts = Object.fromEntries(
+    ecartAmianteParCloture.map((d) => [d.clotureEcartAmiante ? "cloture" : "ouvert", d._count._all]),
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
@@ -55,16 +80,39 @@ export default async function SynthesePage() {
         />
       </div>
 
-      <div className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Dossiers par statut</h2>
-        <div className="flex flex-wrap gap-3">
-          {statutOrder.map((s) => (
-            <div key={s} className="flex items-center gap-2">
-              <Badge label={STATUT_DOSSIER_ECART_LABELS[s]} colorClass={STATUT_DOSSIER_ECART_COLORS[s]} />
-              <span className="text-sm font-medium text-slate-700">{statutCounts[s] ?? 0}</span>
-            </div>
-          ))}
-        </div>
+      <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <GraphiqueBarres
+          titre="Dossiers par statut"
+          donnees={STATUT_ORDER.map((s) => ({
+            label: STATUT_DOSSIER_ECART_LABELS[s],
+            valeur: statutCounts[s] ?? 0,
+            colorClass: STATUT_DOSSIER_ECART_COLORS[s],
+          }))}
+        />
+        <GraphiqueBarres
+          titre="Écarts par statut"
+          donnees={STATUT_ORDER.map((s) => ({
+            label: STATUT_DOSSIER_ECART_LABELS[s],
+            valeur: ecartsStatutCounts[s] ?? 0,
+            colorClass: STATUT_DOSSIER_ECART_COLORS[s],
+          }))}
+        />
+        <GraphiqueBarres
+          titre="Évènements SSE par statut"
+          donnees={STATUT_FICHE_ORDER.map((s) => ({
+            label: STATUT_FICHE_LABELS[s],
+            valeur: fichesStatutCounts[s] ?? 0,
+            colorClass: STATUT_FICHE_COLORS[s],
+          }))}
+        />
+        <GraphiqueBarres
+          titre="Écarts amiante par état"
+          donnees={["ouvert", "cloture"].map((s) => ({
+            label: ECART_AMIANTE_LABELS[s],
+            valeur: ecartAmianteCounts[s] ?? 0,
+            colorClass: ECART_AMIANTE_COLORS[s],
+          }))}
+        />
       </div>
 
       <div>

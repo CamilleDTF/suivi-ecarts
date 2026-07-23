@@ -91,10 +91,10 @@ type FicheSSEValues = {
   declarationExterneNecessaire?: boolean | null;
   declarationExterneA?: string | null;
   typeAnalyse?: string | null;
-  domaine?: string | null;
-  theme?: string | null;
+  domaine?: string[] | null;
+  theme?: string[] | null;
   referencePreuve?: string | null;
-  miseAJourNecessaire?: string | null;
+  miseAJourNecessaire?: string[] | null;
   procedureLaquelle?: string | null;
   referenceDUERP?: string | null;
   nouveauRisqueNecessaire?: boolean | null;
@@ -107,7 +107,8 @@ type FicheSSEValues = {
   validationDate?: Date | null;
 };
 
-const inputCls = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm";
+const inputCls =
+  "w-full rounded-md border border-slate-300 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
 const labelCls = "mb-1 block text-sm font-medium text-slate-700";
 
 function toDatetimeLocal(d?: Date | null) {
@@ -123,15 +124,23 @@ function Select({
   options,
   className,
   onChange,
+  disabled,
 }: {
   name: string;
   value?: string | null;
   options: string[];
   className?: string;
   onChange?: (e: ChangeEvent<HTMLSelectElement>) => void;
+  disabled?: boolean;
 }) {
   return (
-    <select name={name} defaultValue={value ?? ""} className={className ?? inputCls} onChange={onChange}>
+    <select
+      name={name}
+      defaultValue={value ?? ""}
+      className={className ?? inputCls}
+      onChange={onChange}
+      disabled={disabled}
+    >
       <option value="">—</option>
       {options.map((o) => (
         <option key={o} value={o}>
@@ -139,6 +148,28 @@ function Select({
         </option>
       ))}
     </select>
+  );
+}
+
+function CasesACocher({
+  name,
+  options,
+  valeurs,
+}: {
+  name: string;
+  options: string[];
+  valeurs?: string[] | null;
+}) {
+  const v = valeurs ?? [];
+  return (
+    <div className="flex flex-wrap gap-x-4 gap-y-2">
+      {options.map((o) => (
+        <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" name={name} value={o} defaultChecked={v.includes(o)} />
+          {o}
+        </label>
+      ))}
+    </div>
   );
 }
 
@@ -154,6 +185,12 @@ export function FicheSSEFields({
   apresTypeAnalyse?: ReactNode;
 }) {
   const [criticite, setCriticite] = useState(v.criticite ?? "");
+  const [miseAJour, setMiseAJour] = useState<string[]>(v.miseAJourNecessaire ?? []);
+  const [communicationInterneCoche, setCommunicationInterneCoche] = useState(!!v.communicationInterne);
+
+  function toggleMiseAJour(option: string, coche: boolean) {
+    setMiseAJour((prev) => (coche ? [...prev, option] : prev.filter((o) => o !== option)));
+  }
 
   function handleGraviteOuFrequenceChange(form: HTMLFormElement | null) {
     if (!form) return;
@@ -204,16 +241,6 @@ export function FicheSSEFields({
             <input name="lieuZone" defaultValue={v.lieuZone ?? ""} className={inputCls} />
           </div>
           <div>
-            <label className={labelCls}>Domaine</label>
-            <Select name="domaine" value={v.domaine} options={DOMAINE_OPTIONS} />
-          </div>
-          <div>
-            <label className={labelCls}>Thème</label>
-            <Select name="theme" value={v.theme} options={THEME_OPTIONS} />
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-2 gap-4">
-          <div>
             <label className={labelCls}>Personnes impliquées</label>
             <input name="personnesImpliquees" defaultValue={v.personnesImpliquees ?? ""} className={inputCls} />
           </div>
@@ -221,6 +248,14 @@ export function FicheSSEFields({
             <label className={labelCls}>Témoins</label>
             <input name="temoins" defaultValue={v.temoins ?? ""} className={inputCls} />
           </div>
+        </div>
+        <div className="mt-4">
+          <label className={labelCls}>Domaine</label>
+          <CasesACocher name="domaine" options={DOMAINE_OPTIONS} valeurs={v.domaine} />
+        </div>
+        <div className="mt-4">
+          <label className={labelCls}>Thème</label>
+          <CasesACocher name="theme" options={THEME_OPTIONS} valeurs={v.theme} />
         </div>
         <div className="mt-4">
           <label className={labelCls}>Description factuelle</label>
@@ -321,27 +356,60 @@ export function FicheSSEFields({
           Documentation et communication
         </h2>
         <div className="mb-3">
-          <label className={labelCls}>Mise à jour du document unique nécessaire</label>
-          <Select name="miseAJourNecessaire" value={v.miseAJourNecessaire} options={MISE_A_JOUR_OPTIONS} />
+          <label className={labelCls}>Mise à jour nécessaire ?</label>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {MISE_A_JOUR_OPTIONS.map((o) => (
+              <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  name="miseAJourNecessaire"
+                  value={o}
+                  checked={miseAJour.includes(o)}
+                  onChange={(e) => toggleMiseAJour(o, e.target.checked)}
+                />
+                {o}
+              </label>
+            ))}
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Procédure — laquelle</label>
-            <input name="procedureLaquelle" defaultValue={v.procedureLaquelle ?? ""} className={inputCls} />
+            <input
+              name="procedureLaquelle"
+              defaultValue={v.procedureLaquelle ?? ""}
+              disabled={!miseAJour.includes("Procédure")}
+              className={inputCls}
+            />
           </div>
           <div>
             <label className={labelCls}>Référence DUERP</label>
-            <input name="referenceDUERP" defaultValue={v.referenceDUERP ?? ""} className={inputCls} />
+            <input
+              name="referenceDUERP"
+              defaultValue={v.referenceDUERP ?? ""}
+              disabled={!miseAJour.includes("DUERP")}
+              className={inputCls}
+            />
           </div>
         </div>
 
         <label className="mt-4 mb-3 flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="communicationInterne" defaultChecked={!!v.communicationInterne} />
+          <input
+            type="checkbox"
+            name="communicationInterne"
+            checked={communicationInterneCoche}
+            onChange={(e) => setCommunicationInterneCoche(e.target.checked)}
+          />
           Communication interne réalisée
         </label>
         <div>
           <label className={labelCls}>Type de communication</label>
-          <Select name="typeCommunication" value={v.typeCommunication} options={TYPE_COMMUNICATION_OPTIONS} />
+          <Select
+            name="typeCommunication"
+            value={v.typeCommunication}
+            options={TYPE_COMMUNICATION_OPTIONS}
+            disabled={!communicationInterneCoche}
+          />
         </div>
 
         <label className="mt-4 flex items-center gap-2 text-sm text-slate-700">
