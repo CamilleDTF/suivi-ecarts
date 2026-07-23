@@ -154,7 +154,7 @@ model FicheSSE {
   criticite                    String?
   typeAnalyse                  String?
   toutesActionsCloturees       Boolean?
-  miseAJourNecessaire          Boolean?
+  miseAJourNecessaire          String?
   procedureLaquelle            String?
   referenceDUERP               String?
   nouveauRisqueNecessaire      Boolean?
@@ -171,6 +171,21 @@ model FicheSSE {
   referencePreuve              String?
   createdAt                    DateTime      @default(now())
   updatedAt                    DateTime      @updatedAt
+  causes                       CauseArbre[]
+}
+
+// Arbre des causes d'une fiche SSE : hiérarchie de causes (auto-référencée),
+// avec un marqueur de cause racine.
+model CauseArbre {
+  id             String       @id @default(cuid())
+  ficheSSE       FicheSSE     @relation(fields: [ficheSSEId], references: [id])
+  ficheSSEId     String
+  parent         CauseArbre?  @relation("CauseArbreParent", fields: [parentId], references: [id])
+  parentId       String?
+  enfants        CauseArbre[] @relation("CauseArbreParent")
+  libelle        String
+  estCauseRacine Boolean      @default(false)
+  createdAt      DateTime     @default(now())
 }
 
 // Suivi des écarts amiante — entité autonome, comme dans l'app d'origine
