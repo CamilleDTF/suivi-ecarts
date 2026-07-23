@@ -58,5 +58,7 @@ export async function mettreAJourStatutAction(formData: FormData) {
   const action = await prisma.action.update({ where: { id }, data: { statut } });
   revalidatePath(`/plan-action/${id}`);
   revalidatePath("/plan-action");
-  revalidatePath(`/ecarts/${action.ecartId}`);
+  if (action.ecartId) revalidatePath(`/ecarts/${action.ecartId}`);
+  if (action.ficheSSEId) revalidatePath(`/fiches-sse/${action.ficheSSEId}`);
+  if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
 }

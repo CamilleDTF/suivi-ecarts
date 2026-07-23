@@ -18,7 +18,7 @@ export default async function PlanActionPage({
       responsable: responsable || undefined,
     },
     orderBy: { echeance: "asc" },
-    include: { ecart: { include: { dossier: true } } },
+    include: { ecart: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true },
   });
 
   const filtreActif = !!statut || !!responsable;
@@ -64,7 +64,7 @@ export default async function PlanActionPage({
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
               <th className="px-4 py-3 font-medium">Référence</th>
-              <th className="px-4 py-3 font-medium">Écart</th>
+              <th className="px-4 py-3 font-medium">Rattaché à</th>
               <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium">Action</th>
               <th className="px-4 py-3 font-medium">Responsable</th>
@@ -81,9 +81,21 @@ export default async function PlanActionPage({
                   </Link>
                 </td>
                 <td className="px-4 py-3">
-                  <Link href={`/ecarts/${a.ecart.id}`} className="text-slate-600 hover:underline">
-                    {a.ecart.reference}
-                  </Link>
+                  {a.ecart ? (
+                    <Link href={`/ecarts/${a.ecart.id}`} className="text-slate-600 hover:underline">
+                      {a.ecart.reference}
+                    </Link>
+                  ) : a.ficheSSE ? (
+                    <Link href={`/fiches-sse/${a.ficheSSE.id}`} className="text-slate-600 hover:underline">
+                      {a.ficheSSE.reference}
+                    </Link>
+                  ) : a.ecartAmiante ? (
+                    <Link href={`/ecart-amiante/${a.ecartAmiante.id}`} className="text-slate-600 hover:underline">
+                      {a.ecartAmiante.reference}
+                    </Link>
+                  ) : (
+                    <span className="text-slate-400">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-slate-700">{TYPE_ACTION_LABELS[a.type]}</td>
                 <td className="max-w-xs truncate px-4 py-3 text-slate-700">{a.action}</td>

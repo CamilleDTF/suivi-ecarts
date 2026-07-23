@@ -42,6 +42,13 @@ export const NATURES_OPTIONS = [
   "Point sensible",
   "Opportunité d'amélioration",
   "Bonne pratique",
+  "Remontée terrain",
+  "Écart",
+  "Écart d'audit",
+  "Incident",
+  "Presque accident",
+  "Situation dangereuse",
+  "Réclamation",
 ];
 
 export const DOMAINES_OPTIONS = [
@@ -53,6 +60,7 @@ export const DOMAINES_OPTIONS = [
   "Déchets",
   "Client",
   "Fournisseur",
+  "Sous-traitance",
   "Organisation",
   "Documentaire",
   "Matériel",

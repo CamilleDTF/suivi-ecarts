@@ -172,6 +172,7 @@ model FicheSSE {
   createdAt                    DateTime      @default(now())
   updatedAt                    DateTime      @updatedAt
   causes                       CauseArbre[]
+  actions                      Action[]
 }
 
 // Arbre des causes d'une fiche SSE : hiérarchie de causes (auto-référencée),
@@ -225,22 +226,31 @@ model EcartAmiante {
   createdAt                      DateTime   @default(now())
   updatedAt                      DateTime   @updatedAt
   fichesSSE                      FicheSSE[]
+  actions                        Action[]
 }
 
+// Une action est le plus souvent rattachée à un Écart, mais l'app d'origine
+// permettait aussi d'en créer directement depuis une Fiche SSE ou un Écart
+// amiante sans Écart associé (cas fréquent en pratique) — d'où les trois
+// rattachements optionnels plutôt qu'un seul ecartId obligatoire.
 model Action {
-  id              String       @id @default(cuid())
-  reference       String       @unique
-  ecart           Ecart        @relation(fields: [ecartId], references: [id])
-  ecartId         String
+  id              String        @id @default(cuid())
+  reference       String        @unique
+  ecart           Ecart?        @relation(fields: [ecartId], references: [id])
+  ecartId         String?
+  ficheSSE        FicheSSE?     @relation(fields: [ficheSSEId], references: [id])
+  ficheSSEId      String?
+  ecartAmiante    EcartAmiante? @relation(fields: [ecartAmianteId], references: [id])
+  ecartAmianteId  String?
   type            TypeAction
   action          String
   responsable     String
   echeance        DateTime?
-  statut          StatutAction @default(A_FAIRE)
-  obligatoire     Boolean      @default(false)
+  statut          StatutAction  @default(A_FAIRE)
+  obligatoire     Boolean       @default(false)
   preuve          String?
   verifEfficacite String?
   origine         String?
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 }
