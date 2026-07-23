@@ -3,19 +3,18 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
 import {
-  ORIGINE_LABELS,
   STATUT_DOSSIER_ECART_COLORS,
   STATUT_DOSSIER_ECART_LABELS,
-  TYPE_ACTIVITE_LABELS,
   STATUT_FICHE_COLORS,
   STATUT_FICHE_LABELS,
   TYPE_ACTION_LABELS,
   STATUT_ACTION_COLORS,
   STATUT_ACTION_LABELS,
 } from "@/lib/labels";
-import { mettreAJourStatutEcart } from "@/app/ecarts/actions";
+import { mettreAJourStatutEcart, mettreAJourEcart } from "@/app/ecarts/actions";
 import { StatutDossierEcart } from "@/generated/prisma/enums";
 import { StatutSelectForm } from "@/components/statut-select-form";
+import { EcartFields } from "@/components/ecart-fields";
 
 export default async function EcartDetailPage({
   params,
@@ -65,41 +64,7 @@ export default async function EcartDetailPage({
         </div>
       </div>
 
-      <div className="mb-8 grid grid-cols-2 gap-x-6 gap-y-4 rounded-lg border border-slate-200 bg-white p-6 sm:grid-cols-3">
-        <div>
-          <div className="text-xs font-medium uppercase text-slate-400">Déclarant</div>
-          <div className="text-sm text-slate-800">{ecart.declarant}</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium uppercase text-slate-400">Origine</div>
-          <div className="text-sm text-slate-800">{ORIGINE_LABELS[ecart.origine]}</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium uppercase text-slate-400">Détecté le</div>
-          <div className="text-sm text-slate-800">{ecart.dateDetection.toLocaleDateString("fr-FR")}</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium uppercase text-slate-400">Type d&apos;activité</div>
-          <div className="text-sm text-slate-800">
-            {ecart.typeActivite ? TYPE_ACTIVITE_LABELS[ecart.typeActivite] : "—"}
-          </div>
-        </div>
-        <div>
-          <div className="text-xs font-medium uppercase text-slate-400">Nature(s)</div>
-          <div className="text-sm text-slate-800">{ecart.natures.join(", ") || "—"}</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium uppercase text-slate-400">Domaine(s)</div>
-          <div className="text-sm text-slate-800">{ecart.domaines.join(", ") || "—"}</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium uppercase text-slate-400">Gravité potentielle</div>
-          <div className="text-sm text-slate-800">{ecart.gravitePotentielle || "—"}</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium uppercase text-slate-400">Fréquence</div>
-          <div className="text-sm text-slate-800">{ecart.frequence || "—"}</div>
-        </div>
+      <div className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
         <StatutSelectForm
           action={mettreAJourStatutEcart}
           hiddenName="id"
@@ -111,19 +76,23 @@ export default async function EcartDetailPage({
             label: STATUT_DOSSIER_ECART_LABELS[s],
           }))}
         />
-        {ecart.description && (
-          <div className="col-span-full">
-            <div className="text-xs font-medium uppercase text-slate-400">Description</div>
-            <div className="text-sm text-slate-800">{ecart.description}</div>
-          </div>
-        )}
-        {ecart.mesureImmediate && (
-          <div className="col-span-full">
-            <div className="text-xs font-medium uppercase text-slate-400">Mesure immédiate</div>
-            <div className="text-sm text-slate-800">{ecart.mesureImmediate}</div>
-          </div>
-        )}
       </div>
+
+      <form
+        action={mettreAJourEcart}
+        className="mb-8 space-y-6 rounded-lg border border-slate-200 bg-white p-6"
+      >
+        <input type="hidden" name="id" value={ecart.id} />
+        <EcartFields v={ecart} />
+        <div className="flex justify-end gap-3 pt-2">
+          <button
+            type="submit"
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Enregistrer
+          </button>
+        </div>
+      </form>
 
       <div className="mb-8">
         <h2 className="mb-3 text-lg font-semibold text-slate-900">

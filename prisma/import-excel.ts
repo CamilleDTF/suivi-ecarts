@@ -99,7 +99,7 @@ async function main() {
         resultatAttenduNouvelleAnalyse: e.resultatAttenduNouvelleAnalyse,
         resultatObtenuNouvelleAnalyse: e.resultatObtenuNouvelleAnalyse,
         actionCloture: e.actionCloture,
-        clotureEcartAmiante: e.clotureEcartAmiante,
+        statut: e.clotureEcartAmiante ? "CLOTURE" : "OUVERT",
         dateCloture: versDate(e.dateCloture),
         evenementSSE: e.evenementSSE,
       },

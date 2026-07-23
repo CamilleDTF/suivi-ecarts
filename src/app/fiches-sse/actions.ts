@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
 import { marquerFicheSSECreee } from "@/app/ecarts/actions";
+import { aUneActionOuverte } from "@/lib/statut-auto";
 
 const str = (v: FormDataEntryValue | null) => (v ? String(v) : undefined);
 const bool = (v: FormDataEntryValue | null) => v === "on";
@@ -151,9 +152,12 @@ export async function finaliserFicheSSE(formData: FormData) {
   if (!session?.user) redirect("/connexion");
 
   const id = String(formData.get("id"));
+  const actions = await prisma.action.findMany({ where: { ficheSSEId: id }, select: { statut: true } });
+  const statutFiche = aUneActionOuverte(actions) ? "EN_COURS" : "FINALISEE";
+
   const fiche = await prisma.ficheSSE.update({
     where: { id },
-    data: { statutFiche: "FINALISEE" },
+    data: { statutFiche },
   });
 
   revalidatePath(`/fiches-sse/${id}`);

@@ -71,11 +71,13 @@ export const DOMAINES_OPTIONS = [
 
 export const STATUT_FICHE_LABELS: Record<string, string> = {
   BROUILLON: "Brouillon",
+  EN_COURS: "En cours",
   FINALISEE: "Finalisée",
 };
 
 export const STATUT_FICHE_COLORS: Record<string, string> = {
   BROUILLON: "bg-slate-100 text-slate-700",
+  EN_COURS: "bg-blue-100 text-blue-800",
   FINALISEE: "bg-green-100 text-green-800",
 };
 

@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
+import { StatutDossierEcart } from "@/generated/prisma/enums";
 
 const bool = (v: FormDataEntryValue | null) => v === "on" || v === "true";
 const str = (v: FormDataEntryValue | null) => (v ? String(v) : undefined);
@@ -77,16 +78,16 @@ export async function mettreAJourEcartAmiante(formData: FormData) {
   revalidatePath("/ecart-amiante");
 }
 
-export async function cloturerEcartAmiante(formData: FormData) {
+export async function mettreAJourStatutEcartAmiante(formData: FormData) {
   const session = await auth();
   if (!session?.user) redirect("/connexion");
 
   const id = String(formData.get("id"));
-  const cloture = formData.get("cloture") === "true";
+  const statut = String(formData.get("statut")) as StatutDossierEcart;
 
   await prisma.ecartAmiante.update({
     where: { id },
-    data: { clotureEcartAmiante: cloture, dateCloture: cloture ? new Date() : null },
+    data: { statut, dateCloture: statut === "CLOTURE" ? new Date() : null },
   });
   revalidatePath(`/ecart-amiante/${id}`);
   revalidatePath("/ecart-amiante");

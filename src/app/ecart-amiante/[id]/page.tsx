@@ -2,13 +2,23 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
-import { STATUT_FICHE_COLORS, STATUT_FICHE_LABELS } from "@/lib/labels";
+import {
+  STATUT_FICHE_COLORS,
+  STATUT_FICHE_LABELS,
+  STATUT_DOSSIER_ECART_COLORS,
+  STATUT_DOSSIER_ECART_LABELS,
+  TYPE_ACTION_LABELS,
+  STATUT_ACTION_COLORS,
+  STATUT_ACTION_LABELS,
+} from "@/lib/labels";
 import { EcartAmianteFields } from "@/components/ecart-amiante-fields";
 import {
   mettreAJourEcartAmiante,
-  cloturerEcartAmiante,
+  mettreAJourStatutEcartAmiante,
   creerFicheSSEDepuisAmiante,
 } from "@/app/ecart-amiante/actions";
+import { StatutDossierEcart } from "@/generated/prisma/enums";
+import { StatutSelectForm } from "@/components/statut-select-form";
 
 export default async function EcartAmianteDetailPage({
   params,
@@ -18,7 +28,10 @@ export default async function EcartAmianteDetailPage({
   const { id } = await params;
   const ecartAmiante = await prisma.ecartAmiante.findUnique({
     where: { id },
-    include: { fichesSSE: { orderBy: { createdAt: "desc" } } },
+    include: {
+      fichesSSE: { orderBy: { createdAt: "desc" } },
+      actions: { orderBy: { createdAt: "desc" } },
+    },
   });
 
   if (!ecartAmiante) notFound();
@@ -30,12 +43,8 @@ export default async function EcartAmianteDetailPage({
           <div className="mb-1 flex items-center gap-3">
             <h1 className="text-2xl font-semibold text-slate-900">{ecartAmiante.reference}</h1>
             <Badge
-              label={ecartAmiante.clotureEcartAmiante ? "Clôturé" : "Ouvert"}
-              colorClass={
-                ecartAmiante.clotureEcartAmiante
-                  ? "bg-green-100 text-green-800"
-                  : "bg-amber-100 text-amber-800"
-              }
+              label={STATUT_DOSSIER_ECART_LABELS[ecartAmiante.statut]}
+              colorClass={STATUT_DOSSIER_ECART_COLORS[ecartAmiante.statut]}
             />
           </div>
           <p className="text-sm text-slate-500">
@@ -54,20 +63,12 @@ export default async function EcartAmianteDetailPage({
               </button>
             </form>
           )}
-          <form action={cloturerEcartAmiante}>
-            <input type="hidden" name="id" value={ecartAmiante.id} />
-            <input type="hidden" name="cloture" value={(!ecartAmiante.clotureEcartAmiante).toString()} />
-            <button
-              type="submit"
-              className={`rounded-md px-4 py-2 text-sm font-medium text-white ${
-                ecartAmiante.clotureEcartAmiante
-                  ? "bg-slate-500 hover:bg-slate-600"
-                  : "bg-green-600 hover:bg-green-700"
-              }`}
-            >
-              {ecartAmiante.clotureEcartAmiante ? "Rouvrir" : "Clôturer"}
-            </button>
-          </form>
+          <Link
+            href={`/plan-action/nouveau?ecartAmianteId=${ecartAmiante.id}`}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            + Action
+          </Link>
         </div>
       </div>
 
@@ -87,29 +88,82 @@ export default async function EcartAmianteDetailPage({
         </div>
       )}
 
+      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
+        <StatutSelectForm
+          action={mettreAJourStatutEcartAmiante}
+          hiddenName="id"
+          hiddenValue={ecartAmiante.id}
+          selectName="statut"
+          defaultValue={ecartAmiante.statut}
+          options={Object.values(StatutDossierEcart)
+            .filter((s) => s !== "A_QUALIFIER")
+            .map((s) => ({ value: s, label: STATUT_DOSSIER_ECART_LABELS[s] }))}
+        />
+      </div>
+
       <form
         action={mettreAJourEcartAmiante}
         className="space-y-6 rounded-lg border border-slate-200 bg-white p-6"
       >
         <input type="hidden" name="id" value={ecartAmiante.id} />
-        <EcartAmianteFields v={ecartAmiante} disabled={ecartAmiante.clotureEcartAmiante} />
+        <EcartAmianteFields v={ecartAmiante} disabled={false} />
 
-        {!ecartAmiante.clotureEcartAmiante && (
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="submit"
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              Enregistrer
-            </button>
-          </div>
-        )}
-        {ecartAmiante.clotureEcartAmiante && (
-          <p className="text-xs text-slate-400">
-            Cet écart est clôturé et n&apos;est plus modifiable — clique sur &quot;Rouvrir&quot; pour le modifier.
-          </p>
-        )}
+        <div className="flex justify-end gap-3 pt-2">
+          <button
+            type="submit"
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Enregistrer
+          </button>
+        </div>
       </form>
+
+      <div className="mt-8">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">
+          Plan d&apos;action ({ecartAmiante.actions.length})
+        </h2>
+        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
+              <tr>
+                <th className="px-4 py-3 font-medium">Référence</th>
+                <th className="px-4 py-3 font-medium">Type</th>
+                <th className="px-4 py-3 font-medium">Action</th>
+                <th className="px-4 py-3 font-medium">Responsable</th>
+                <th className="px-4 py-3 font-medium">Échéance</th>
+                <th className="px-4 py-3 font-medium">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ecartAmiante.actions.map((a) => (
+                <tr key={a.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                  <td className="px-4 py-3">
+                    <Link href={`/plan-action/${a.id}`} className="font-medium text-blue-700 hover:underline">
+                      {a.reference}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-slate-700">{TYPE_ACTION_LABELS[a.type]}</td>
+                  <td className="max-w-xs truncate px-4 py-3 text-slate-700">{a.action}</td>
+                  <td className="px-4 py-3 text-slate-700">{a.responsable}</td>
+                  <td className="px-4 py-3 text-slate-500">
+                    {a.echeance ? a.echeance.toLocaleDateString("fr-FR") : "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge label={STATUT_ACTION_LABELS[a.statut]} colorClass={STATUT_ACTION_COLORS[a.statut]} />
+                  </td>
+                </tr>
+              ))}
+              {ecartAmiante.actions.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                    Aucune action.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

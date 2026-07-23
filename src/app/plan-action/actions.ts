@@ -7,19 +7,21 @@ import { prisma } from "@/lib/prisma";
 import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
 import { TypeAction, StatutAction } from "@/generated/prisma/enums";
+import { recalculerStatutsParents } from "@/lib/statut-auto";
 
 const actionSchema = z
   .object({
     ecartId: z.string().optional(),
     ficheSSEId: z.string().optional(),
+    ecartAmianteId: z.string().optional(),
     type: z.enum(Object.values(TypeAction) as [string, ...string[]]),
     action: z.string().min(1, "Description de l'action requise"),
     responsable: z.string().min(1, "Responsable requis"),
     echeance: z.string().optional(),
     obligatoire: z.string().optional(),
   })
-  .refine((v) => v.ecartId || v.ficheSSEId, {
-    message: "Écart ou évènement requis",
+  .refine((v) => v.ecartId || v.ficheSSEId || v.ecartAmianteId, {
+    message: "Écart, évènement ou écart amiante requis",
   });
 
 export async function creerAction(formData: FormData) {
@@ -29,6 +31,7 @@ export async function creerAction(formData: FormData) {
   const parsed = actionSchema.parse({
     ecartId: formData.get("ecartId") || undefined,
     ficheSSEId: formData.get("ficheSSEId") || undefined,
+    ecartAmianteId: formData.get("ecartAmianteId") || undefined,
     type: formData.get("type"),
     action: formData.get("action"),
     responsable: formData.get("responsable"),
@@ -43,6 +46,7 @@ export async function creerAction(formData: FormData) {
       reference,
       ecartId: parsed.ecartId,
       ficheSSEId: parsed.ficheSSEId,
+      ecartAmianteId: parsed.ecartAmianteId,
       type: parsed.type as TypeAction,
       action: parsed.action,
       responsable: parsed.responsable,
@@ -53,7 +57,54 @@ export async function creerAction(formData: FormData) {
 
   if (parsed.ecartId) revalidatePath(`/ecarts/${parsed.ecartId}`);
   if (parsed.ficheSSEId) revalidatePath(`/fiches-sse/${parsed.ficheSSEId}`);
+  if (parsed.ecartAmianteId) revalidatePath(`/ecart-amiante/${parsed.ecartAmianteId}`);
+  await recalculerStatutsParents(action);
   redirect(`/plan-action/${action.id}`);
+}
+
+const actionEditSchema = z.object({
+  type: z.enum(Object.values(TypeAction) as [string, ...string[]]),
+  action: z.string().min(1, "Description de l'action requise"),
+  responsable: z.string().min(1, "Responsable requis"),
+  echeance: z.string().optional(),
+  obligatoire: z.string().optional(),
+  preuve: z.string().optional(),
+  verifEfficacite: z.string().optional(),
+});
+
+export async function mettreAJourAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/connexion");
+
+  const id = String(formData.get("id"));
+  const parsed = actionEditSchema.parse({
+    type: formData.get("type"),
+    action: formData.get("action"),
+    responsable: formData.get("responsable"),
+    echeance: formData.get("echeance") || undefined,
+    obligatoire: formData.get("obligatoire") || undefined,
+    preuve: formData.get("preuve") || undefined,
+    verifEfficacite: formData.get("verifEfficacite") || undefined,
+  });
+
+  const action = await prisma.action.update({
+    where: { id },
+    data: {
+      type: parsed.type as TypeAction,
+      action: parsed.action,
+      responsable: parsed.responsable,
+      echeance: parsed.echeance ? new Date(parsed.echeance) : undefined,
+      obligatoire: parsed.obligatoire === "on",
+      preuve: parsed.preuve,
+      verifEfficacite: parsed.verifEfficacite,
+    },
+  });
+
+  revalidatePath(`/plan-action/${id}`);
+  revalidatePath("/plan-action");
+  if (action.ecartId) revalidatePath(`/ecarts/${action.ecartId}`);
+  if (action.ficheSSEId) revalidatePath(`/fiches-sse/${action.ficheSSEId}`);
+  if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
 }
 
 export async function mettreAJourStatutAction(formData: FormData) {
@@ -69,4 +120,5 @@ export async function mettreAJourStatutAction(formData: FormData) {
   if (action.ecartId) revalidatePath(`/ecarts/${action.ecartId}`);
   if (action.ficheSSEId) revalidatePath(`/fiches-sse/${action.ficheSSEId}`);
   if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
+  await recalculerStatutsParents(action);
 }

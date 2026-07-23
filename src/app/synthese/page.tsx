@@ -12,16 +12,8 @@ import {
 } from "@/lib/labels";
 
 const STATUT_ORDER = ["A_QUALIFIER", "OUVERT", "EN_COURS", "CLOTURE"] as const;
-const STATUT_FICHE_ORDER = ["BROUILLON", "FINALISEE"] as const;
-
-const ECART_AMIANTE_LABELS: Record<string, string> = {
-  ouvert: "Ouvert",
-  cloture: "Clôturé",
-};
-const ECART_AMIANTE_COLORS: Record<string, string> = {
-  ouvert: "bg-amber-100 text-amber-800",
-  cloture: "bg-green-100 text-green-800",
-};
+const STATUT_FICHE_ORDER = ["BROUILLON", "EN_COURS", "FINALISEE"] as const;
+const STATUT_ECART_AMIANTE_ORDER = ["OUVERT", "EN_COURS", "CLOTURE"] as const;
 
 function compterOccurrences(valeurs: (string | null | undefined)[]): { label: string; valeur: number }[] {
   const counts: Record<string, number> = {};
@@ -54,19 +46,17 @@ export default async function SynthesePage() {
     prisma.dossier.count({ where: { statut: { not: "CLOTURE" } } }),
     prisma.ecart.count({ where: { statut: { not: "CLOTURE" } } }),
     prisma.ficheSSE.count({ where: { statutFiche: "BROUILLON" } }),
-    prisma.ecartAmiante.count({ where: { clotureEcartAmiante: false } }),
+    prisma.ecartAmiante.count({ where: { statut: { not: "CLOTURE" } } }),
     prisma.dossier.groupBy({ by: ["statut"], _count: { _all: true } }),
     prisma.ecart.groupBy({ by: ["statut"], _count: { _all: true } }),
     prisma.ficheSSE.groupBy({ by: ["statutFiche"], _count: { _all: true } }),
-    prisma.ecartAmiante.groupBy({ by: ["clotureEcartAmiante"], _count: { _all: true } }),
+    prisma.ecartAmiante.groupBy({ by: ["statut"], _count: { _all: true } }),
   ]);
 
   const statutCounts = Object.fromEntries(dossiersParStatut.map((d) => [d.statut, d._count._all]));
   const ecartsStatutCounts = Object.fromEntries(ecartsParStatut.map((d) => [d.statut, d._count._all]));
   const fichesStatutCounts = Object.fromEntries(fichesParStatut.map((d) => [d.statutFiche, d._count._all]));
-  const ecartAmianteCounts = Object.fromEntries(
-    ecartAmianteParCloture.map((d) => [d.clotureEcartAmiante ? "cloture" : "ouvert", d._count._all]),
-  );
+  const ecartAmianteCounts = Object.fromEntries(ecartAmianteParCloture.map((d) => [d.statut, d._count._all]));
 
   const fichesFocus = await prisma.ficheSSE.findMany({
     select: { domaine: true, theme: true, typeEvenement: true, dateHeure: true },
@@ -83,7 +73,7 @@ export default async function SynthesePage() {
     prisma.ecartAmiante.findMany({
       orderBy: { updatedAt: "desc" },
       take: 5,
-      select: { id: true, reference: true, createdAt: true, updatedAt: true, clotureEcartAmiante: true },
+      select: { id: true, reference: true, createdAt: true, updatedAt: true, statut: true },
     }),
   ]);
 
@@ -116,10 +106,10 @@ export default async function SynthesePage() {
       couleurTexte: "text-purple-600",
     })),
     ...ecartAmianteRecents.map((a) => ({
-      label: a.clotureEcartAmiante ? "Écart amiante clôturé" : "Écart amiante créé",
+      label: a.statut === "CLOTURE" ? "Écart amiante clôturé" : "Écart amiante créé",
       reference: a.reference,
       href: `/ecart-amiante/${a.id}`,
-      date: a.clotureEcartAmiante ? a.updatedAt : a.createdAt,
+      date: a.statut === "CLOTURE" ? a.updatedAt : a.createdAt,
       icon: <IconAlertTriangle className="h-4 w-4" />,
       couleurBg: "bg-teal-50",
       couleurTexte: "text-teal-600",
@@ -201,10 +191,10 @@ export default async function SynthesePage() {
         />
         <GraphiqueBarres
           titre="Écarts amiante par état"
-          donnees={["ouvert", "cloture"].map((s) => ({
-            label: ECART_AMIANTE_LABELS[s],
+          donnees={STATUT_ECART_AMIANTE_ORDER.map((s) => ({
+            label: STATUT_DOSSIER_ECART_LABELS[s],
             valeur: ecartAmianteCounts[s] ?? 0,
-            colorClass: ECART_AMIANTE_COLORS[s],
+            colorClass: STATUT_DOSSIER_ECART_COLORS[s],
           }))}
         />
       </div>

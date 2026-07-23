@@ -3,12 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
 import { SelectAutoSubmit } from "@/components/select-auto-submit";
 import { Pagination } from "@/components/pagination";
+import { STATUT_DOSSIER_ECART_LABELS, STATUT_DOSSIER_ECART_COLORS } from "@/lib/labels";
 
 const TAILLE_PAGE = 10;
 
 const ONGLETS = [
   { valeur: "tous", label: "Tous" },
   { valeur: "ouverts", label: "Ouverts" },
+  { valeur: "en_cours", label: "En cours" },
   { valeur: "clotures", label: "Clôturés" },
 ] as const;
 
@@ -50,14 +52,16 @@ export default async function EcartAmiantePage({
 
   const whereOnglet =
     onglet === "ouverts"
-      ? { clotureEcartAmiante: false }
-      : onglet === "clotures"
-        ? { clotureEcartAmiante: true }
-        : {};
+      ? { statut: "OUVERT" as const }
+      : onglet === "en_cours"
+        ? { statut: "EN_COURS" as const }
+        : onglet === "clotures"
+          ? { statut: "CLOTURE" as const }
+          : {};
 
   const where = { ...whereBase, ...whereOnglet };
 
-  const [total, ecarts, totalTous, totalOuverts, totalClotures] = await Promise.all([
+  const [total, ecarts, totalTous, totalOuverts, totalEnCours, totalClotures] = await Promise.all([
     prisma.ecartAmiante.count({ where }),
     prisma.ecartAmiante.findMany({
       where,
@@ -66,11 +70,17 @@ export default async function EcartAmiantePage({
       take: TAILLE_PAGE,
     }),
     prisma.ecartAmiante.count({ where: whereBase }),
-    prisma.ecartAmiante.count({ where: { ...whereBase, clotureEcartAmiante: false } }),
-    prisma.ecartAmiante.count({ where: { ...whereBase, clotureEcartAmiante: true } }),
+    prisma.ecartAmiante.count({ where: { ...whereBase, statut: "OUVERT" } }),
+    prisma.ecartAmiante.count({ where: { ...whereBase, statut: "EN_COURS" } }),
+    prisma.ecartAmiante.count({ where: { ...whereBase, statut: "CLOTURE" } }),
   ]);
 
-  const compteurs: Record<string, number> = { tous: totalTous, ouverts: totalOuverts, clotures: totalClotures };
+  const compteurs: Record<string, number> = {
+    tous: totalTous,
+    ouverts: totalOuverts,
+    en_cours: totalEnCours,
+    clotures: totalClotures,
+  };
   const ongletActif = onglet ?? "tous";
   const filtreActif = !!q || !!periode;
 
@@ -158,8 +168,8 @@ export default async function EcartAmiantePage({
                 <td className="px-4 py-3 text-slate-700">{e.chef}</td>
                 <td className="px-4 py-3">
                   <Badge
-                    label={e.clotureEcartAmiante ? "Clôturé" : "Ouvert"}
-                    colorClass={e.clotureEcartAmiante ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}
+                    label={STATUT_DOSSIER_ECART_LABELS[e.statut]}
+                    colorClass={STATUT_DOSSIER_ECART_COLORS[e.statut]}
                   />
                 </td>
                 <td className="px-4 py-3 text-slate-500">{e.date.toLocaleDateString("fr-FR")}</td>

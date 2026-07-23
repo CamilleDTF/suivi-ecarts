@@ -7,18 +7,20 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  const passwordHash = await bcrypt.hash("admin1234", 10);
+  const passwordHash = await bcrypt.hash("123456789", 10);
   await prisma.user.upsert({
-    where: { email: "admin@example.com" },
+    where: { email: "martinez.camille@dtffrance.com" },
     update: {},
     create: {
-      email: "admin@example.com",
-      name: "Administrateur",
+      email: "martinez.camille@dtffrance.com",
+      name: "Camille Martinez",
       passwordHash,
       role: "ADMIN",
     },
   });
-  console.log("Utilisateur admin prêt : admin@example.com / admin1234");
+  console.log("Utilisateur admin prêt : martinez.camille@dtffrance.com");
+
+  await prisma.user.deleteMany({ where: { email: "admin@example.com" } });
 
   const iliasPasswordHash = await bcrypt.hash("DanielleCasanova13014", 10);
   await prisma.user.upsert({

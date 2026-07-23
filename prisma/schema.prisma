@@ -53,6 +53,7 @@ enum TypeActivite {
 
 enum StatutFiche {
   BROUILLON
+  EN_COURS
   FINALISEE
 }
 
@@ -220,7 +221,7 @@ model EcartAmiante {
   resultatAttenduNouvelleAnalyse String?
   resultatObtenuNouvelleAnalyse  String?
   actionCloture                  String?
-  clotureEcartAmiante            Boolean    @default(false)
+  statut                         StatutDossierEcart @default(OUVERT)
   dateCloture                    DateTime?
   evenementSSE                   Boolean    @default(false)
   createdAt                      DateTime   @default(now())

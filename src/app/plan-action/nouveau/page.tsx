@@ -6,15 +6,18 @@ import { TypeAction } from "@/generated/prisma/enums";
 export default async function NouvelleActionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ecartId?: string; ficheSSEId?: string }>;
+  searchParams: Promise<{ ecartId?: string; ficheSSEId?: string; ecartAmianteId?: string }>;
 }) {
-  const { ecartId, ficheSSEId } = await searchParams;
+  const { ecartId, ficheSSEId, ecartAmianteId } = await searchParams;
 
   const fiche = ficheSSEId
     ? await prisma.ficheSSE.findUnique({ where: { id: ficheSSEId } })
     : null;
+  const ecartAmiante = !fiche && ecartAmianteId
+    ? await prisma.ecartAmiante.findUnique({ where: { id: ecartAmianteId } })
+    : null;
 
-  const ecarts = fiche
+  const ecarts = fiche || ecartAmiante
     ? []
     : await prisma.ecart.findMany({
         orderBy: { createdAt: "desc" },
@@ -35,6 +38,14 @@ export default async function NouvelleActionPage({
             </p>
             <p className="mt-1 text-xs text-slate-400">
               Cette action sera rattachée uniquement à l&apos;évènement, pas à l&apos;écart ou l&apos;écart amiante lié.
+            </p>
+          </div>
+        ) : ecartAmiante ? (
+          <div>
+            <input type="hidden" name="ecartAmianteId" value={ecartAmiante.id} />
+            <label className="mb-1 block text-sm font-medium text-slate-700">Rattachée à</label>
+            <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              Écart amiante {ecartAmiante.reference}
             </p>
           </div>
         ) : (
