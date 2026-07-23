@@ -1,13 +1,27 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
-import { STATUT_ACTION_COLORS, STATUT_ACTION_LABELS, TYPE_ACTION_LABELS } from "@/lib/labels";
+import { SelectAutoSubmit } from "@/components/select-auto-submit";
+import { StatutAction } from "@/generated/prisma/enums";
+import { STATUT_ACTION_COLORS, STATUT_ACTION_LABELS, TYPE_ACTION_LABELS, RESPONSABLES } from "@/lib/labels";
 
-export default async function PlanActionPage() {
+export default async function PlanActionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ statut?: string; responsable?: string }>;
+}) {
+  const { statut, responsable } = await searchParams;
+
   const actions = await prisma.action.findMany({
+    where: {
+      statut: statut ? (statut as StatutAction) : undefined,
+      responsable: responsable || undefined,
+    },
     orderBy: { echeance: "asc" },
     include: { ecart: { include: { dossier: true } } },
   });
+
+  const filtreActif = !!statut || !!responsable;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
@@ -20,6 +34,30 @@ export default async function PlanActionPage() {
           + Nouvelle action
         </Link>
       </div>
+
+      <form method="get" className="mb-4 flex flex-wrap items-center gap-3">
+        <SelectAutoSubmit
+          name="statut"
+          defaultValue={statut ?? ""}
+          options={[
+            { value: "", label: "Statut : Tous" },
+            ...Object.values(StatutAction).map((s) => ({ value: s, label: STATUT_ACTION_LABELS[s] })),
+          ]}
+        />
+        <SelectAutoSubmit
+          name="responsable"
+          defaultValue={responsable ?? ""}
+          options={[
+            { value: "", label: "Responsable : Tous" },
+            ...RESPONSABLES.map((r) => ({ value: r, label: r })),
+          ]}
+        />
+        {filtreActif && (
+          <Link href="/plan-action" className="text-sm text-slate-500 hover:underline">
+            Réinitialiser
+          </Link>
+        )}
+      </form>
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
@@ -61,7 +99,7 @@ export default async function PlanActionPage() {
             {actions.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                  Aucune action pour l&apos;instant.
+                  {filtreActif ? "Aucune action ne correspond à ce filtre." : "Aucune action pour l'instant."}
                 </td>
               </tr>
             )}

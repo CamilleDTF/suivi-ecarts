@@ -1,16 +1,12 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { StatTile } from "@/components/stat-tile";
-import { Badge } from "@/components/badge";
 import { GraphiqueBarres } from "@/components/graphique-barres";
+import { IconFolder, IconAlertTriangle, IconFileText } from "@/components/icons";
 import {
   STATUT_DOSSIER_ECART_COLORS,
   STATUT_DOSSIER_ECART_LABELS,
   STATUT_FICHE_COLORS,
   STATUT_FICHE_LABELS,
-  STATUT_ACTION_COLORS,
-  STATUT_ACTION_LABELS,
-  TYPE_ACTION_LABELS,
 } from "@/lib/labels";
 
 const STATUT_ORDER = ["A_QUALIFIER", "OUVERT", "EN_COURS", "CLOTURE"] as const;
@@ -25,15 +21,29 @@ const ECART_AMIANTE_COLORS: Record<string, string> = {
   cloture: "bg-green-100 text-green-800",
 };
 
-export default async function SynthesePage() {
-  const now = new Date();
+function compterOccurrences(valeurs: (string | null | undefined)[]): { label: string; valeur: number }[] {
+  const counts: Record<string, number> = {};
+  for (const v of valeurs) {
+    if (!v) continue;
+    counts[v] = (counts[v] ?? 0) + 1;
+  }
+  return Object.entries(counts)
+    .map(([label, valeur]) => ({ label, valeur }))
+    .sort((a, b) => b.valeur - a.valeur);
+}
 
+function trouverDominant(repartition: { label: string; valeur: number }[], total: number) {
+  if (repartition.length === 0) return null;
+  const top = repartition[0];
+  return { label: top.label, valeur: top.valeur, part: total > 0 ? Math.round((top.valeur / total) * 100) : 0 };
+}
+
+export default async function SynthesePage() {
   const [
     dossiersOuverts,
     ecartsOuverts,
     fichesBrouillon,
     ecartAmianteOuverts,
-    actionsEnRetard,
     dossiersParStatut,
     ecartsParStatut,
     fichesParStatut,
@@ -43,14 +53,6 @@ export default async function SynthesePage() {
     prisma.ecart.count({ where: { statut: { not: "CLOTURE" } } }),
     prisma.ficheSSE.count({ where: { statutFiche: "BROUILLON" } }),
     prisma.ecartAmiante.count({ where: { clotureEcartAmiante: false } }),
-    prisma.action.findMany({
-      where: {
-        echeance: { lt: now },
-        statut: { notIn: ["REALISEE", "VERIFIEE_EFFICACE", "ANNULEE"] },
-      },
-      include: { ecart: { include: { dossier: true } } },
-      orderBy: { echeance: "asc" },
-    }),
     prisma.dossier.groupBy({ by: ["statut"], _count: { _all: true } }),
     prisma.ecart.groupBy({ by: ["statut"], _count: { _all: true } }),
     prisma.ficheSSE.groupBy({ by: ["statutFiche"], _count: { _all: true } }),
@@ -64,19 +66,49 @@ export default async function SynthesePage() {
     ecartAmianteParCloture.map((d) => [d.clotureEcartAmiante ? "cloture" : "ouvert", d._count._all]),
   );
 
+  const fichesFocus = await prisma.ficheSSE.findMany({
+    select: { domaine: true, theme: true, typeEvenement: true, dateHeure: true },
+  });
+
+  const totalEvenements = fichesFocus.length;
+  const evenementsParAnnee = compterOccurrences(
+    fichesFocus.map((f) => (f.dateHeure ? String(f.dateHeure.getFullYear()) : null)),
+  ).sort((a, b) => Number(a.label) - Number(b.label));
+  const domaineRepartition = compterOccurrences(fichesFocus.flatMap((f) => f.domaine));
+  const themeRepartition = compterOccurrences(fichesFocus.flatMap((f) => f.theme));
+  const typeRepartition = compterOccurrences(fichesFocus.map((f) => f.typeEvenement));
+
+  const themeDominant = trouverDominant(themeRepartition, totalEvenements);
+  const typeDominant = trouverDominant(typeRepartition, totalEvenements);
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <h1 className="mb-6 text-2xl font-semibold text-slate-900">Synthèse</h1>
 
-      <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        <StatTile label="Dossiers ouverts" value={dossiersOuverts} />
-        <StatTile label="Écarts ouverts" value={ecartsOuverts} />
-        <StatTile label="Évènements SSE en brouillon" value={fichesBrouillon} />
-        <StatTile label="Écarts amiante ouverts" value={ecartAmianteOuverts} />
+      <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatTile
-          label="Actions en retard"
-          value={actionsEnRetard.length}
-          tone={actionsEnRetard.length > 0 ? "critical" : "good"}
+          label="Dossiers ouverts"
+          value={dossiersOuverts}
+          icon={<IconFolder className="h-5 w-5" />}
+          couleur="bleu"
+        />
+        <StatTile
+          label="Écarts ouverts"
+          value={ecartsOuverts}
+          icon={<IconAlertTriangle className="h-5 w-5" />}
+          couleur="orange"
+        />
+        <StatTile
+          label="Évènements SSE en brouillon"
+          value={fichesBrouillon}
+          icon={<IconFileText className="h-5 w-5" />}
+          couleur="violet"
+        />
+        <StatTile
+          label="Écarts amiante ouverts"
+          value={ecartAmianteOuverts}
+          icon={<IconAlertTriangle className="h-5 w-5" />}
+          couleur="sarcelle"
         />
       </div>
 
@@ -115,55 +147,61 @@ export default async function SynthesePage() {
         />
       </div>
 
-      <div>
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">
-          Actions en retard ({actionsEnRetard.length})
-        </h2>
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Référence</th>
-                <th className="px-4 py-3 font-medium">Écart</th>
-                <th className="px-4 py-3 font-medium">Type</th>
-                <th className="px-4 py-3 font-medium">Action</th>
-                <th className="px-4 py-3 font-medium">Responsable</th>
-                <th className="px-4 py-3 font-medium">Échéance</th>
-                <th className="px-4 py-3 font-medium">Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {actionsEnRetard.map((a) => (
-                <tr key={a.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                  <td className="px-4 py-3">
-                    <Link href={`/plan-action/${a.id}`} className="font-medium text-blue-700 hover:underline">
-                      {a.reference}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Link href={`/ecarts/${a.ecart.id}`} className="text-slate-600 hover:underline">
-                      {a.ecart.reference}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-slate-700">{TYPE_ACTION_LABELS[a.type]}</td>
-                  <td className="max-w-xs truncate px-4 py-3 text-slate-700">{a.action}</td>
-                  <td className="px-4 py-3 text-slate-700">{a.responsable}</td>
-                  <td className="px-4 py-3 text-[#d03b3b]">{a.echeance?.toLocaleDateString("fr-FR")}</td>
-                  <td className="px-4 py-3">
-                    <Badge label={STATUT_ACTION_LABELS[a.statut]} colorClass={STATUT_ACTION_COLORS[a.statut]} />
-                  </td>
-                </tr>
-              ))}
-              {actionsEnRetard.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                    Aucune action en retard
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      <div className="mb-8">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">Focus Évènements SSE</h2>
+
+        <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <StatTile
+            label="Total évènements"
+            value={totalEvenements}
+            icon={<IconFileText className="h-5 w-5" />}
+            couleur="violet"
+          />
+          {evenementsParAnnee.map((a) => (
+            <StatTile
+              key={a.label}
+              label={`Évènements en ${a.label}`}
+              value={a.valeur}
+              icon={<IconFileText className="h-5 w-5" />}
+              couleur="bleu"
+            />
+          ))}
         </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <GraphiqueBarres titre="Répartition par domaine" donnees={domaineRepartition} couleurUnique="bg-blue-400" />
+          <GraphiqueBarres titre="Répartition par thème" donnees={themeRepartition} couleurUnique="bg-purple-400" />
+          <GraphiqueBarres
+            titre="Répartition par type d'événement"
+            donnees={typeRepartition}
+            couleurUnique="bg-amber-400"
+          />
+        </div>
+
+        {(themeDominant || typeDominant) && (
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {themeDominant && (
+              <div className="rounded-lg border border-slate-200 bg-white p-4">
+                <h3 className="mb-2 text-sm font-semibold uppercase text-slate-500">Thème dominant</h3>
+                <p className="text-lg font-semibold text-slate-900">{themeDominant.label}</p>
+                <p className="text-sm text-slate-500">
+                  {themeDominant.valeur} évènement(s) · {themeDominant.part}% du total
+                </p>
+              </div>
+            )}
+            {typeDominant && (
+              <div className="rounded-lg border border-slate-200 bg-white p-4">
+                <h3 className="mb-2 text-sm font-semibold uppercase text-slate-500">
+                  Type d&apos;événement dominant
+                </h3>
+                <p className="text-lg font-semibold text-slate-900">{typeDominant.label}</p>
+                <p className="text-sm text-slate-500">
+                  {typeDominant.valeur} évènement(s) · {typeDominant.part}% du total
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

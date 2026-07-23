@@ -18,9 +18,14 @@ function couleurPleine(badgeColorClass: string) {
 export function GraphiqueBarres({
   titre,
   donnees,
+  couleurUnique,
 }: {
   titre: string;
-  donnees: { label: string; valeur: number; colorClass: string }[];
+  donnees: { label: string; valeur: number; colorClass?: string }[];
+  /** Couleur (classe Tailwind littérale, ex. "bg-blue-400") utilisée pour toutes
+   * les barres quand la couleur n'a pas de sens par catégorie (ex. répartition
+   * par domaine/thème), contrairement à un statut où chaque valeur a sa couleur. */
+  couleurUnique?: string;
 }) {
   const max = Math.max(...donnees.map((d) => d.valeur), 1);
 
@@ -30,10 +35,12 @@ export function GraphiqueBarres({
       <div className="space-y-2">
         {donnees.map((d) => (
           <div key={d.label} className="flex items-center gap-3">
-            <div className="w-32 shrink-0 truncate text-sm text-slate-600">{d.label}</div>
+            <div className="w-32 shrink-0 truncate text-sm text-slate-600" title={d.label}>
+              {d.label}
+            </div>
             <div className="h-4 flex-1 rounded bg-slate-100">
               <div
-                className={`h-4 rounded ${couleurPleine(d.colorClass)}`}
+                className={`h-4 rounded ${d.colorClass ? couleurPleine(d.colorClass) : couleurUnique ?? "bg-blue-400"}`}
                 style={{ width: `${(d.valeur / max) * 100}%` }}
               />
             </div>
