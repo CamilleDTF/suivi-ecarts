@@ -1,0 +1,121 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import { Badge } from "@/components/badge";
+import {
+  ORIGINE_LABELS,
+  STATUT_DOSSIER_ECART_COLORS,
+  STATUT_DOSSIER_ECART_LABELS,
+} from "@/lib/labels";
+import { mettreAJourStatutDossier } from "@/app/dossiers/actions";
+import { StatutDossierEcart } from "@/generated/prisma/enums";
+import { StatutSelectForm } from "@/components/statut-select-form";
+
+export default async function DossierDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const dossier = await prisma.dossier.findUnique({
+    where: { id },
+    include: { ecarts: { orderBy: { createdAt: "desc" } } },
+  });
+
+  if (!dossier) notFound();
+
+  return (
+    <div className="mx-auto max-w-5xl px-6 py-8">
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <div className="mb-1 flex items-center gap-3">
+            <h1 className="text-2xl font-semibold text-slate-900">{dossier.reference}</h1>
+            <Badge
+              label={STATUT_DOSSIER_ECART_LABELS[dossier.statut]}
+              colorClass={STATUT_DOSSIER_ECART_COLORS[dossier.statut]}
+            />
+          </div>
+          <p className="text-sm text-slate-500">{dossier.chantier}</p>
+        </div>
+        <Link
+          href={`/ecarts/nouveau?dossierId=${dossier.id}`}
+          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          + Nouvel écart
+        </Link>
+      </div>
+
+      <div className="mb-8 grid grid-cols-2 gap-4 rounded-lg border border-slate-200 bg-white p-6 sm:grid-cols-4">
+        <div>
+          <div className="text-xs font-medium uppercase text-slate-400">Déclarant</div>
+          <div className="text-sm text-slate-800">{dossier.declarant}</div>
+        </div>
+        <div>
+          <div className="text-xs font-medium uppercase text-slate-400">Origine</div>
+          <div className="text-sm text-slate-800">{ORIGINE_LABELS[dossier.origine]}</div>
+        </div>
+        <div>
+          <div className="text-xs font-medium uppercase text-slate-400">Détecté le</div>
+          <div className="text-sm text-slate-800">
+            {dossier.dateDetection.toLocaleDateString("fr-FR")}
+          </div>
+        </div>
+        <StatutSelectForm
+          action={mettreAJourStatutDossier}
+          hiddenName="id"
+          hiddenValue={dossier.id}
+          selectName="statut"
+          defaultValue={dossier.statut}
+          options={Object.values(StatutDossierEcart).map((s) => ({
+            value: s,
+            label: STATUT_DOSSIER_ECART_LABELS[s],
+          }))}
+        />
+      </div>
+
+      <h2 className="mb-3 text-lg font-semibold text-slate-900">
+        Écarts ({dossier.ecarts.length})
+      </h2>
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <table className="w-full text-left text-sm">
+          <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
+            <tr>
+              <th className="px-4 py-3 font-medium">Référence</th>
+              <th className="px-4 py-3 font-medium">Description</th>
+              <th className="px-4 py-3 font-medium">Statut</th>
+              <th className="px-4 py-3 font-medium">Détecté le</th>
+            </tr>
+          </thead>
+          <tbody>
+            {dossier.ecarts.map((e) => (
+              <tr key={e.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                <td className="px-4 py-3">
+                  <Link href={`/ecarts/${e.id}`} className="font-medium text-blue-700 hover:underline">
+                    {e.reference}
+                  </Link>
+                </td>
+                <td className="max-w-md truncate px-4 py-3 text-slate-700">{e.description}</td>
+                <td className="px-4 py-3">
+                  <Badge
+                    label={STATUT_DOSSIER_ECART_LABELS[e.statut]}
+                    colorClass={STATUT_DOSSIER_ECART_COLORS[e.statut]}
+                  />
+                </td>
+                <td className="px-4 py-3 text-slate-500">
+                  {e.dateDetection.toLocaleDateString("fr-FR")}
+                </td>
+              </tr>
+            ))}
+            {dossier.ecarts.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-4 py-8 text-center text-slate-400">
+                  Aucun écart pour ce dossier.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

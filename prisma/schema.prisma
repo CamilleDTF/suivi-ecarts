@@ -1,0 +1,190 @@
+// Schema for "Suivi des écarts" — reconstruit à partir de l'application Power Apps
+// d'origine (Dossiers -> Écarts -> Fiches SSE -> Plan d'action).
+//
+// Différences volontaires par rapport aux tables Excel d'origine :
+// - vrais types Date/Enum au lieu de tout stocker en texte (source du bug corrigé
+//   précédemment sur le champ "Date" d'EcartAmiante_1) ;
+// - référence humaine (ex. "EC-2026-0007") générée dans une transaction avec
+//   verrou, pour éviter la collision d'ID possible dans le code Power Fx d'origine
+//   (Max(...)+1 sans verrou).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  UTILISATEUR
+}
+
+enum Origine {
+  REMONTEE_TERRAIN
+  AUDIT_INTERNE
+  AUDIT_EXTERNE
+  VISITE_CHANTIER
+  CONTROLE_TERRAIN
+  RONDE_SECURITE
+  INCIDENT_ACCIDENT
+  AUTRE
+}
+
+enum StatutDossierEcart {
+  A_QUALIFIER
+  OUVERT
+  EN_COURS
+  CLOTURE
+}
+
+enum TypeActivite {
+  SS3_RETRAIT_ENCAPSULAGE
+  SS4_INTERVENTION
+  PREPARATION_CHANTIER
+  REPLI_RESTITUTION
+  GESTION_DECHETS
+  MATERIEL
+  ACTIVITE_SUPPORT
+  AUTRE
+}
+
+enum StatutFiche {
+  BROUILLON
+  FINALISEE
+}
+
+enum TypeAction {
+  CURATIVE
+  CORRECTIVE
+  PREVENTIVE
+}
+
+enum StatutAction {
+  A_FAIRE
+  EN_COURS
+  EN_RETARD
+  REALISEE
+  VERIFIEE_EFFICACE
+  ANNULEE
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         Role     @default(UTILISATEUR)
+  createdAt    DateTime @default(now())
+}
+
+// Compteur de séquence par (type d'entité, année), utilisé pour générer les
+// références humaines de façon atomique (SELECT ... FOR UPDATE).
+model ReferenceCounter {
+  entite String
+  annee  Int
+  valeur Int    @default(0)
+
+  @@id([entite, annee])
+}
+
+model Dossier {
+  id            String             @id @default(cuid())
+  reference     String             @unique
+  dateDetection DateTime
+  origine       Origine
+  statut        StatutDossierEcart @default(A_QUALIFIER)
+  declarant     String
+  chantier      String
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  ecarts        Ecart[]
+}
+
+model Ecart {
+  id                 String             @id @default(cuid())
+  reference          String             @unique
+  dossier            Dossier            @relation(fields: [dossierId], references: [id])
+  dossierId          String
+  dateDetection      DateTime
+  origine            Origine
+  statut             StatutDossierEcart @default(A_QUALIFIER)
+  declarant          String
+  typeActivite       TypeActivite?
+  natures            String[]
+  domaines           String[]
+  pointsSensibles    String?
+  graviteReelle      String?
+  gravitePotentielle String?
+  frequence          String?
+  description        String?
+  mesureImmediate    String?
+  cause              String?
+  critereEfficacite  String?
+  ficheSSECreee      Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  fichesSSE          FicheSSE[]
+  actions            Action[]
+}
+
+model FicheSSE {
+  id                           String      @id @default(cuid())
+  reference                    String      @unique
+  ecart                        Ecart?      @relation(fields: [ecartId], references: [id])
+  ecartId                      String?
+  typeEvenement                String?
+  numeroInterne                String?
+  statutFiche                  StatutFiche @default(BROUILLON)
+  emetteur                     String?
+  nomChantier                  String?
+  dateHeure                    DateTime?
+  lieuZone                     String?
+  personnesImpliquees          String?
+  temoins                      String?
+  declarationExterneNecessaire Boolean?
+  declarationExterneA          String?
+  descriptionFactuelle         String?
+  gravite                      String?
+  frequence                    String?
+  criticite                    String?
+  typeAnalyse                  String?
+  toutesActionsCloturees       Boolean?
+  miseAJourNecessaire          Boolean?
+  procedureLaquelle            String?
+  referenceDUERP               String?
+  nouveauRisqueNecessaire      Boolean?
+  referenceNouveauRisque       String?
+  communicationInterne         Boolean?
+  typeCommunication            String?
+  validationNom                String?
+  validationFonction           String?
+  validationDate               DateTime?
+  mesuresImmediatesPrises      String?
+  dateEnvoi                    DateTime?
+  domaine                      String?
+  theme                        String?
+  referencePreuve              String?
+  createdAt                    DateTime    @default(now())
+  updatedAt                    DateTime    @updatedAt
+}
+
+model Action {
+  id              String       @id @default(cuid())
+  reference       String       @unique
+  ecart           Ecart        @relation(fields: [ecartId], references: [id])
+  ecartId         String
+  type            TypeAction
+  action          String
+  responsable     String
+  echeance        DateTime?
+  statut          StatutAction @default(A_FAIRE)
+  obligatoire     Boolean      @default(false)
+  preuve          String?
+  verifEfficacite String?
+  origine         String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+}
