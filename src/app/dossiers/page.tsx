@@ -1,17 +1,45 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
-import {
-  ORIGINE_LABELS,
-  STATUT_DOSSIER_ECART_COLORS,
-  STATUT_DOSSIER_ECART_LABELS,
-} from "@/lib/labels";
+import { SelectAutoSubmit } from "@/components/select-auto-submit";
+import { Pagination } from "@/components/pagination";
+import { Origine, StatutDossierEcart } from "@/generated/prisma/enums";
+import { ORIGINE_LABELS, STATUT_DOSSIER_ECART_COLORS, STATUT_DOSSIER_ECART_LABELS } from "@/lib/labels";
 
-export default async function DossiersPage() {
-  const dossiers = await prisma.dossier.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { ecarts: true } } },
-  });
+const TAILLE_PAGE = 10;
+
+export default async function DossiersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; statut?: string; origine?: string; page?: string }>;
+}) {
+  const { q, statut, origine, page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+
+  const where = {
+    statut: statut ? (statut as StatutDossierEcart) : undefined,
+    origine: origine ? (origine as Origine) : undefined,
+    OR: q
+      ? [
+          { reference: { contains: q, mode: "insensitive" as const } },
+          { chantier: { contains: q, mode: "insensitive" as const } },
+          { declarant: { contains: q, mode: "insensitive" as const } },
+        ]
+      : undefined,
+  };
+
+  const [total, dossiers] = await Promise.all([
+    prisma.dossier.count({ where }),
+    prisma.dossier.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { ecarts: true } } },
+      skip: (page - 1) * TAILLE_PAGE,
+      take: TAILLE_PAGE,
+    }),
+  ]);
+
+  const filtreActif = !!q || !!statut || !!origine;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
@@ -24,6 +52,37 @@ export default async function DossiersPage() {
           + Nouveau dossier
         </Link>
       </div>
+
+      <form method="get" className="mb-4 flex flex-wrap items-center gap-3">
+        <input
+          type="text"
+          name="q"
+          defaultValue={q ?? ""}
+          placeholder="Rechercher un dossier…"
+          className="min-w-[220px] flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
+        />
+        <SelectAutoSubmit
+          name="statut"
+          defaultValue={statut ?? ""}
+          options={[
+            { value: "", label: "Statut : Tous" },
+            ...Object.values(StatutDossierEcart).map((s) => ({ value: s, label: STATUT_DOSSIER_ECART_LABELS[s] })),
+          ]}
+        />
+        <SelectAutoSubmit
+          name="origine"
+          defaultValue={origine ?? ""}
+          options={[
+            { value: "", label: "Origine : Toutes" },
+            ...Object.values(Origine).map((o) => ({ value: o, label: ORIGINE_LABELS[o] })),
+          ]}
+        />
+        {filtreActif && (
+          <Link href="/dossiers" className="text-sm text-slate-500 hover:underline">
+            Réinitialiser
+          </Link>
+        )}
+      </form>
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
@@ -64,12 +123,13 @@ export default async function DossiersPage() {
             {dossiers.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                  Aucun dossier pour l&apos;instant.
+                  {filtreActif ? "Aucun dossier ne correspond à ce filtre." : "Aucun dossier pour l'instant."}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+        {total > 0 && <Pagination total={total} page={page} pageSize={TAILLE_PAGE} baseParams={{ q, statut, origine }} />}
       </div>
     </div>
   );

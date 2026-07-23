@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { StatTile } from "@/components/stat-tile";
 import { GraphiqueBarres } from "@/components/graphique-barres";
+import { DonutChart } from "@/components/donut-chart";
+import { ActiviteRecente, type ActiviteItem } from "@/components/activite-recente";
 import { IconFolder, IconAlertTriangle, IconFileText } from "@/components/icons";
 import {
   STATUT_DOSSIER_ECART_COLORS,
@@ -70,6 +72,62 @@ export default async function SynthesePage() {
     select: { domaine: true, theme: true, typeEvenement: true, dateHeure: true },
   });
 
+  const [dossiersRecents, ecartsRecents, fichesRecentes, ecartAmianteRecents] = await Promise.all([
+    prisma.dossier.findMany({ orderBy: { createdAt: "desc" }, take: 5, select: { id: true, reference: true, createdAt: true } }),
+    prisma.ecart.findMany({ orderBy: { createdAt: "desc" }, take: 5, select: { id: true, reference: true, createdAt: true } }),
+    prisma.ficheSSE.findMany({
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+      select: { id: true, reference: true, createdAt: true, updatedAt: true, statutFiche: true },
+    }),
+    prisma.ecartAmiante.findMany({
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+      select: { id: true, reference: true, createdAt: true, updatedAt: true, clotureEcartAmiante: true },
+    }),
+  ]);
+
+  const activites: ActiviteItem[] = [
+    ...dossiersRecents.map((d) => ({
+      label: "Dossier créé",
+      reference: d.reference,
+      href: `/dossiers/${d.id}`,
+      date: d.createdAt,
+      icon: <IconFolder className="h-4 w-4" />,
+      couleurBg: "bg-blue-50",
+      couleurTexte: "text-blue-600",
+    })),
+    ...ecartsRecents.map((e) => ({
+      label: "Écart créé",
+      reference: e.reference,
+      href: `/ecarts/${e.id}`,
+      date: e.createdAt,
+      icon: <IconAlertTriangle className="h-4 w-4" />,
+      couleurBg: "bg-amber-50",
+      couleurTexte: "text-amber-600",
+    })),
+    ...fichesRecentes.map((f) => ({
+      label: f.statutFiche === "FINALISEE" ? "Évènement SSE finalisé" : "Évènement SSE créé",
+      reference: f.reference,
+      href: `/fiches-sse/${f.id}`,
+      date: f.statutFiche === "FINALISEE" ? f.updatedAt : f.createdAt,
+      icon: <IconFileText className="h-4 w-4" />,
+      couleurBg: "bg-purple-50",
+      couleurTexte: "text-purple-600",
+    })),
+    ...ecartAmianteRecents.map((a) => ({
+      label: a.clotureEcartAmiante ? "Écart amiante clôturé" : "Écart amiante créé",
+      reference: a.reference,
+      href: `/ecart-amiante/${a.id}`,
+      date: a.clotureEcartAmiante ? a.updatedAt : a.createdAt,
+      icon: <IconAlertTriangle className="h-4 w-4" />,
+      couleurBg: "bg-teal-50",
+      couleurTexte: "text-teal-600",
+    })),
+  ]
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .slice(0, 6);
+
   const totalEvenements = fichesFocus.length;
   const evenementsParAnnee = compterOccurrences(
     fichesFocus.map((f) => (f.dateHeure ? String(f.dateHeure.getFullYear()) : null)),
@@ -113,14 +171,18 @@ export default async function SynthesePage() {
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <GraphiqueBarres
+        <DonutChart
           titre="Dossiers par statut"
-          donnees={STATUT_ORDER.map((s) => ({
+          segments={STATUT_ORDER.map((s) => ({
             label: STATUT_DOSSIER_ECART_LABELS[s],
             valeur: statutCounts[s] ?? 0,
             colorClass: STATUT_DOSSIER_ECART_COLORS[s],
           }))}
         />
+        <ActiviteRecente items={activites} />
+      </div>
+
+      <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <GraphiqueBarres
           titre="Écarts par statut"
           donnees={STATUT_ORDER.map((s) => ({

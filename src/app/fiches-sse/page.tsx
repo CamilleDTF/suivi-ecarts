@@ -1,13 +1,44 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
+import { SelectAutoSubmit } from "@/components/select-auto-submit";
+import { Pagination } from "@/components/pagination";
+import { StatutFiche } from "@/generated/prisma/enums";
 import { STATUT_FICHE_COLORS, STATUT_FICHE_LABELS } from "@/lib/labels";
 
-export default async function FichesSSEPage() {
-  const fiches = await prisma.ficheSSE.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { ecart: { include: { dossier: true } } },
-  });
+const TAILLE_PAGE = 10;
+
+export default async function FichesSSEPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; statut?: string; page?: string }>;
+}) {
+  const { q, statut, page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+
+  const where = {
+    statutFiche: statut ? (statut as StatutFiche) : undefined,
+    OR: q
+      ? [
+          { reference: { contains: q, mode: "insensitive" as const } },
+          { nomChantier: { contains: q, mode: "insensitive" as const } },
+          { emetteur: { contains: q, mode: "insensitive" as const } },
+        ]
+      : undefined,
+  };
+
+  const [total, fiches] = await Promise.all([
+    prisma.ficheSSE.count({ where }),
+    prisma.ficheSSE.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      include: { ecart: { include: { dossier: true } } },
+      skip: (page - 1) * TAILLE_PAGE,
+      take: TAILLE_PAGE,
+    }),
+  ]);
+
+  const filtreActif = !!q || !!statut;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
@@ -20,6 +51,29 @@ export default async function FichesSSEPage() {
           + Nouvel évènement SSE
         </Link>
       </div>
+
+      <form method="get" className="mb-4 flex flex-wrap items-center gap-3">
+        <input
+          type="text"
+          name="q"
+          defaultValue={q ?? ""}
+          placeholder="Rechercher un évènement…"
+          className="min-w-[220px] flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
+        />
+        <SelectAutoSubmit
+          name="statut"
+          defaultValue={statut ?? ""}
+          options={[
+            { value: "", label: "Statut : Tous" },
+            ...Object.values(StatutFiche).map((s) => ({ value: s, label: STATUT_FICHE_LABELS[s] })),
+          ]}
+        />
+        {filtreActif && (
+          <Link href="/fiches-sse" className="text-sm text-slate-500 hover:underline">
+            Réinitialiser
+          </Link>
+        )}
+      </form>
 
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
@@ -59,12 +113,13 @@ export default async function FichesSSEPage() {
             {fiches.length === 0 && (
               <tr>
                 <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                  Aucun évènement SSE pour l&apos;instant.
+                  {filtreActif ? "Aucun évènement ne correspond à ce filtre." : "Aucun évènement SSE pour l'instant."}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+        {total > 0 && <Pagination total={total} page={page} pageSize={TAILLE_PAGE} baseParams={{ q, statut }} />}
       </div>
     </div>
   );
