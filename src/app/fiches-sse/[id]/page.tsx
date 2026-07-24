@@ -124,7 +124,7 @@ export default async function FicheSSEDetailPage({
         <p className="mb-3 text-xs text-slate-400">
           Actions rattachées à l&apos;évènement, ainsi qu&apos;à l&apos;écart ou l&apos;écart amiante lié.
         </p>
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
               <tr>

@@ -107,7 +107,7 @@ export default async function EcartDetailPage({
         <h2 className="mb-3 text-lg font-semibold text-slate-900">
           Évènements SSE ({ecart.fichesSSE.length})
         </h2>
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
               <tr>
@@ -146,7 +146,7 @@ export default async function EcartDetailPage({
         <h2 className="mb-3 text-lg font-semibold text-slate-900">
           Plan d&apos;action ({ecart.actions.length})
         </h2>
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
               <tr>
