@@ -11,6 +11,7 @@ export default async function NouvelEcartPage({
   const { dossierId } = await searchParams;
   const dossiers = await prisma.dossier.findMany({ orderBy: { createdAt: "desc" } });
   const today = new Date().toISOString().slice(0, 10);
+  const dossierSelectionne = dossierId ? dossiers.find((d) => d.id === dossierId) : undefined;
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
@@ -51,7 +52,12 @@ export default async function NouvelEcartPage({
 
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">Origine</label>
-          <select name="origine" required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+          <select
+            name="origine"
+            required
+            defaultValue={dossierSelectionne?.origine ?? ""}
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          >
             {Object.values(Origine).map((o) => (
               <option key={o} value={o}>
                 {ORIGINE_LABELS[o]}

@@ -14,6 +14,7 @@ import { ArbreCauses } from "@/components/arbre-causes";
 import { FicheSSEFields } from "@/components/fiche-sse-fields";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { BoutonRetour } from "@/components/bouton-retour";
 
 export default async function FicheSSEDetailPage({
   params,
@@ -53,8 +54,16 @@ export default async function FicheSSEDetailPage({
     return "—";
   }
 
+  const retourHref = fiche.ecart
+    ? `/ecarts/${fiche.ecart.id}`
+    : fiche.ecartAmiante
+      ? `/ecart-amiante/${fiche.ecartAmiante.id}`
+      : "/fiches-sse";
+  const retourLabel = fiche.ecart ? "Retour à l'écart" : fiche.ecartAmiante ? "Retour à l'écart amiante" : "Retour aux évènements SSE";
+
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
+      <BoutonRetour href={retourHref} label={retourLabel} />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">

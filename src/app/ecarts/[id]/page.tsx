@@ -17,6 +17,7 @@ import { StatutSelectForm } from "@/components/statut-select-form";
 import { EcartFields } from "@/components/ecart-fields";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { BoutonRetour } from "@/components/bouton-retour";
 import { compterImpactSuppressionEcart } from "@/lib/suppression";
 
 export default async function EcartDetailPage({
@@ -40,6 +41,7 @@ export default async function EcartDetailPage({
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
+      <BoutonRetour href={`/dossiers/${ecart.dossier.id}`} label="Retour au dossier" />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
@@ -81,7 +83,9 @@ export default async function EcartDetailPage({
           hiddenValue={ecart.id}
           selectName="statut"
           defaultValue={ecart.statut}
-          options={Object.values(StatutDossierEcart).map((s) => ({
+          options={Object.values(StatutDossierEcart)
+            .filter((s) => s !== "A_QUALIFIER")
+            .map((s) => ({
             value: s,
             label: STATUT_DOSSIER_ECART_LABELS[s],
           }))}

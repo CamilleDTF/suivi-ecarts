@@ -66,7 +66,9 @@ export default async function EcartsPage({
           defaultValue={statut ?? ""}
           options={[
             { value: "", label: "Statut : Tous" },
-            ...Object.values(StatutDossierEcart).map((s) => ({ value: s, label: STATUT_DOSSIER_ECART_LABELS[s] })),
+            ...Object.values(StatutDossierEcart)
+              .filter((s) => s !== "A_QUALIFIER")
+              .map((s) => ({ value: s, label: STATUT_DOSSIER_ECART_LABELS[s] })),
           ]}
         />
         <SelectAutoSubmit

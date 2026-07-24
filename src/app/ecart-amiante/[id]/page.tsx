@@ -22,6 +22,7 @@ import { StatutDossierEcart } from "@/generated/prisma/enums";
 import { StatutSelectForm } from "@/components/statut-select-form";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { BoutonRetour } from "@/components/bouton-retour";
 import { compterImpactSuppressionEcartAmiante } from "@/lib/suppression";
 
 export default async function EcartAmianteDetailPage({
@@ -44,6 +45,7 @@ export default async function EcartAmianteDetailPage({
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
+      <BoutonRetour href="/ecart-amiante" label="Retour aux écarts amiante" />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">

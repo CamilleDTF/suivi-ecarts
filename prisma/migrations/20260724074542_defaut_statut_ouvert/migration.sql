@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "Dossier" ALTER COLUMN "statut" SET DEFAULT 'OUVERT';
+
+-- AlterTable
+ALTER TABLE "Ecart" ALTER COLUMN "statut" SET DEFAULT 'OUVERT';

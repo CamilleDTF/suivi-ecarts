@@ -193,7 +193,6 @@ async function main() {
         statut: a.statut as never,
         obligatoire: a.obligatoire,
         preuve: a.preuve,
-        verifEfficacite: a.verifEfficacite,
         origine: a.origine,
       },
     });

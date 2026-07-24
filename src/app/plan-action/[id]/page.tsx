@@ -9,6 +9,7 @@ import { StatutSelectForm } from "@/components/statut-select-form";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { ActionFields } from "@/components/action-fields";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { BoutonRetour } from "@/components/bouton-retour";
 
 export default async function ActionDetailPage({
   params,
@@ -23,8 +24,24 @@ export default async function ActionDetailPage({
 
   if (!action) notFound();
 
+  const retourHref = action.ecart
+    ? `/ecarts/${action.ecart.id}`
+    : action.ficheSSE
+      ? `/fiches-sse/${action.ficheSSE.id}`
+      : action.ecartAmiante
+        ? `/ecart-amiante/${action.ecartAmiante.id}`
+        : "/plan-action";
+  const retourLabel = action.ecart
+    ? "Retour à l'écart"
+    : action.ficheSSE
+      ? "Retour à l'évènement SSE"
+      : action.ecartAmiante
+        ? "Retour à l'écart amiante"
+        : "Retour au plan d'action";
+
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
+      <BoutonRetour href={retourHref} label={retourLabel} />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">

@@ -9,6 +9,7 @@ import { StatutSelectForm } from "@/components/statut-select-form";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { DossierFields } from "@/components/dossier-fields";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { BoutonRetour } from "@/components/bouton-retour";
 import { compterImpactSuppressionDossier } from "@/lib/suppression";
 
 export default async function DossierDetailPage({
@@ -28,6 +29,7 @@ export default async function DossierDetailPage({
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
+      <BoutonRetour href="/dossiers" label="Retour aux dossiers" />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
@@ -61,7 +63,9 @@ export default async function DossierDetailPage({
           hiddenValue={dossier.id}
           selectName="statut"
           defaultValue={dossier.statut}
-          options={Object.values(StatutDossierEcart).map((s) => ({
+          options={Object.values(StatutDossierEcart)
+            .filter((s) => s !== "A_QUALIFIER")
+            .map((s) => ({
             value: s,
             label: STATUT_DOSSIER_ECART_LABELS[s],
           }))}

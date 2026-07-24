@@ -11,7 +11,7 @@ import {
   STATUT_FICHE_LABELS,
 } from "@/lib/labels";
 
-const STATUT_ORDER = ["A_QUALIFIER", "OUVERT", "EN_COURS", "CLOTURE"] as const;
+const STATUT_ORDER = ["OUVERT", "EN_COURS", "CLOTURE"] as const;
 const STATUT_FICHE_ORDER = ["BROUILLON", "EN_COURS", "FINALISEE"] as const;
 const STATUT_ECART_AMIANTE_ORDER = ["OUVERT", "EN_COURS", "CLOTURE"] as const;
 
@@ -20,6 +20,33 @@ function compterOccurrences(valeurs: (string | null | undefined)[]): { label: st
   for (const v of valeurs) {
     if (!v) continue;
     counts[v] = (counts[v] ?? 0) + 1;
+  }
+  return Object.entries(counts)
+    .map(([label, valeur]) => ({ label, valeur }))
+    .sort((a, b) => b.valeur - a.valeur);
+}
+
+// Les types d'évènement composés ("Situation dangereuse & comportement à
+// risque") comptent pour chacune des catégories qui les composent, plutôt
+// que d'apparaître comme une catégorie séparée. La casse varie selon la
+// position dans la chaîne d'origine ("... & situation dangereuse"), d'où la
+// normalisation vers les 5 libellés canoniques.
+const CATEGORIES_EVENEMENT = [
+  "Accident",
+  "Presqu'accident",
+  "Situation dangereuse",
+  "Comportement à risque",
+  "Impact environnemental",
+];
+
+function decomposerTypeEvenement(valeurs: (string | null | undefined)[]): { label: string; valeur: number }[] {
+  const counts: Record<string, number> = {};
+  for (const v of valeurs) {
+    if (!v) continue;
+    for (const partie of v.split("&").map((p) => p.trim())) {
+      const canonique = CATEGORIES_EVENEMENT.find((c) => c.toLowerCase() === partie.toLowerCase()) ?? partie;
+      counts[canonique] = (counts[canonique] ?? 0) + 1;
+    }
   }
   return Object.entries(counts)
     .map(([label, valeur]) => ({ label, valeur }))
@@ -124,7 +151,7 @@ export default async function SynthesePage() {
   ).sort((a, b) => Number(a.label) - Number(b.label));
   const domaineRepartition = compterOccurrences(fichesFocus.flatMap((f) => f.domaine));
   const themeRepartition = compterOccurrences(fichesFocus.flatMap((f) => f.theme));
-  const typeRepartition = compterOccurrences(fichesFocus.map((f) => f.typeEvenement));
+  const typeRepartition = decomposerTypeEvenement(fichesFocus.map((f) => f.typeEvenement));
 
   const themeDominant = trouverDominant(themeRepartition, totalEvenements);
   const typeDominant = trouverDominant(typeRepartition, totalEvenements);

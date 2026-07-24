@@ -96,7 +96,7 @@ model Dossier {
   reference     String             @unique
   dateDetection DateTime
   origine       Origine
-  statut        StatutDossierEcart @default(A_QUALIFIER)
+  statut        StatutDossierEcart @default(OUVERT)
   declarant     String
   chantier      String
   createdAt     DateTime           @default(now())
@@ -113,7 +113,7 @@ model Ecart {
   dossierId          String
   dateDetection      DateTime
   origine            Origine
-  statut             StatutDossierEcart @default(A_QUALIFIER)
+  statut             StatutDossierEcart @default(OUVERT)
   declarant          String
   typeActivite       TypeActivite?
   natures            String[]
@@ -260,7 +260,6 @@ model Action {
   statut          StatutAction  @default(A_FAIRE)
   obligatoire     Boolean       @default(false)
   preuve          String?
-  verifEfficacite String?
   origine         String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
