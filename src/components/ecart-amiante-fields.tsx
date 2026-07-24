@@ -1,3 +1,7 @@
+"use client";
+
+import { useEditMode } from "@/components/formulaire-editable";
+
 type EcartAmianteValues = {
   nomChantier?: string | null;
   numeroChantier?: string | null;
@@ -33,13 +37,8 @@ function toDateInput(d?: Date | null) {
   return d ? d.toISOString().slice(0, 10) : "";
 }
 
-export function EcartAmianteFields({
-  v = {},
-  disabled = false,
-}: {
-  v?: EcartAmianteValues;
-  disabled?: boolean;
-}) {
+export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
+  const disabled = !useEditMode();
   return (
     <fieldset disabled={disabled} className="space-y-6 disabled:opacity-60">
       <div>

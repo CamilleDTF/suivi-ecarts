@@ -16,9 +16,13 @@ import {
   mettreAJourEcartAmiante,
   mettreAJourStatutEcartAmiante,
   creerFicheSSEDepuisAmiante,
+  supprimerEcartAmiante,
 } from "@/app/ecart-amiante/actions";
 import { StatutDossierEcart } from "@/generated/prisma/enums";
 import { StatutSelectForm } from "@/components/statut-select-form";
+import { FormulaireEditable } from "@/components/formulaire-editable";
+import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { compterImpactSuppressionEcartAmiante } from "@/lib/suppression";
 
 export default async function EcartAmianteDetailPage({
   params,
@@ -35,6 +39,8 @@ export default async function EcartAmianteDetailPage({
   });
 
   if (!ecartAmiante) notFound();
+
+  const impact = await compterImpactSuppressionEcartAmiante(ecartAmiante.id);
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -69,6 +75,11 @@ export default async function EcartAmianteDetailPage({
           >
             + Action
           </Link>
+          <BoutonSupprimer
+            action={supprimerEcartAmiante}
+            hiddenFields={{ id: ecartAmiante.id }}
+            message={`Supprimer cet écart amiante supprimera aussi ${impact.fiches} évènement(s) SSE et ${impact.actions} action(s) lié(s). Cette action est irréversible. Continuer ?`}
+          />
         </div>
       </div>
 
@@ -101,22 +112,14 @@ export default async function EcartAmianteDetailPage({
         />
       </div>
 
-      <form
+      <FormulaireEditable
         action={mettreAJourEcartAmiante}
-        className="space-y-6 rounded-lg border border-slate-200 bg-white p-6"
+        hiddenFields={{ id: ecartAmiante.id }}
+        modifiePar={ecartAmiante.modifiePar}
+        modifieLe={ecartAmiante.modifieLe}
       >
-        <input type="hidden" name="id" value={ecartAmiante.id} />
-        <EcartAmianteFields v={ecartAmiante} disabled={false} />
-
-        <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="submit"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Enregistrer
-          </button>
-        </div>
-      </form>
+        <EcartAmianteFields v={ecartAmiante} />
+      </FormulaireEditable>
 
       <div className="mt-8">
         <h2 className="mb-3 text-lg font-semibold text-slate-900">

@@ -40,34 +40,49 @@ export const NATURES_OPTIONS = [
   "Non-conformité critique",
   "Événement SSE",
   "Point sensible",
+  "Réclamation",
+  "Remontée terrain",
   "Opportunité d'amélioration",
   "Bonne pratique",
-  "Remontée terrain",
-  "Écart",
-  "Écart d'audit",
-  "Incident",
-  "Presque accident",
-  "Situation dangereuse",
-  "Réclamation",
 ];
 
-export const DOMAINES_OPTIONS = [
-  "Qualité",
-  "Santé",
-  "Sécurité",
-  "Environnement",
-  "Amiante / technique",
-  "Déchets",
-  "Client",
-  "Fournisseur",
-  "Sous-traitance",
-  "Organisation",
-  "Documentaire",
+export const DOMAINES_OPTIONS = ["Santé", "Sécurité", "Environnement"];
+
+export const THEME_OPTIONS = [
+  "EPI / MPC",
+  "Risque Amiante",
   "Matériel",
-  "Formation / habilitation",
-  "Réglementaire",
+  "Risque routier",
+  "Travaux en hauteur",
+  "Déchet",
+  "Produit chimique",
+  "Compétence / Formation",
   "Comportement",
+  "Analyse",
+  "Environnement",
+  "Client",
+  "Documentaire",
+  "Fournisseur",
+  "Organisation",
 ];
+
+export const GRAVITE_FREQUENCE_OPTIONS = ["1", "2", "3", "4"];
+
+export function calculerCriticite(gravite: string, frequence: string): string {
+  const g = Number(gravite);
+  const f = Number(frequence);
+  if (!g || !f) return "";
+  const produit = g * f;
+  if (produit >= 9) return "Élevée";
+  if (produit >= 4) return "Moyenne";
+  return "Faible";
+}
+
+export const CRITICITE_COLORS: Record<string, string> = {
+  Faible: "bg-green-100 text-green-800",
+  Moyenne: "bg-amber-100 text-amber-800",
+  Élevée: "bg-red-100 text-red-800",
+};
 
 export const STATUT_FICHE_LABELS: Record<string, string> = {
   BROUILLON: "Brouillon",

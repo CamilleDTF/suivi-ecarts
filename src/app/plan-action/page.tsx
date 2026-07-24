@@ -23,16 +23,29 @@ export default async function PlanActionPage({
 
   const filtreActif = !!statut || !!responsable;
 
+  const paramsExport = new URLSearchParams();
+  if (statut) paramsExport.set("statut", statut);
+  if (responsable) paramsExport.set("responsable", responsable);
+  const hrefExport = `/plan-action/export${paramsExport.toString() ? `?${paramsExport.toString()}` : ""}`;
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">Plan d&apos;action</h1>
-        <Link
-          href="/plan-action/nouveau"
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          + Nouvelle action
-        </Link>
+        <div className="flex gap-2">
+          <a
+            href={hrefExport}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Exporter
+          </a>
+          <Link
+            href="/plan-action/nouveau"
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            + Nouvelle action
+          </Link>
+        </div>
       </div>
 
       <form method="get" className="mb-4 flex flex-wrap items-center gap-3">

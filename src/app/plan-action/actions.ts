@@ -8,6 +8,7 @@ import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
 import { TypeAction, StatutAction } from "@/generated/prisma/enums";
 import { recalculerStatutsParents } from "@/lib/statut-auto";
+import { nomAuteur } from "@/lib/audit";
 
 const actionSchema = z
   .object({
@@ -97,6 +98,8 @@ export async function mettreAJourAction(formData: FormData) {
       obligatoire: parsed.obligatoire === "on",
       preuve: parsed.preuve,
       verifEfficacite: parsed.verifEfficacite,
+      modifiePar: nomAuteur(session),
+      modifieLe: new Date(),
     },
   });
 
@@ -121,4 +124,22 @@ export async function mettreAJourStatutAction(formData: FormData) {
   if (action.ficheSSEId) revalidatePath(`/fiches-sse/${action.ficheSSEId}`);
   if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
   await recalculerStatutsParents(action);
+}
+
+export async function supprimerAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/connexion");
+
+  const id = String(formData.get("id"));
+  const action = await prisma.action.delete({ where: { id } });
+
+  revalidatePath("/plan-action");
+  if (action.ecartId) revalidatePath(`/ecarts/${action.ecartId}`);
+  if (action.ficheSSEId) revalidatePath(`/fiches-sse/${action.ficheSSEId}`);
+  if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
+
+  if (action.ecartId) redirect(`/ecarts/${action.ecartId}`);
+  if (action.ficheSSEId) redirect(`/fiches-sse/${action.ficheSSEId}`);
+  if (action.ecartAmianteId) redirect(`/ecart-amiante/${action.ecartAmianteId}`);
+  redirect("/plan-action");
 }

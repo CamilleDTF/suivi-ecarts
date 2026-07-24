@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
 import { Origine, StatutDossierEcart, TypeActivite } from "@/generated/prisma/enums";
+import { nomAuteur } from "@/lib/audit";
+import { supprimerEcartCascade } from "@/lib/suppression";
 
 const ecartSchema = z.object({
   dossierId: z.string().min(1, "Dossier requis"),
@@ -70,7 +72,7 @@ const ecartEditSchema = z.object({
   pointsSensibles: z.string().optional(),
   graviteReelle: z.string().optional(),
   gravitePotentielle: z.string().optional(),
-  frequence: z.string().optional(),
+  criticite: z.string().optional(),
   description: z.string().optional(),
   mesureImmediate: z.string().optional(),
   cause: z.string().optional(),
@@ -90,7 +92,7 @@ export async function mettreAJourEcart(formData: FormData) {
     pointsSensibles: formData.get("pointsSensibles") || undefined,
     graviteReelle: formData.get("graviteReelle") || undefined,
     gravitePotentielle: formData.get("gravitePotentielle") || undefined,
-    frequence: formData.get("frequence") || undefined,
+    criticite: formData.get("criticite") || undefined,
     description: formData.get("description") || undefined,
     mesureImmediate: formData.get("mesureImmediate") || undefined,
     cause: formData.get("cause") || undefined,
@@ -99,6 +101,7 @@ export async function mettreAJourEcart(formData: FormData) {
 
   const natures = formData.getAll("natures").map(String);
   const domaines = formData.getAll("domaines").map(String);
+  const theme = formData.getAll("theme").map(String);
 
   const ecart = await prisma.ecart.update({
     where: { id },
@@ -109,14 +112,17 @@ export async function mettreAJourEcart(formData: FormData) {
       typeActivite: parsed.typeActivite ? (parsed.typeActivite as TypeActivite) : null,
       natures,
       domaines,
+      theme,
       pointsSensibles: parsed.pointsSensibles,
       graviteReelle: parsed.graviteReelle,
       gravitePotentielle: parsed.gravitePotentielle,
-      frequence: parsed.frequence,
+      criticite: parsed.criticite,
       description: parsed.description,
       mesureImmediate: parsed.mesureImmediate,
       cause: parsed.cause,
       critereEfficacite: parsed.critereEfficacite,
+      modifiePar: nomAuteur(session),
+      modifieLe: new Date(),
     },
   });
 
@@ -140,4 +146,18 @@ export async function mettreAJourStatutEcart(formData: FormData) {
 
 export async function marquerFicheSSECreee(ecartId: string) {
   await prisma.ecart.update({ where: { id: ecartId }, data: { ficheSSECreee: true } });
+}
+
+export async function supprimerEcart(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/connexion");
+
+  const id = String(formData.get("id"));
+  const ecart = await prisma.ecart.findUniqueOrThrow({ where: { id }, select: { dossierId: true } });
+
+  await supprimerEcartCascade(id);
+
+  revalidatePath("/ecarts");
+  revalidatePath(`/dossiers/${ecart.dossierId}`);
+  redirect(`/dossiers/${ecart.dossierId}`);
 }

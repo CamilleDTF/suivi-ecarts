@@ -9,9 +9,11 @@ import {
   STATUT_ACTION_COLORS,
   STATUT_ACTION_LABELS,
 } from "@/lib/labels";
-import { mettreAJourFicheSSE, finaliserFicheSSE } from "@/app/fiches-sse/actions";
+import { mettreAJourFicheSSE, finaliserFicheSSE, supprimerFicheSSE } from "@/app/fiches-sse/actions";
 import { ArbreCauses } from "@/components/arbre-causes";
 import { FicheSSEFields } from "@/components/fiche-sse-fields";
+import { FormulaireEditable } from "@/components/formulaire-editable";
+import { BoutonSupprimer } from "@/components/bouton-supprimer";
 
 export default async function FicheSSEDetailPage({
   params,
@@ -43,6 +45,7 @@ export default async function FicheSSEDetailPage({
   });
 
   const ficheId = fiche.id;
+  const actionsDirectes = actions.filter((a) => a.ficheSSEId === ficheId).length;
   function origineAction(a: (typeof actions)[number]) {
     if (a.ficheSSEId === ficheId) return "Évènement";
     if (a.ecartId) return "Écart";
@@ -87,29 +90,23 @@ export default async function FicheSSEDetailPage({
               </button>
             </form>
           )}
+          <BoutonSupprimer
+            action={supprimerFicheSSE}
+            hiddenFields={{ id: fiche.id }}
+            message={`Supprimer cet évènement supprimera aussi ${fiche.causes.length} cause(s) et ${actionsDirectes} action(s) rattachée(s) directement à l'évènement. Cette action est irréversible. Continuer ?`}
+          />
         </div>
       </div>
 
-      <form
+      <FormulaireEditable
         action={mettreAJourFicheSSE}
-        className="space-y-6 rounded-lg border border-slate-200 bg-white p-6"
+        hiddenFields={{ id: fiche.id }}
+        modifiePar={fiche.modifiePar}
+        modifieLe={fiche.modifieLe}
+        labelBouton={estBrouillon ? "Enregistrer le brouillon" : "Enregistrer les modifications"}
       >
-        <input type="hidden" name="id" value={fiche.id} />
-        <FicheSSEFields
-          v={fiche}
-          disabled={false}
-          apresTypeAnalyse={<ArbreCauses ficheSSEId={fiche.id} causes={fiche.causes} disabled={false} />}
-        />
-
-        <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="submit"
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            {estBrouillon ? "Enregistrer le brouillon" : "Enregistrer les modifications"}
-          </button>
-        </div>
-      </form>
+        <FicheSSEFields v={fiche} apresTypeAnalyse={<ArbreCauses ficheSSEId={fiche.id} causes={fiche.causes} />} />
+      </FormulaireEditable>
 
       <div className="mt-8">
         <h2 className="mb-3 text-lg font-semibold text-slate-900">

@@ -1,4 +1,7 @@
+"use client";
+
 import { ajouterCause, supprimerCause } from "@/app/fiches-sse/actions";
+import { useEditMode } from "@/components/formulaire-editable";
 
 type Cause = {
   id: string;
@@ -58,12 +61,11 @@ function CauseNode({
 export function ArbreCauses({
   ficheSSEId,
   causes,
-  disabled,
 }: {
   ficheSSEId: string;
   causes: Cause[];
-  disabled: boolean;
 }) {
+  const disabled = !useEditMode();
   const arbre = buildTree(causes);
 
   return (
@@ -88,8 +90,11 @@ export function ArbreCauses({
               placeholder="Description de la cause"
             />
           </div>
-          <div className="flex items-center gap-4">
-            <select name="parentId" className="rounded-md border border-slate-300 px-2 py-1.5 text-sm">
+          <div className="flex flex-wrap items-center gap-4">
+            <select
+              name="parentId"
+              className="max-w-full flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm sm:max-w-xs"
+            >
               <option value="">— Cause de premier niveau —</option>
               {causes.map((c) => (
                 <option key={c.id} value={c.id}>

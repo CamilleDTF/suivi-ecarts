@@ -11,10 +11,13 @@ import {
   STATUT_ACTION_COLORS,
   STATUT_ACTION_LABELS,
 } from "@/lib/labels";
-import { mettreAJourStatutEcart, mettreAJourEcart } from "@/app/ecarts/actions";
+import { mettreAJourStatutEcart, mettreAJourEcart, supprimerEcart } from "@/app/ecarts/actions";
 import { StatutDossierEcart } from "@/generated/prisma/enums";
 import { StatutSelectForm } from "@/components/statut-select-form";
 import { EcartFields } from "@/components/ecart-fields";
+import { FormulaireEditable } from "@/components/formulaire-editable";
+import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { compterImpactSuppressionEcart } from "@/lib/suppression";
 
 export default async function EcartDetailPage({
   params,
@@ -32,6 +35,8 @@ export default async function EcartDetailPage({
   });
 
   if (!ecart) notFound();
+
+  const impact = await compterImpactSuppressionEcart(ecart.id);
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
@@ -61,6 +66,11 @@ export default async function EcartDetailPage({
           >
             + Action
           </Link>
+          <BoutonSupprimer
+            action={supprimerEcart}
+            hiddenFields={{ id: ecart.id }}
+            message={`Supprimer cet écart supprimera aussi ${impact.fiches} évènement(s) SSE et ${impact.actions} action(s) lié(s). Cette action est irréversible. Continuer ?`}
+          />
         </div>
       </div>
 
@@ -78,21 +88,16 @@ export default async function EcartDetailPage({
         />
       </div>
 
-      <form
-        action={mettreAJourEcart}
-        className="mb-8 space-y-6 rounded-lg border border-slate-200 bg-white p-6"
-      >
-        <input type="hidden" name="id" value={ecart.id} />
-        <EcartFields v={ecart} />
-        <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="submit"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Enregistrer
-          </button>
-        </div>
-      </form>
+      <div className="mb-8">
+        <FormulaireEditable
+          action={mettreAJourEcart}
+          hiddenFields={{ id: ecart.id }}
+          modifiePar={ecart.modifiePar}
+          modifieLe={ecart.modifieLe}
+        >
+          <EcartFields v={ecart} />
+        </FormulaireEditable>
+      </div>
 
       <div className="mb-8">
         <h2 className="mb-3 text-lg font-semibold text-slate-900">

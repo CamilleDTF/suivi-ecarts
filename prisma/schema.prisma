@@ -101,6 +101,8 @@ model Dossier {
   chantier      String
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
+  modifiePar    String?
+  modifieLe     DateTime?
   ecarts        Ecart[]
 }
 
@@ -120,6 +122,8 @@ model Ecart {
   graviteReelle      String?
   gravitePotentielle String?
   frequence          String?
+  criticite          String?
+  theme              String[]           @default([])
   description        String?
   mesureImmediate    String?
   cause              String?
@@ -127,6 +131,8 @@ model Ecart {
   ficheSSECreee      Boolean            @default(false)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
+  modifiePar         String?
+  modifieLe          DateTime?
   fichesSSE          FicheSSE[]
   actions            Action[]
 }
@@ -172,6 +178,8 @@ model FicheSSE {
   referencePreuve              String?
   createdAt                    DateTime      @default(now())
   updatedAt                    DateTime      @updatedAt
+  modifiePar                   String?
+  modifieLe                    DateTime?
   causes                       CauseArbre[]
   actions                      Action[]
 }
@@ -226,6 +234,8 @@ model EcartAmiante {
   evenementSSE                   Boolean    @default(false)
   createdAt                      DateTime   @default(now())
   updatedAt                      DateTime   @updatedAt
+  modifiePar                     String?
+  modifieLe                      DateTime?
   fichesSSE                      FicheSSE[]
   actions                        Action[]
 }
@@ -254,4 +264,6 @@ model Action {
   origine         String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  modifiePar      String?
+  modifieLe       DateTime?
 }

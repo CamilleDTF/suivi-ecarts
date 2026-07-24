@@ -2,6 +2,8 @@
 
 import { useState, type ChangeEvent, type ReactNode } from "react";
 import { Badge } from "@/components/badge";
+import { GRAVITE_FREQUENCE_OPTIONS, CRITICITE_COLORS, calculerCriticite, THEME_OPTIONS } from "@/lib/labels";
+import { useEditMode } from "@/components/formulaire-editable";
 
 const TYPE_ANALYSE_OPTIONS = [
   "Correction immédiate",
@@ -16,22 +18,6 @@ const CRITICITE_VERS_TYPE_ANALYSE: Record<string, string> = {
   Élevée: "Analyse des causes",
 };
 
-const CRITICITE_COLORS: Record<string, string> = {
-  Faible: "bg-green-100 text-green-800",
-  Moyenne: "bg-amber-100 text-amber-800",
-  Élevée: "bg-red-100 text-red-800",
-};
-
-function calculerCriticite(gravite: string, frequence: string): string {
-  const g = Number(gravite);
-  const f = Number(frequence);
-  if (!g || !f) return "";
-  const produit = g * f;
-  if (produit >= 9) return "Élevée";
-  if (produit >= 4) return "Moyenne";
-  return "Faible";
-}
-
 const TYPE_EVENEMENT_OPTIONS = [
   "Accident",
   "Presqu'accident",
@@ -45,23 +31,7 @@ const TYPE_EVENEMENT_OPTIONS = [
   "Presqu'accident & situation dangereuse",
 ];
 
-const GRAVITE_FREQUENCE_OPTIONS = ["1", "2", "3", "4"];
-
 const DOMAINE_OPTIONS = ["Sécurité", "Santé", "Environnement"];
-
-const THEME_OPTIONS = [
-  "EPI / MPC",
-  "Risque Amiante",
-  "Matériel",
-  "Risque routier",
-  "Travaux en hauteur",
-  "Déchet",
-  "Produit chimique",
-  "Compétence / Formation",
-  "Comportement",
-  "Analyse",
-  "Environnement",
-];
 
 const MISE_A_JOUR_OPTIONS = ["Non", "DUERP", "Procédure", "Autres"];
 
@@ -176,14 +146,13 @@ function CasesACocher({
 export function FicheSSEFields({
   v = {},
   defaultNomChantier,
-  disabled = false,
   apresTypeAnalyse,
 }: {
   v?: FicheSSEValues;
   defaultNomChantier?: string;
-  disabled?: boolean;
   apresTypeAnalyse?: ReactNode;
 }) {
+  const disabled = !useEditMode();
   const [criticite, setCriticite] = useState(v.criticite ?? "");
   const [miseAJour, setMiseAJour] = useState<string[]>(v.miseAJourNecessaire ?? []);
   const [communicationInterneCoche, setCommunicationInterneCoche] = useState(!!v.communicationInterne);

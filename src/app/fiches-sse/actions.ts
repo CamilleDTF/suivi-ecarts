@@ -7,6 +7,8 @@ import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
 import { marquerFicheSSECreee } from "@/app/ecarts/actions";
 import { aUneActionOuverte } from "@/lib/statut-auto";
+import { nomAuteur } from "@/lib/audit";
+import { supprimerFicheSSECascade } from "@/lib/suppression";
 
 const str = (v: FormDataEntryValue | null) => (v ? String(v) : undefined);
 const bool = (v: FormDataEntryValue | null) => v === "on";
@@ -112,7 +114,10 @@ export async function mettreAJourFicheSSE(formData: FormData) {
   const parsed = parseFiche(formData);
   delete parsed.ecartId;
 
-  const fiche = await prisma.ficheSSE.update({ where: { id }, data: parsed });
+  const fiche = await prisma.ficheSSE.update({
+    where: { id },
+    data: { ...parsed, modifiePar: nomAuteur(session), modifieLe: new Date() },
+  });
 
   revalidatePath(`/fiches-sse/${id}`);
   if (fiche.ecartId) revalidatePath(`/ecarts/${fiche.ecartId}`);
@@ -162,4 +167,25 @@ export async function finaliserFicheSSE(formData: FormData) {
 
   revalidatePath(`/fiches-sse/${id}`);
   if (fiche.ecartId) revalidatePath(`/ecarts/${fiche.ecartId}`);
+}
+
+export async function supprimerFicheSSE(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/connexion");
+
+  const id = String(formData.get("id"));
+  const fiche = await prisma.ficheSSE.findUniqueOrThrow({
+    where: { id },
+    select: { ecartId: true, ecartAmianteId: true },
+  });
+
+  await supprimerFicheSSECascade(id);
+
+  revalidatePath("/fiches-sse");
+  if (fiche.ecartId) revalidatePath(`/ecarts/${fiche.ecartId}`);
+  if (fiche.ecartAmianteId) revalidatePath(`/ecart-amiante/${fiche.ecartAmianteId}`);
+
+  if (fiche.ecartId) redirect(`/ecarts/${fiche.ecartId}`);
+  if (fiche.ecartAmianteId) redirect(`/ecart-amiante/${fiche.ecartAmianteId}`);
+  redirect("/fiches-sse");
 }

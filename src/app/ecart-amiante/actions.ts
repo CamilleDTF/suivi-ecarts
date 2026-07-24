@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
 import { StatutDossierEcart } from "@/generated/prisma/enums";
+import { nomAuteur } from "@/lib/audit";
+import { supprimerEcartAmianteCascade } from "@/lib/suppression";
 
 const bool = (v: FormDataEntryValue | null) => v === "on" || v === "true";
 const str = (v: FormDataEntryValue | null) => (v ? String(v) : undefined);
@@ -73,7 +75,10 @@ export async function mettreAJourEcartAmiante(formData: FormData) {
   const id = String(formData.get("id"));
   const data = parse(formData);
 
-  await prisma.ecartAmiante.update({ where: { id }, data });
+  await prisma.ecartAmiante.update({
+    where: { id },
+    data: { ...data, modifiePar: nomAuteur(session), modifieLe: new Date() },
+  });
   revalidatePath(`/ecart-amiante/${id}`);
   revalidatePath("/ecart-amiante");
 }
@@ -116,4 +121,15 @@ export async function creerFicheSSEDepuisAmiante(formData: FormData) {
 
   revalidatePath(`/ecart-amiante/${ecartAmianteId}`);
   redirect(`/fiches-sse/${fiche.id}`);
+}
+
+export async function supprimerEcartAmiante(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/connexion");
+
+  const id = String(formData.get("id"));
+  await supprimerEcartAmianteCascade(id);
+
+  revalidatePath("/ecart-amiante");
+  redirect("/ecart-amiante");
 }

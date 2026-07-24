@@ -2,14 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
-import {
-  ORIGINE_LABELS,
-  STATUT_DOSSIER_ECART_COLORS,
-  STATUT_DOSSIER_ECART_LABELS,
-} from "@/lib/labels";
-import { mettreAJourStatutDossier } from "@/app/dossiers/actions";
+import { STATUT_DOSSIER_ECART_COLORS, STATUT_DOSSIER_ECART_LABELS } from "@/lib/labels";
+import { mettreAJourStatutDossier, mettreAJourDossier, supprimerDossier } from "@/app/dossiers/actions";
 import { StatutDossierEcart } from "@/generated/prisma/enums";
 import { StatutSelectForm } from "@/components/statut-select-form";
+import { FormulaireEditable } from "@/components/formulaire-editable";
+import { DossierFields } from "@/components/dossier-fields";
+import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { compterImpactSuppressionDossier } from "@/lib/suppression";
 
 export default async function DossierDetailPage({
   params,
@@ -24,6 +24,8 @@ export default async function DossierDetailPage({
 
   if (!dossier) notFound();
 
+  const impact = await compterImpactSuppressionDossier(dossier.id);
+
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
       <div className="mb-6 flex items-start justify-between">
@@ -37,29 +39,22 @@ export default async function DossierDetailPage({
           </div>
           <p className="text-sm text-slate-500">{dossier.chantier}</p>
         </div>
-        <Link
-          href={`/ecarts/nouveau?dossierId=${dossier.id}`}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          + Nouvel écart
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href={`/ecarts/nouveau?dossierId=${dossier.id}`}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            + Nouvel écart
+          </Link>
+          <BoutonSupprimer
+            action={supprimerDossier}
+            hiddenFields={{ id: dossier.id }}
+            message={`Supprimer ce dossier supprimera aussi ses ${impact.ecarts} écart(s), ${impact.fiches} évènement(s) SSE et ${impact.actions} action(s) lié(s). Cette action est irréversible. Continuer ?`}
+          />
+        </div>
       </div>
 
-      <div className="mb-8 grid grid-cols-2 gap-4 rounded-lg border border-slate-200 bg-white p-6 sm:grid-cols-4">
-        <div>
-          <div className="text-xs font-medium uppercase text-slate-400">Déclarant</div>
-          <div className="text-sm text-slate-800">{dossier.declarant}</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium uppercase text-slate-400">Origine</div>
-          <div className="text-sm text-slate-800">{ORIGINE_LABELS[dossier.origine]}</div>
-        </div>
-        <div>
-          <div className="text-xs font-medium uppercase text-slate-400">Détecté le</div>
-          <div className="text-sm text-slate-800">
-            {dossier.dateDetection.toLocaleDateString("fr-FR")}
-          </div>
-        </div>
+      <div className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
         <StatutSelectForm
           action={mettreAJourStatutDossier}
           hiddenName="id"
@@ -71,6 +66,17 @@ export default async function DossierDetailPage({
             label: STATUT_DOSSIER_ECART_LABELS[s],
           }))}
         />
+      </div>
+
+      <div className="mb-8">
+        <FormulaireEditable
+          action={mettreAJourDossier}
+          hiddenFields={{ id: dossier.id }}
+          modifiePar={dossier.modifiePar}
+          modifieLe={dossier.modifieLe}
+        >
+          <DossierFields v={dossier} />
+        </FormulaireEditable>
       </div>
 
       <h2 className="mb-3 text-lg font-semibold text-slate-900">
