@@ -134,6 +134,7 @@ export async function supprimerAction(formData: FormData) {
   if (action.ecartId) revalidatePath(`/ecarts/${action.ecartId}`);
   if (action.ficheSSEId) revalidatePath(`/fiches-sse/${action.ficheSSEId}`);
   if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
+  await recalculerStatutsParents(action);
 
   if (action.ecartId) redirect(`/ecarts/${action.ecartId}`);
   if (action.ficheSSEId) redirect(`/fiches-sse/${action.ficheSSEId}`);

@@ -67,6 +67,7 @@ type FicheSSEValues = {
   miseAJourNecessaire?: string[] | null;
   procedureLaquelle?: string | null;
   referenceDUERP?: string | null;
+  miseAJourAutrePrecision?: string | null;
   nouveauRisqueNecessaire?: boolean | null;
   referenceNouveauRisque?: string | null;
   communicationInterne?: boolean | null;
@@ -143,17 +144,22 @@ function CasesACocher({
   );
 }
 
+const TYPES_ANALYSE_AVEC_ARBRE_CAUSES = ["Analyse des causes", "Arbre des causes + analyse collective"];
+
 export function FicheSSEFields({
   v = {},
   defaultNomChantier,
   apresTypeAnalyse,
+  nouveau = false,
 }: {
   v?: FicheSSEValues;
   defaultNomChantier?: string;
   apresTypeAnalyse?: ReactNode;
+  nouveau?: boolean;
 }) {
   const disabled = !useEditMode();
   const [criticite, setCriticite] = useState(v.criticite ?? "");
+  const [typeAnalyse, setTypeAnalyse] = useState(v.typeAnalyse ?? "");
   const [miseAJour, setMiseAJour] = useState<string[]>(v.miseAJourNecessaire ?? []);
   const [communicationInterneCoche, setCommunicationInterneCoche] = useState(!!v.communicationInterne);
 
@@ -172,6 +178,7 @@ export function FicheSSEFields({
     const typeAnalyseSelect = form.elements.namedItem("typeAnalyse");
     if (suggestion && typeAnalyseSelect instanceof HTMLSelectElement) {
       typeAnalyseSelect.value = suggestion;
+      setTypeAnalyse(suggestion);
     }
   }
 
@@ -182,7 +189,13 @@ export function FicheSSEFields({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Numéro interne</label>
-            <input name="numeroInterne" defaultValue={v.numeroInterne ?? ""} className={inputCls} />
+            {nouveau ? (
+              <p className="rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-400">
+                Généré automatiquement à l&apos;enregistrement
+              </p>
+            ) : (
+              <input name="numeroInterne" defaultValue={v.numeroInterne ?? ""} className={inputCls} />
+            )}
           </div>
           <div>
             <label className={labelCls}>Émetteur</label>
@@ -308,7 +321,12 @@ export function FicheSSEFields({
 
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">5. Type d&apos;analyse des causes</h2>
-        <select name="typeAnalyse" defaultValue={v.typeAnalyse ?? ""} className={inputCls}>
+        <select
+          name="typeAnalyse"
+          defaultValue={v.typeAnalyse ?? ""}
+          onChange={(e) => setTypeAnalyse(e.target.value)}
+          className={inputCls}
+        >
           <option value="">—</option>
           {TYPE_ANALYSE_OPTIONS.map((o) => (
             <option key={o} value={o}>
@@ -318,7 +336,7 @@ export function FicheSSEFields({
         </select>
       </div>
 
-      {apresTypeAnalyse}
+      {TYPES_ANALYSE_AVEC_ARBRE_CAUSES.includes(typeAnalyse) && apresTypeAnalyse}
 
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">
@@ -361,6 +379,18 @@ export function FicheSSEFields({
             />
           </div>
         </div>
+
+        {miseAJour.includes("Autres") && (
+          <div className="mt-4">
+            <label className={labelCls}>Autres — précisez</label>
+            <textarea
+              name="miseAJourAutrePrecision"
+              rows={2}
+              defaultValue={v.miseAJourAutrePrecision ?? ""}
+              className={inputCls}
+            />
+          </div>
+        )}
 
         <label className="mt-4 mb-3 flex items-center gap-2 text-sm text-slate-700">
           <input

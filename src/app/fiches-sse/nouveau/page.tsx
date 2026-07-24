@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { creerFicheSSE } from "@/app/fiches-sse/actions";
 import { FicheSSEFields } from "@/components/fiche-sse-fields";
 import { ArbreCausesEditeur } from "@/components/arbre-causes-editeur";
+import { AvertissementNonEnregistre } from "@/components/avertissement-non-enregistre";
 
 export default async function NouvelleFicheSSEPage({
   searchParams,
@@ -23,12 +24,14 @@ export default async function NouvelleFicheSSEPage({
       )}
 
       <form action={creerFicheSSE} className="space-y-6 rounded-lg border border-slate-200 bg-white p-6">
+        <AvertissementNonEnregistre />
         {ecartId && <input type="hidden" name="ecartId" value={ecartId} />}
 
         <FicheSSEFields
           v={{ dateHeure: new Date() }}
           defaultNomChantier={ecart?.dossier.chantier}
           apresTypeAnalyse={<ArbreCausesEditeur />}
+          nouveau
         />
 
         <p className="text-xs text-slate-400">

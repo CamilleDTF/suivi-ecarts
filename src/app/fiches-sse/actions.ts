@@ -41,6 +41,7 @@ function parseFiche(formData: FormData) {
     miseAJourNecessaire: liste(formData, "miseAJourNecessaire"),
     procedureLaquelle: str(formData.get("procedureLaquelle")),
     referenceDUERP: str(formData.get("referenceDUERP")),
+    miseAJourAutrePrecision: str(formData.get("miseAJourAutrePrecision")),
     nouveauRisqueNecessaire: bool(formData.get("nouveauRisqueNecessaire")),
     referenceNouveauRisque: str(formData.get("referenceNouveauRisque")),
     communicationInterne: bool(formData.get("communicationInterne")),
@@ -93,7 +94,7 @@ export async function creerFicheSSE(formData: FormData) {
   const reference = await generateReference("FicheSSE", "EV");
 
   const fiche = await prisma.ficheSSE.create({
-    data: { reference, ecartId, ...data },
+    data: { reference, ecartId, ...data, numeroInterne: reference },
   });
 
   await creerCausesDepuisJson(fiche.id, str(formData.get("causesJson")));

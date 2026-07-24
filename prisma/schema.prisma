@@ -164,6 +164,7 @@ model FicheSSE {
   miseAJourNecessaire          String[]      @default([])
   procedureLaquelle            String?
   referenceDUERP               String?
+  miseAJourAutrePrecision      String?
   nouveauRisqueNecessaire      Boolean?
   referenceNouveauRisque       String?
   communicationInterne         Boolean?
