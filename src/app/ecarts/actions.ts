@@ -128,9 +128,11 @@ export async function mettreAJourEcart(formData: FormData) {
       // formulaire : elle reste ainsi toujours cohérente avec gravité ×
       // fréquence, quoi qu'envoie le client.
       criticite: calculerCriticite(parsed.gravite ?? "", parsed.frequence ?? "") || null,
-      description: parsed.description,
-      mesureImmediate: parsed.mesureImmediate,
-      cause: parsed.cause,
+      // ?? null : sans ça, vider le champ dans le formulaire ne l'effaçait pas,
+      // Prisma ignorant les champs à undefined.
+      description: parsed.description ?? null,
+      mesureImmediate: parsed.mesureImmediate ?? null,
+      cause: parsed.cause ?? null,
       modifiePar: nomAuteur(session),
       modifieLe: new Date(),
     },

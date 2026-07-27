@@ -10,7 +10,7 @@ type ActionValues = {
   action: string;
   responsable: string;
   echeance?: Date | null;
-  obligatoire: boolean;
+  realiseeLe?: Date | null;
   preuve?: string | null;
   verifiePar?: string | null;
   verifieLe?: Date | null;
@@ -91,7 +91,7 @@ export function ActionFields({ v }: { v: ActionValues }) {
         <textarea name="action" defaultValue={v.action} required rows={3} className={inputCls} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         <div>
           <label className={labelCls}>Responsable</label>
           <select name="responsable" defaultValue={v.responsable} required className={inputCls}>
@@ -104,19 +104,14 @@ export function ActionFields({ v }: { v: ActionValues }) {
         </div>
         <div>
           <label className={labelCls}>Échéance</label>
-          <input
-            type="date"
-            name="echeance"
-            defaultValue={v.echeance ? v.echeance.toISOString().slice(0, 10) : ""}
-            className={inputCls}
-          />
+          <input type="date" name="echeance" defaultValue={toDateInput(v.echeance)} className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>Réalisé le</label>
+          <input type="date" name="realiseeLe" defaultValue={toDateInput(v.realiseeLe)} className={inputCls} />
+          <p className="mt-1 text-xs text-slate-400">Une date fait passer l&apos;action à « Réalisée ».</p>
         </div>
       </div>
-
-      <label className="flex items-center gap-2 text-sm text-slate-700">
-        <input type="checkbox" name="obligatoire" defaultChecked={v.obligatoire} />
-        Action obligatoire
-      </label>
 
       <div className="border-t border-slate-100 pt-4">
         <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Validation</h2>
@@ -146,10 +141,32 @@ export function ActionFields({ v }: { v: ActionValues }) {
             className="mb-2 max-h-64 rounded-md border border-slate-200 object-contain"
           />
         )}
-        {preuve && !estPhoto && <p className="mb-2 text-sm text-slate-700">{preuve}</p>}
-        {!preuve && disabled && <p className="text-sm text-slate-400">Aucune photo</p>}
+        {preuve && !estPhoto && (
+          <p className="mb-2 text-sm text-slate-700">
+            {preuve}
+            <span className="ml-2 text-xs text-slate-400">(texte repris de l&apos;Excel)</span>
+          </p>
+        )}
+        {!preuve && disabled && <p className="text-sm text-slate-400">Aucune preuve</p>}
         {!disabled && (
-          <input type="file" accept="image/*" onChange={onFileChange} className="block text-sm text-slate-600" />
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="cursor-pointer rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+              {estPhoto ? "Remplacer la photo" : "Ajouter une photo"}
+              <input type="file" accept="image/*" onChange={onFileChange} className="hidden" />
+            </label>
+            {preuve && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPreuve("");
+                  setErreurPhoto("");
+                }}
+                className="text-sm font-medium text-red-600 hover:underline"
+              >
+                Retirer la preuve
+              </button>
+            )}
+          </div>
         )}
         {conversion && <p className="mt-1 text-sm text-slate-500">Préparation de la photo…</p>}
         {erreurPhoto && <p className="mt-1 text-sm text-red-600">{erreurPhoto}</p>}

@@ -9,10 +9,13 @@ import { auth } from "@/auth";
 import { nomAuteur } from "@/lib/audit";
 import { lireStatutDossierEcart } from "@/lib/validation";
 import { supprimerEcartAmianteCascade } from "@/lib/suppression";
+import { texte, dateOuNull } from "@/lib/formulaire";
 
 const bool = (v: FormDataEntryValue | null) => v === "on" || v === "true";
-const str = (v: FormDataEntryValue | null) => (v ? String(v) : undefined);
-const date = (v: FormDataEntryValue | null) => (v ? new Date(String(v)) : undefined);
+// texte() et dateOuNull() renvoient null (et non undefined) pour un champ vide,
+// sans quoi vider un champ ne l'efface pas en base — voir src/lib/formulaire.ts.
+const str = texte;
+const date = dateOuNull;
 // Boutons Oui / Non : tant qu'aucun n'est coché, la question n'a pas été
 // tranchée et le champ reste vide — nuance qu'une case à cocher ne permet pas
 // d'exprimer, et qui compte sur une fiche d'exposition.
@@ -53,7 +56,7 @@ function parse(formData: FormData) {
     chantierNouvelleAnalyse: str(formData.get("chantierNouvelleAnalyse")),
     resultatAttenduNouvelleAnalyse: str(formData.get("resultatAttenduNouvelleAnalyse")),
     resultatObtenuNouvelleAnalyse: str(formData.get("resultatObtenuNouvelleAnalyse")),
-    dateCloture: date(formData.get("dateCloture")) ?? null,
+    dateCloture: date(formData.get("dateCloture")),
     evenementSSE: bool(formData.get("evenementSSE")),
   };
 }

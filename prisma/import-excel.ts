@@ -188,7 +188,6 @@ async function main() {
         responsable: a.responsable,
         echeance: versDate(a.echeance),
         statut: a.statut as never,
-        obligatoire: a.obligatoire,
         preuve: a.preuve,
         origine: a.origine,
       },

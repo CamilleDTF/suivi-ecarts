@@ -115,10 +115,15 @@ export default async function NouvelleActionPage({
           </div>
         </div>
 
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input type="checkbox" name="obligatoire" />
-          Action obligatoire
-        </label>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-slate-700">Réalisé le</label>
+          <input
+            type="date"
+            name="realiseeLe"
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          />
+          <p className="mt-1 text-xs text-slate-400">Une date fait passer l&apos;action à « Réalisée ».</p>
+        </div>
 
         <div className="flex justify-end gap-3 pt-2">
           <button

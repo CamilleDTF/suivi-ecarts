@@ -9,16 +9,20 @@ import { marquerFicheSSECreee } from "@/app/ecarts/actions";
 import { aUneActionOuverte } from "@/lib/statut-auto";
 import { nomAuteur } from "@/lib/audit";
 import { supprimerFicheSSECascade } from "@/lib/suppression";
+import { texte, dateOuNull } from "@/lib/formulaire";
 
-const str = (v: FormDataEntryValue | null) => (v ? String(v) : undefined);
+// texte() et dateOuNull() renvoient null (et non undefined) pour un champ vide,
+// sans quoi vider un champ ne l'efface pas en base — voir src/lib/formulaire.ts.
+const str = texte;
 const bool = (v: FormDataEntryValue | null) => v === "on";
-const datetime = (v: FormDataEntryValue | null) => (v ? new Date(String(v)) : undefined);
-const date = (v: FormDataEntryValue | null) => (v ? new Date(String(v)) : undefined);
+const datetime = dateOuNull;
+const date = dateOuNull;
 const liste = (formData: FormData, name: string) => formData.getAll(name).map(String);
 
+// Le rattachement à un écart n'est pas dans cette liste : il est fixé à la
+// création et ne doit pas pouvoir être défait par une mise à jour.
 function parseFiche(formData: FormData) {
   return {
-    ecartId: str(formData.get("ecartId")),
     typeEvenement: str(formData.get("typeEvenement")),
     numeroInterne: str(formData.get("numeroInterne")),
     emetteur: str(formData.get("emetteur")),
@@ -60,7 +64,7 @@ type CauseLocale = {
   estCauseRacine: boolean;
 };
 
-async function creerCausesDepuisJson(ficheSSEId: string, causesJson: string | undefined) {
+async function creerCausesDepuisJson(ficheSSEId: string, causesJson: string | null) {
   if (!causesJson) return;
   const causes: CauseLocale[] = JSON.parse(causesJson);
   if (causes.length === 0) return;
@@ -90,7 +94,8 @@ export async function creerFicheSSE(formData: FormData) {
   const session = await auth();
   if (!session?.user) redirect("/connexion");
 
-  const { ecartId, ...data } = parseFiche(formData);
+  const ecartId = str(formData.get("ecartId"));
+  const data = parseFiche(formData);
   const reference = await generateReference("FicheSSE", "EV");
 
   const fiche = await prisma.ficheSSE.create({
@@ -112,12 +117,11 @@ export async function mettreAJourFicheSSE(formData: FormData) {
   if (!session?.user) redirect("/connexion");
 
   const id = String(formData.get("id"));
-  const parsed = parseFiche(formData);
-  delete parsed.ecartId;
+  const donnees = parseFiche(formData);
 
   const fiche = await prisma.ficheSSE.update({
     where: { id },
-    data: { ...parsed, modifiePar: nomAuteur(session), modifieLe: new Date() },
+    data: { ...donnees, modifiePar: nomAuteur(session), modifieLe: new Date() },
   });
 
   revalidatePath(`/fiches-sse/${id}`);

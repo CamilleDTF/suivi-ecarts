@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
-import { TypeAction } from "@/generated/prisma/enums";
+import { TypeAction, StatutAction } from "@/generated/prisma/enums";
 import { recalculerStatutsParents } from "@/lib/statut-auto";
 import { nomAuteur } from "@/lib/audit";
 import { lireStatutAction } from "@/lib/validation";
@@ -20,7 +20,7 @@ const actionSchema = z
     action: z.string().min(1, "Description de l'action requise"),
     responsable: z.string().min(1, "Responsable requis"),
     echeance: z.string().optional(),
-    obligatoire: z.string().optional(),
+    realiseeLe: z.string().optional(),
   })
   // Exactement un parent, et pas "au moins un" : une action rattachée
   // simultanément à un écart, un évènement et un écart amiante rendrait le
@@ -41,7 +41,7 @@ export async function creerAction(formData: FormData) {
     action: formData.get("action"),
     responsable: formData.get("responsable"),
     echeance: formData.get("echeance") || undefined,
-    obligatoire: formData.get("obligatoire") || undefined,
+    realiseeLe: formData.get("realiseeLe") || undefined,
   });
 
   const reference = await generateReference("Action", "ACT");
@@ -56,7 +56,9 @@ export async function creerAction(formData: FormData) {
       action: parsed.action,
       responsable: parsed.responsable,
       echeance: parsed.echeance ? new Date(parsed.echeance) : undefined,
-      obligatoire: parsed.obligatoire === "on",
+      realiseeLe: parsed.realiseeLe ? new Date(parsed.realiseeLe) : null,
+      // Une date de réalisation vaut déclaration : l'action est réalisée.
+      statut: parsed.realiseeLe ? StatutAction.REALISEE : undefined,
     },
   });
 
@@ -72,7 +74,7 @@ const actionEditSchema = z.object({
   action: z.string().min(1, "Description de l'action requise"),
   responsable: z.string().min(1, "Responsable requis"),
   echeance: z.string().optional(),
-  obligatoire: z.string().optional(),
+  realiseeLe: z.string().optional(),
   preuve: z.string().optional(),
   verifiePar: z.string().optional(),
   verifieLe: z.string().optional(),
@@ -88,11 +90,20 @@ export async function mettreAJourAction(formData: FormData) {
     action: formData.get("action"),
     responsable: formData.get("responsable"),
     echeance: formData.get("echeance") || undefined,
-    obligatoire: formData.get("obligatoire") || undefined,
+    realiseeLe: formData.get("realiseeLe") || undefined,
     preuve: formData.get("preuve") || undefined,
     verifiePar: formData.get("verifiePar") || undefined,
     verifieLe: formData.get("verifieLe") || undefined,
   });
+
+  // Une date de réalisation vaut déclaration : l'action passe à "Réalisée".
+  // On ne redescend pas une action déjà vérifiée efficace ou annulée, et on ne
+  // rouvre pas une action dont on efface la date — ce choix-là reste manuel.
+  const actuelle = await prisma.action.findUniqueOrThrow({ where: { id }, select: { statut: true } });
+  const statutAuto =
+    parsed.realiseeLe && ["A_FAIRE", "EN_COURS", "EN_RETARD"].includes(actuelle.statut)
+      ? StatutAction.REALISEE
+      : undefined;
 
   const action = await prisma.action.update({
     where: { id },
@@ -101,8 +112,11 @@ export async function mettreAJourAction(formData: FormData) {
       action: parsed.action,
       responsable: parsed.responsable,
       echeance: parsed.echeance ? new Date(parsed.echeance) : undefined,
-      obligatoire: parsed.obligatoire === "on",
-      preuve: parsed.preuve,
+      realiseeLe: parsed.realiseeLe ? new Date(parsed.realiseeLe) : null,
+      statut: statutAuto,
+      // ?? null et non undefined : Prisma ignore un champ undefined, si bien
+      // que « Retirer la preuve » n'effaçait rien.
+      preuve: parsed.preuve ?? null,
       verifiePar: parsed.verifiePar ?? null,
       verifieLe: parsed.verifieLe ? new Date(parsed.verifieLe) : null,
       modifiePar: nomAuteur(session),
@@ -115,6 +129,9 @@ export async function mettreAJourAction(formData: FormData) {
   if (action.ecartId) revalidatePath(`/ecarts/${action.ecartId}`);
   if (action.ficheSSEId) revalidatePath(`/fiches-sse/${action.ficheSSEId}`);
   if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
+  // Le formulaire peut désormais faire passer l'action à "Réalisée" via la date
+  // de réalisation : le statut de l'écart ou de l'évènement parent doit suivre.
+  await recalculerStatutsParents(action);
 }
 
 export async function mettreAJourStatutAction(formData: FormData) {

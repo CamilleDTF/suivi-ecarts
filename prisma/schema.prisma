@@ -293,7 +293,7 @@ model Action {
   responsable     String
   echeance        DateTime?
   statut          StatutAction  @default(A_FAIRE)
-  obligatoire     Boolean       @default(false)
+  realiseeLe      DateTime?
   preuve          String?
   verifiePar      String?
   verifieLe       DateTime?
