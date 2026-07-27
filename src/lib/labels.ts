@@ -120,6 +120,38 @@ export const STATUT_ACTION_COLORS: Record<string, string> = {
   ANNULEE: "bg-slate-200 text-slate-500",
 };
 
+export const ORIGINE_REMONTEE_LABELS: Record<string, string> = {
+  CHANTIER: "Chantier",
+  BUREAU: "Bureau",
+};
+
+export const STATUT_REMONTEE_LABELS: Record<string, string> = {
+  A_TRAITER: "À traiter",
+  EN_COURS: "En cours",
+  TRAITEE: "Traitée",
+  TRANSFORMEE_EN_ECART: "Transformée en écart",
+};
+
+export const STATUT_REMONTEE_COLORS: Record<string, string> = {
+  A_TRAITER: "bg-amber-100 text-amber-800",
+  EN_COURS: "bg-blue-100 text-blue-800",
+  TRAITEE: "bg-green-100 text-green-800",
+  TRANSFORMEE_EN_ECART: "bg-purple-100 text-purple-800",
+};
+
+export const CATEGORIES_REMONTEE = [
+  "Organisation",
+  "Personnel",
+  "Matériel",
+  "Sécurité",
+  "Santé",
+  "Environnement",
+  "Documentaire",
+  "Client",
+  "Fournisseur",
+  "Autre",
+];
+
 export const RESPONSABLES = [
   "Brahim", "Mohamed", "Said", "Amine", "Kasso", "Ayoub", "Ahmed", "Ilias",
   "Jallal", "Alexandre", "Khan", "Zakariae", "Camille", "Nassim", "Mamadou",

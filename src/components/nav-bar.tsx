@@ -10,35 +10,44 @@ export async function NavBar() {
   }
 
   return (
-    <header className="border-b border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
-        <Link href="/" className="flex flex-1 items-center gap-2 text-2xl font-bold text-slate-900">
+    // Barre latérale à partir de lg : sept onglets plus le compte ne tiennent
+    // pas sur une seule ligne en haut, ce qui forçait le titre à passer à la
+    // ligne. En dessous de lg, on retombe sur un bandeau horizontal classique.
+    <header className="border-b border-slate-200 bg-white lg:fixed lg:inset-y-0 lg:left-0 lg:z-10 lg:flex lg:w-56 lg:flex-col lg:border-b-0 lg:border-r">
+      <div className="flex items-center px-4 py-3 lg:px-4 lg:py-5">
+        <Link href="/" className="flex items-center gap-2 lg:flex-col lg:items-start lg:gap-2">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
             <IconShieldCheck className="h-5 w-5" />
           </span>
-          Suivi des écarts
-        </Link>
-        <NavLinks />
-        <div className="ml-10 flex items-center gap-3 border-l border-slate-200 pl-6">
-          <span className="flex items-center gap-1.5 text-sm text-slate-500">
-            <IconUser className="h-4 w-4" />
-            {session.user.name}
+          <span className="whitespace-nowrap text-lg font-bold text-slate-900 lg:text-xl">
+            Suivi des écarts
           </span>
-          <form
-            action={async () => {
-              "use server";
-              await signOut({ redirectTo: "/connexion" });
-            }}
+        </Link>
+      </div>
+
+      <div className="px-2 pb-3 lg:flex-1 lg:overflow-y-auto lg:pb-0">
+        <NavLinks />
+      </div>
+
+      <div className="flex items-center gap-3 border-t border-slate-200 px-4 py-2 lg:flex-col lg:items-stretch lg:gap-2 lg:py-4">
+        <span className="flex min-w-0 items-center gap-1.5 text-sm text-slate-500">
+          <IconUser className="h-4 w-4 shrink-0" />
+          <span className="truncate">{session.user.name}</span>
+        </span>
+        <form
+          action={async () => {
+            "use server";
+            await signOut({ redirectTo: "/connexion" });
+          }}
+        >
+          <button
+            type="submit"
+            className="flex w-full items-center justify-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
           >
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
-            >
-              <IconLogOut className="h-4 w-4" />
-              Déconnexion
-            </button>
-          </form>
-        </div>
+            <IconLogOut className="h-4 w-4" />
+            Déconnexion
+          </button>
+        </form>
       </div>
     </header>
   );

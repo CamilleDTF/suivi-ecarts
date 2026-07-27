@@ -9,6 +9,7 @@ const COULEUR_TEXTE: Record<string, string> = {
   "bg-green-100 text-green-800": "text-green-500",
   "bg-red-100 text-red-800": "text-red-400",
   "bg-emerald-100 text-emerald-800": "text-emerald-400",
+  "bg-purple-100 text-purple-800": "text-purple-500",
 };
 
 function couleurTexte(badgeColorClass: string) {

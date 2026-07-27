@@ -4,24 +4,51 @@ import { Badge } from "@/components/badge";
 import { SelectAutoSubmit } from "@/components/select-auto-submit";
 import { StatutAction } from "@/generated/prisma/enums";
 import { STATUT_ACTION_COLORS, STATUT_ACTION_LABELS, TYPE_ACTION_LABELS, RESPONSABLES } from "@/lib/labels";
+import { Pagination } from "@/components/pagination";
+import { filtreStatutAction } from "@/lib/validation";
+import { lireTaillePage } from "@/lib/pagination";
 
 export default async function PlanActionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ statut?: string; responsable?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; responsable?: string; page?: string; taille?: string }>;
 }) {
-  const { statut, responsable } = await searchParams;
+  const { q, statut, responsable, page: pageParam, taille } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+  const taillePage = lireTaillePage(taille);
 
-  const actions = await prisma.action.findMany({
-    where: {
-      statut: statut ? (statut as StatutAction) : undefined,
-      responsable: responsable || undefined,
-    },
-    orderBy: { echeance: "asc" },
-    include: { ecart: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true },
-  });
+  const contient = { contains: q, mode: "insensitive" as const };
+  const where = {
+    statut: filtreStatutAction(statut),
+    responsable: responsable || undefined,
+    OR: q
+      ? [
+          { reference: contient },
+          { action: contient },
+          { responsable: contient },
+          { origine: contient },
+          { ecart: { reference: contient } },
+          { ecart: { description: contient } },
+          { ecart: { dossier: { chantier: contient } } },
+          { ficheSSE: { reference: contient } },
+          { ecartAmiante: { reference: contient } },
+          { ecartAmiante: { nomChantier: contient } },
+        ]
+      : undefined,
+  };
 
-  const filtreActif = !!statut || !!responsable;
+  const [total, actions] = await Promise.all([
+    prisma.action.count({ where }),
+    prisma.action.findMany({
+      where,
+      orderBy: { echeance: "asc" },
+      include: { ecart: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true },
+      skip: (page - 1) * taillePage,
+      take: taillePage,
+    }),
+  ]);
+
+  const filtreActif = !!q || !!statut || !!responsable;
 
   const paramsExport = new URLSearchParams();
   if (statut) paramsExport.set("statut", statut);
@@ -49,6 +76,13 @@ export default async function PlanActionPage({
       </div>
 
       <form method="get" className="mb-4 flex flex-wrap items-center gap-3">
+        <input
+          type="text"
+          name="q"
+          defaultValue={q ?? ""}
+          placeholder="Rechercher une action…"
+          className="min-w-[220px] flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
+        />
         <SelectAutoSubmit
           name="statut"
           defaultValue={statut ?? ""}
@@ -130,6 +164,14 @@ export default async function PlanActionPage({
             )}
           </tbody>
         </table>
+        {total > 0 && (
+          <Pagination
+            total={total}
+            page={page}
+            pageSize={taillePage}
+            baseParams={{ q, statut, responsable, taille }}
+          />
+        )}
       </div>
     </div>
   );

@@ -4,25 +4,52 @@ import { Badge } from "@/components/badge";
 import { SelectAutoSubmit } from "@/components/select-auto-submit";
 import { Pagination } from "@/components/pagination";
 import { StatutFiche } from "@/generated/prisma/enums";
-import { STATUT_FICHE_COLORS, STATUT_FICHE_LABELS } from "@/lib/labels";
-
-const TAILLE_PAGE = 10;
+import { STATUT_FICHE_COLORS, STATUT_FICHE_LABELS, THEME_OPTIONS, DOMAINES_OPTIONS } from "@/lib/labels";
+import { lireTaillePage } from "@/lib/pagination";
 
 export default async function FichesSSEPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; page?: string; taille?: string }>;
 }) {
-  const { q, statut, page: pageParam } = await searchParams;
+  const { q, statut, page: pageParam, taille } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
+  const taillePage = lireTaillePage(taille);
 
+  const optionsCorrespondantes = (options: string[]) =>
+    q ? options.filter((o) => o.toLowerCase().includes(q.toLowerCase())) : [];
+  const themesTrouves = optionsCorrespondantes(THEME_OPTIONS);
+  const domainesTrouves = optionsCorrespondantes(DOMAINES_OPTIONS);
+
+  const contient = { contains: q, mode: "insensitive" as const };
   const where = {
     statutFiche: statut ? (statut as StatutFiche) : undefined,
     OR: q
       ? [
-          { reference: { contains: q, mode: "insensitive" as const } },
-          { nomChantier: { contains: q, mode: "insensitive" as const } },
-          { emetteur: { contains: q, mode: "insensitive" as const } },
+          { reference: contient },
+          { nomChantier: contient },
+          { emetteur: contient },
+          { numeroInterne: contient },
+          { typeEvenement: contient },
+          { lieuZone: contient },
+          { personnesImpliquees: contient },
+          { temoins: contient },
+          { descriptionFactuelle: contient },
+          { mesuresImmediatesPrises: contient },
+          { typeAnalyse: contient },
+          { criticite: contient },
+          { declarationExterneA: contient },
+          { referencePreuve: contient },
+          { procedureLaquelle: contient },
+          { referenceDUERP: contient },
+          { miseAJourAutrePrecision: contient },
+          { referenceNouveauRisque: contient },
+          { typeCommunication: contient },
+          { validationNom: contient },
+          { validationFonction: contient },
+          { causes: { some: { libelle: contient } } },
+          ...(themesTrouves.length ? [{ theme: { hasSome: themesTrouves } }] : []),
+          ...(domainesTrouves.length ? [{ domaine: { hasSome: domainesTrouves } }] : []),
         ]
       : undefined,
   };
@@ -33,8 +60,8 @@ export default async function FichesSSEPage({
       where,
       orderBy: { createdAt: "desc" },
       include: { ecart: { include: { dossier: true } } },
-      skip: (page - 1) * TAILLE_PAGE,
-      take: TAILLE_PAGE,
+      skip: (page - 1) * taillePage,
+      take: taillePage,
     }),
   ]);
 
@@ -119,7 +146,7 @@ export default async function FichesSSEPage({
             )}
           </tbody>
         </table>
-        {total > 0 && <Pagination total={total} page={page} pageSize={TAILLE_PAGE} baseParams={{ q, statut }} />}
+        {total > 0 && <Pagination total={total} page={page} pageSize={taillePage} baseParams={{ q, statut, taille }} />}
       </div>
     </div>
   );

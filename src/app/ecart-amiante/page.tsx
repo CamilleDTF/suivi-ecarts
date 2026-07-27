@@ -4,8 +4,7 @@ import { Badge } from "@/components/badge";
 import { SelectAutoSubmit } from "@/components/select-auto-submit";
 import { Pagination } from "@/components/pagination";
 import { STATUT_DOSSIER_ECART_LABELS, STATUT_DOSSIER_ECART_COLORS } from "@/lib/labels";
-
-const TAILLE_PAGE = 10;
+import { lireTaillePage } from "@/lib/pagination";
 
 const ONGLETS = [
   { valeur: "tous", label: "Tous" },
@@ -32,20 +31,39 @@ function dateDebutPeriode(periode: string | undefined): Date | undefined {
 export default async function EcartAmiantePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; onglet?: string; periode?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; onglet?: string; periode?: string; page?: string; taille?: string }>;
 }) {
-  const { q, onglet, periode, page: pageParam } = await searchParams;
+  const { q, onglet, periode, page: pageParam, taille } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
+  const taillePage = lireTaillePage(taille);
   const debutPeriode = dateDebutPeriode(periode);
 
+  const contient = { contains: q, mode: "insensitive" as const };
   const whereBase = {
     date: debutPeriode ? { gte: debutPeriode } : undefined,
     OR: q
       ? [
-          { reference: { contains: q, mode: "insensitive" as const } },
-          { nomChantier: { contains: q, mode: "insensitive" as const } },
-          { conducteur: { contains: q, mode: "insensitive" as const } },
-          { chef: { contains: q, mode: "insensitive" as const } },
+          { reference: contient },
+          { nomChantier: contient },
+          { numeroChantier: contient },
+          { conducteur: contient },
+          { chef: contient },
+          { zone: contient },
+          { processus: contient },
+          { typeAnalyse: contient },
+          { referenceAnalyse: contient },
+          { typeEcart: contient },
+          { resultatAttendu: contient },
+          { resultatObtenu: contient },
+          { description: contient },
+          { personneConcernee: contient },
+          { medecinTravail: contient },
+          { pasNouvelleAnalyse: contient },
+          { laboratoireNouvelleAnalyse: contient },
+          { chantierNouvelleAnalyse: contient },
+          { resultatAttenduNouvelleAnalyse: contient },
+          { resultatObtenuNouvelleAnalyse: contient },
+          { actionCloture: contient },
         ]
       : undefined,
   };
@@ -66,8 +84,8 @@ export default async function EcartAmiantePage({
     prisma.ecartAmiante.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      skip: (page - 1) * TAILLE_PAGE,
-      take: TAILLE_PAGE,
+      skip: (page - 1) * taillePage,
+      take: taillePage,
     }),
     prisma.ecartAmiante.count({ where: whereBase }),
     prisma.ecartAmiante.count({ where: { ...whereBase, statut: "OUVERT" } }),
@@ -185,7 +203,7 @@ export default async function EcartAmiantePage({
           </tbody>
         </table>
         {total > 0 && (
-          <Pagination total={total} page={page} pageSize={TAILLE_PAGE} baseParams={{ q, onglet, periode }} />
+          <Pagination total={total} page={page} pageSize={taillePage} baseParams={{ q, onglet, periode, taille }} />
         )}
       </div>
     </div>

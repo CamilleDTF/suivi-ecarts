@@ -30,6 +30,7 @@ export default async function EcartDetailPage({
     where: { id },
     include: {
       dossier: true,
+      remontee: { select: { id: true, reference: true, objet: true } },
       fichesSSE: { orderBy: { createdAt: "desc" } },
       actions: { orderBy: { createdAt: "desc" } },
     },
@@ -51,9 +52,17 @@ export default async function EcartDetailPage({
               colorClass={STATUT_DOSSIER_ECART_COLORS[ecart.statut]}
             />
           </div>
-          <Link href={`/dossiers/${ecart.dossier.id}`} className="text-sm text-slate-500 hover:underline">
+          <Link href={`/dossiers/${ecart.dossier.id}`} className="block text-sm text-slate-500 hover:underline">
             Dossier {ecart.dossier.reference} — {ecart.dossier.chantier}
           </Link>
+          {ecart.remontee && (
+            <Link
+              href={`/remontees/${ecart.remontee.id}`}
+              className="block text-sm text-purple-700 hover:underline"
+            >
+              Issu de la remontée {ecart.remontee.reference} — {ecart.remontee.objet}
+            </Link>
+          )}
         </div>
         <div className="flex gap-2">
           <Link

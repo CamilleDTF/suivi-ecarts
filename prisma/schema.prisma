@@ -40,6 +40,18 @@ enum StatutDossierEcart {
   CLOTURE
 }
 
+enum OrigineRemontee {
+  CHANTIER
+  BUREAU
+}
+
+enum StatutRemontee {
+  A_TRAITER
+  EN_COURS
+  TRAITEE
+  TRANSFORMEE_EN_ECART
+}
+
 enum TypeActivite {
   SS3_RETRAIT_ENCAPSULAGE
   SS4_INTERVENTION
@@ -134,6 +146,32 @@ model Ecart {
   modifieLe          DateTime?
   fichesSSE          FicheSSE[]
   actions            Action[]
+  remontee           RemonteeInfo?
+}
+
+// Remontée d'information : ce que le terrain ou le bureau fait remonter au
+// quotidien. Beaucoup restent de simples informations traitées telles quelles ;
+// certaines justifient l'ouverture d'un écart, auquel cas la remontée reste
+// reliée à l'écart qu'elle a produit pour garder la traçabilité de l'origine.
+model RemonteeInfo {
+  id                String          @id @default(cuid())
+  reference         String          @unique
+  dateRemontee      DateTime
+  origine           OrigineRemontee
+  chantierService   String
+  personneRemontant String?
+  personneSaisie    String?
+  objet             String
+  categorie         String?
+  description       String?
+  suiteDonnee       String?
+  statut            StatutRemontee  @default(A_TRAITER)
+  ecart             Ecart?          @relation(fields: [ecartId], references: [id])
+  ecartId           String?         @unique
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  modifiePar        String?
+  modifieLe         DateTime?
 }
 
 model FicheSSE {

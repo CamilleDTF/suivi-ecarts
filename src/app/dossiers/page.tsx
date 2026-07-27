@@ -6,16 +6,16 @@ import { Pagination } from "@/components/pagination";
 import { Origine, StatutDossierEcart } from "@/generated/prisma/enums";
 import { ORIGINE_LABELS, STATUT_DOSSIER_ECART_COLORS, STATUT_DOSSIER_ECART_LABELS } from "@/lib/labels";
 import { filtreStatutDossierEcart } from "@/lib/validation";
-
-const TAILLE_PAGE = 10;
+import { lireTaillePage } from "@/lib/pagination";
 
 export default async function DossiersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; origine?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; origine?: string; page?: string; taille?: string }>;
 }) {
-  const { q, statut, origine, page: pageParam } = await searchParams;
+  const { q, statut, origine, page: pageParam, taille } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
+  const taillePage = lireTaillePage(taille);
 
   const where = {
     statut: filtreStatutDossierEcart(statut),
@@ -35,8 +35,8 @@ export default async function DossiersPage({
       where,
       orderBy: { createdAt: "desc" },
       include: { _count: { select: { ecarts: true } } },
-      skip: (page - 1) * TAILLE_PAGE,
-      take: TAILLE_PAGE,
+      skip: (page - 1) * taillePage,
+      take: taillePage,
     }),
   ]);
 
@@ -132,7 +132,7 @@ export default async function DossiersPage({
             )}
           </tbody>
         </table>
-        {total > 0 && <Pagination total={total} page={page} pageSize={TAILLE_PAGE} baseParams={{ q, statut, origine }} />}
+        {total > 0 && <Pagination total={total} page={page} pageSize={taillePage} baseParams={{ q, statut, origine, taille }} />}
       </div>
     </div>
   );

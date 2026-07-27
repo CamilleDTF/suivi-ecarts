@@ -3,6 +3,7 @@ import {
   StatutAction,
   StatutDossierEcart,
   StatutFiche,
+  StatutRemontee,
 } from "@/generated/prisma/enums";
 
 // Un `as StatutAction` ne vérifie rien à l'exécution : une valeur absente de
@@ -15,6 +16,7 @@ function schemaEnum<T extends Record<string, string>>(valeurs: T) {
 export const statutDossierEcartSchema = schemaEnum(StatutDossierEcart);
 export const statutActionSchema = schemaEnum(StatutAction);
 export const statutFicheSchema = schemaEnum(StatutFiche);
+export const statutRemonteeSchema = schemaEnum(StatutRemontee);
 
 /** Valide une valeur de formulaire, en levant une erreur si elle est invalide. */
 export function lireStatutDossierEcart(v: FormDataEntryValue | null): StatutDossierEcart {
@@ -23,6 +25,16 @@ export function lireStatutDossierEcart(v: FormDataEntryValue | null): StatutDoss
 
 export function lireStatutAction(v: FormDataEntryValue | null): StatutAction {
   return statutActionSchema.parse(String(v ?? "")) as StatutAction;
+}
+
+export function lireStatutRemontee(v: FormDataEntryValue | null): StatutRemontee {
+  return statutRemonteeSchema.parse(String(v ?? "")) as StatutRemontee;
+}
+
+export function filtreStatutRemontee(v: string | undefined): StatutRemontee | undefined {
+  if (!v) return undefined;
+  const r = statutRemonteeSchema.safeParse(v);
+  return r.success ? (r.data as StatutRemontee) : undefined;
 }
 
 /**

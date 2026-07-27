@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SelectTaillePage } from "@/components/select-taille-page";
 
 export function Pagination({
   total,
@@ -30,8 +31,11 @@ export function Pagination({
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-sm text-slate-500">
-      <div>
-        {debut}–{fin} sur {total} résultat{total > 1 ? "s" : ""}
+      <div className="flex flex-wrap items-center gap-4">
+        <span>
+          {debut}–{fin} sur {total} résultat{total > 1 ? "s" : ""}
+        </span>
+        <SelectTaillePage taille={pageSize} />
       </div>
       <div className="flex items-center gap-2">
         {precedentActif ? (

@@ -12,18 +12,28 @@ import { Origine, TypeActivite } from "@/generated/prisma/enums";
 export default async function NouvelEcartPage({
   searchParams,
 }: {
-  searchParams: Promise<{ dossierId?: string }>;
+  searchParams: Promise<{ dossierId?: string; remonteeId?: string }>;
 }) {
-  const { dossierId } = await searchParams;
-  const dossiers = await prisma.dossier.findMany({ orderBy: { createdAt: "desc" } });
+  const { dossierId, remonteeId } = await searchParams;
+  const [dossiers, remontee] = await Promise.all([
+    prisma.dossier.findMany({ orderBy: { createdAt: "desc" } }),
+    remonteeId ? prisma.remonteeInfo.findUnique({ where: { id: remonteeId } }) : null,
+  ]);
   const today = new Date().toISOString().slice(0, 10);
   const dossierSelectionne = dossierId ? dossiers.find((d) => d.id === dossierId) : undefined;
 
   return (
     <div className="mx-auto max-w-2xl px-6 py-8">
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Nouvel écart</h1>
+      <h1 className="mb-1 text-2xl font-semibold text-slate-900">Nouvel écart</h1>
+      {remontee && (
+        <p className="mb-6 text-sm text-slate-500">
+          Créé à partir de la remontée {remontee.reference} — {remontee.objet}. Choisissez le dossier
+          de rattachement : la remontée passera ensuite en « Transformée en écart ».
+        </p>
+      )}
 
-      <form action={creerEcart} className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
+      <form action={creerEcart} className="mt-6 space-y-4 rounded-lg border border-slate-200 bg-white p-6">
+        {remonteeId && <input type="hidden" name="remonteeId" value={remonteeId} />}
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">Dossier</label>
           <select
@@ -50,7 +60,7 @@ export default async function NouvelEcartPage({
           <input
             type="date"
             name="dateDetection"
-            defaultValue={today}
+            defaultValue={remontee ? remontee.dateRemontee.toISOString().slice(0, 10) : today}
             required
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
@@ -77,6 +87,7 @@ export default async function NouvelEcartPage({
           <input
             type="text"
             name="declarant"
+            defaultValue={remontee?.personneRemontant ?? ""}
             required
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
@@ -123,6 +134,7 @@ export default async function NouvelEcartPage({
           <textarea
             name="description"
             rows={3}
+            defaultValue={remontee ? [remontee.objet, remontee.description].filter(Boolean).join("\n\n") : ""}
             className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
           />
         </div>

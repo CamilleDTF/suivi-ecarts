@@ -63,6 +63,18 @@ export async function creerEcart(formData: FormData) {
     },
   });
 
+  // Écart né d'une remontée d'information : on relie les deux et on bascule la
+  // remontée en "Transformée en écart", pour garder la trace de son origine.
+  const remonteeId = formData.get("remonteeId");
+  if (remonteeId) {
+    await prisma.remonteeInfo.update({
+      where: { id: String(remonteeId) },
+      data: { ecartId: ecart.id, statut: "TRANSFORMEE_EN_ECART" },
+    });
+    revalidatePath(`/remontees/${remonteeId}`);
+    revalidatePath("/remontees");
+  }
+
   revalidatePath(`/dossiers/${parsed.dossierId}`);
   redirect(`/ecarts/${ecart.id}`);
 }

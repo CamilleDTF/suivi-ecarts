@@ -4,27 +4,55 @@ import { Badge } from "@/components/badge";
 import { SelectAutoSubmit } from "@/components/select-auto-submit";
 import { Pagination } from "@/components/pagination";
 import { Origine, StatutDossierEcart } from "@/generated/prisma/enums";
-import { ORIGINE_LABELS, STATUT_DOSSIER_ECART_COLORS, STATUT_DOSSIER_ECART_LABELS } from "@/lib/labels";
+import {
+  ORIGINE_LABELS,
+  STATUT_DOSSIER_ECART_COLORS,
+  STATUT_DOSSIER_ECART_LABELS,
+  NATURES_OPTIONS,
+  DOMAINES_OPTIONS,
+  THEME_OPTIONS,
+} from "@/lib/labels";
 import { filtreStatutDossierEcart } from "@/lib/validation";
-
-const TAILLE_PAGE = 10;
+import { lireTaillePage } from "@/lib/pagination";
 
 export default async function EcartsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; origine?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; origine?: string; page?: string; taille?: string }>;
 }) {
-  const { q, statut, origine, page: pageParam } = await searchParams;
+  const { q, statut, origine, page: pageParam, taille } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
+  const taillePage = lireTaillePage(taille);
 
+  // Les listes à choix (natures, domaines, thèmes) sont stockées en tableaux :
+  // on cherche d'abord quelles options correspondent au texte saisi, puis on
+  // filtre sur celles-ci. Cela permet une recherche partielle et insensible à
+  // la casse, ce que `has` seul ne permet pas.
+  const optionsCorrespondantes = (options: string[]) =>
+    q ? options.filter((o) => o.toLowerCase().includes(q.toLowerCase())) : [];
+  const naturesTrouvees = optionsCorrespondantes(NATURES_OPTIONS);
+  const domainesTrouves = optionsCorrespondantes(DOMAINES_OPTIONS);
+  const themesTrouves = optionsCorrespondantes(THEME_OPTIONS);
+
+  const contient = { contains: q, mode: "insensitive" as const };
   const where = {
     statut: filtreStatutDossierEcart(statut),
     origine: origine ? (origine as Origine) : undefined,
     OR: q
       ? [
-          { reference: { contains: q, mode: "insensitive" as const } },
-          { description: { contains: q, mode: "insensitive" as const } },
-          { declarant: { contains: q, mode: "insensitive" as const } },
+          { reference: contient },
+          { description: contient },
+          { declarant: contient },
+          { pointsSensibles: contient },
+          { mesureImmediate: contient },
+          { cause: contient },
+          { critereEfficacite: contient },
+          { criticite: contient },
+          { dossier: { chantier: contient } },
+          { dossier: { reference: contient } },
+          ...(naturesTrouvees.length ? [{ natures: { hasSome: naturesTrouvees } }] : []),
+          ...(domainesTrouves.length ? [{ domaines: { hasSome: domainesTrouves } }] : []),
+          ...(themesTrouves.length ? [{ theme: { hasSome: themesTrouves } }] : []),
         ]
       : undefined,
   };
@@ -35,8 +63,8 @@ export default async function EcartsPage({
       where,
       orderBy: { createdAt: "desc" },
       include: { dossier: true },
-      skip: (page - 1) * TAILLE_PAGE,
-      take: TAILLE_PAGE,
+      skip: (page - 1) * taillePage,
+      take: taillePage,
     }),
   ]);
 
@@ -132,7 +160,7 @@ export default async function EcartsPage({
             )}
           </tbody>
         </table>
-        {total > 0 && <Pagination total={total} page={page} pageSize={TAILLE_PAGE} baseParams={{ q, statut, origine }} />}
+        {total > 0 && <Pagination total={total} page={page} pageSize={taillePage} baseParams={{ q, statut, origine, taille }} />}
       </div>
     </div>
   );
