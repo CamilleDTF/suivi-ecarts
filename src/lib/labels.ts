@@ -120,6 +120,28 @@ export const STATUT_ACTION_COLORS: Record<string, string> = {
   ANNULEE: "bg-slate-200 text-slate-500",
 };
 
+export const TYPES_ECART_AMIANTE = ["Non COFRAC", "Résultat élevé", "Non exploitable"];
+
+export const CAUSES_ECART_AMIANTE = [
+  "Saturation en poussières des filtres",
+  "Répartition de la poussière non homogène",
+  "Filtre(s) cassé(s)",
+  "Filtre(s) mouillé(s)",
+  "Temps de pause non respecté",
+  "Nettoyage de finition non ou mal réalisé",
+  "Confinement déchiré",
+  "Mauvaise décontamination des opérateurs",
+  "Aspiration à la source qui n'a pas fonctionné",
+  "Humidification non réalisée",
+  "Non-respect des processus",
+  "Propreté de la zone",
+  "Baisse du flux d'air en zone",
+  "Baisse de la dépression en zone",
+  "MCA dégradé (non prévu)",
+  "Mauvaise décontamination du matériel / déchets",
+  "Autre",
+];
+
 export const ORIGINE_REMONTEE_LABELS: Record<string, string> = {
   CHANTIER: "Chantier",
   BUREAU: "Bureau",

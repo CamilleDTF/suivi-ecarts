@@ -1,6 +1,7 @@
 "use client";
 
 import { useEditMode } from "@/components/formulaire-editable";
+import { TYPES_ECART_AMIANTE, CAUSES_ECART_AMIANTE } from "@/lib/labels";
 
 type EcartAmianteValues = {
   nomChantier?: string | null;
@@ -12,13 +13,13 @@ type EcartAmianteValues = {
   typeAnalyse?: string | null;
   referenceAnalyse?: string | null;
   typeEcart?: string | null;
+  cause?: string | null;
   resultatAttendu?: string | null;
   resultatObtenu?: string | null;
   description?: string | null;
   expositionAccidentelle?: boolean | null;
   personneConcernee?: string | null;
   fie?: boolean | null;
-  medecinTravail?: string | null;
   besoinNouvelleAnalyse?: boolean | null;
   pasNouvelleAnalyse?: string | null;
   dateNouvelleAnalyse?: Date | null;
@@ -26,7 +27,7 @@ type EcartAmianteValues = {
   chantierNouvelleAnalyse?: string | null;
   resultatAttenduNouvelleAnalyse?: string | null;
   resultatObtenuNouvelleAnalyse?: string | null;
-  actionCloture?: string | null;
+  dateCloture?: Date | null;
   evenementSSE?: boolean | null;
 };
 
@@ -35,6 +36,30 @@ const labelCls = "mb-1 block text-sm font-medium text-slate-700";
 
 function toDateInput(d?: Date | null) {
   return d ? d.toISOString().slice(0, 10) : "";
+}
+
+// Conserve une valeur déjà enregistrée qui ne figure pas dans la liste (ancienne
+// saisie libre), pour ne pas la faire disparaître au prochain enregistrement.
+function avecValeurExistante(options: string[], valeur?: string | null) {
+  return valeur && !options.includes(valeur) ? [...options, valeur] : options;
+}
+
+// Oui / Non explicites plutôt qu'une case à cocher : une case décochée ne
+// distingue pas "non" de "pas encore renseigné", ce qui compte sur une fiche
+// d'exposition. Aucun bouton coché tant que la question n'a pas été tranchée.
+function OuiNon({ name, valeur }: { name: string; valeur?: boolean | null }) {
+  return (
+    <div className="flex items-center gap-4">
+      <label className="flex items-center gap-1.5 text-sm text-slate-700">
+        <input type="radio" name={name} value="oui" defaultChecked={valeur === true} />
+        Oui
+      </label>
+      <label className="flex items-center gap-1.5 text-sm text-slate-700">
+        <input type="radio" name={name} value="non" defaultChecked={valeur === false} />
+        Non
+      </label>
+    </div>
+  );
 }
 
 export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
@@ -84,16 +109,28 @@ export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
           </div>
           <div>
             <label className={labelCls}>Type d&apos;écart</label>
-            <input name="typeEcart" defaultValue={v.typeEcart ?? ""} className={inputCls} />
+            <select name="typeEcart" defaultValue={v.typeEcart ?? ""} className={inputCls}>
+              <option value="">—</option>
+              {avecValeurExistante(TYPES_ECART_AMIANTE, v.typeEcart).map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
-        <div className="mt-4">
-          <label className={labelCls}>Résultat attendu</label>
-          <textarea name="resultatAttendu" defaultValue={v.resultatAttendu ?? ""} rows={2} className={inputCls} />
-        </div>
-        <div className="mt-4">
-          <label className={labelCls}>Résultat obtenu</label>
-          <textarea name="resultatObtenu" defaultValue={v.resultatObtenu ?? ""} rows={2} className={inputCls} />
+        {/* Ces deux champs reçoivent des valeurs courtes (un seuil, un nombre de
+            fibres) : une ligne suffit, et les mettre côte à côte facilite la
+            comparaison attendu / obtenu. */}
+        <div className="mt-4 grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Résultat attendu</label>
+            <input name="resultatAttendu" defaultValue={v.resultatAttendu ?? ""} className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Résultat obtenu</label>
+            <input name="resultatObtenu" defaultValue={v.resultatObtenu ?? ""} className={inputCls} />
+          </div>
         </div>
         <div className="mt-4">
           <label className={labelCls}>Description</label>
@@ -102,23 +139,31 @@ export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
       </div>
 
       <div>
+        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Cause</h2>
+        <select name="cause" defaultValue={v.cause ?? ""} className={inputCls}>
+          <option value="">Choisissez un élément.</option>
+          {avecValeurExistante(CAUSES_ECART_AMIANTE, v.cause).map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
         <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Exposition</h2>
         <div className="grid grid-cols-2 gap-4">
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" name="expositionAccidentelle" defaultChecked={!!v.expositionAccidentelle} />
-            Exposition accidentelle
-          </label>
-          <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" name="fie" defaultChecked={!!v.fie} />
-            FIE
-          </label>
+          <div>
+            <label className={labelCls}>Exposition accidentelle</label>
+            <OuiNon name="expositionAccidentelle" valeur={v.expositionAccidentelle} />
+          </div>
+          <div>
+            <label className={labelCls}>Besoin de créer une FIE ?</label>
+            <OuiNon name="fie" valeur={v.fie} />
+          </div>
           <div>
             <label className={labelCls}>Personne concernée</label>
             <input name="personneConcernee" defaultValue={v.personneConcernee ?? ""} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>Médecin du travail</label>
-            <input name="medecinTravail" defaultValue={v.medecinTravail ?? ""} className={inputCls} />
           </div>
         </div>
       </div>
@@ -163,30 +208,27 @@ export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
         <div className="mt-4 grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Résultat attendu (nouvelle analyse)</label>
-            <textarea
-              name="resultatAttenduNouvelleAnalyse"
-              defaultValue={v.resultatAttenduNouvelleAnalyse ?? ""}
-              rows={2}
-              className={inputCls}
-            />
+            <input name="resultatAttenduNouvelleAnalyse" defaultValue={v.resultatAttenduNouvelleAnalyse ?? ""} className={inputCls} />
           </div>
           <div>
             <label className={labelCls}>Résultat obtenu (nouvelle analyse)</label>
-            <textarea
-              name="resultatObtenuNouvelleAnalyse"
-              defaultValue={v.resultatObtenuNouvelleAnalyse ?? ""}
-              rows={2}
-              className={inputCls}
-            />
+            <input name="resultatObtenuNouvelleAnalyse" defaultValue={v.resultatObtenuNouvelleAnalyse ?? ""} className={inputCls} />
           </div>
         </div>
       </div>
 
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Clôture</h2>
-        <div>
-          <label className={labelCls}>Action de clôture</label>
-          <textarea name="actionCloture" defaultValue={v.actionCloture ?? ""} rows={2} className={inputCls} />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Date de clôture</label>
+            <input
+              type="date"
+              name="dateCloture"
+              defaultValue={toDateInput(v.dateCloture)}
+              className={inputCls}
+            />
+          </div>
         </div>
         <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
           <input type="checkbox" name="evenementSSE" defaultChecked={!!v.evenementSSE} />

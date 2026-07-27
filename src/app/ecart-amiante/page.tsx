@@ -57,13 +57,12 @@ export default async function EcartAmiantePage({
           { resultatObtenu: contient },
           { description: contient },
           { personneConcernee: contient },
-          { medecinTravail: contient },
           { pasNouvelleAnalyse: contient },
           { laboratoireNouvelleAnalyse: contient },
           { chantierNouvelleAnalyse: contient },
           { resultatAttenduNouvelleAnalyse: contient },
           { resultatObtenuNouvelleAnalyse: contient },
-          { actionCloture: contient },
+          { cause: contient },
         ]
       : undefined,
   };

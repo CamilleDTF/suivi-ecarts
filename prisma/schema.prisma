@@ -252,13 +252,13 @@ model EcartAmiante {
   typeAnalyse                    String?
   referenceAnalyse               String?
   typeEcart                      String?
+  cause                          String?
   resultatAttendu                String?
   resultatObtenu                 String?
   description                    String?
   expositionAccidentelle         Boolean?
   personneConcernee              String?
   fie                            Boolean?
-  medecinTravail                 String?
   besoinNouvelleAnalyse          Boolean?
   pasNouvelleAnalyse             String?
   dateNouvelleAnalyse            DateTime?
@@ -266,7 +266,6 @@ model EcartAmiante {
   chantierNouvelleAnalyse        String?
   resultatAttenduNouvelleAnalyse String?
   resultatObtenuNouvelleAnalyse  String?
-  actionCloture                  String?
   statut                         StatutDossierEcart @default(OUVERT)
   dateCloture                    DateTime?
   evenementSSE                   Boolean    @default(false)
@@ -298,6 +297,8 @@ model Action {
   statut          StatutAction  @default(A_FAIRE)
   obligatoire     Boolean       @default(false)
   preuve          String?
+  verifiePar      String?
+  verifieLe       DateTime?
   origine         String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt

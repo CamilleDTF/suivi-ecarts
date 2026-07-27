@@ -49,7 +49,7 @@ export default async function RemonteeDetailPage({
   const dejaTransformee = !!remontee.ecart;
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-6 py-8">
       <BoutonRetour href="/remontees" label="Retour aux remontées" />
 
       <div className="mb-6 flex items-start justify-between">
@@ -63,7 +63,7 @@ export default async function RemonteeDetailPage({
           </div>
           <p className="text-sm text-slate-500">{remontee.objet}</p>
         </div>
-        <div data-no-print className="flex gap-2">
+        <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
           <BoutonExportPDF />
           <BoutonSupprimer
             action={supprimerRemontee}
@@ -118,7 +118,7 @@ export default async function RemonteeDetailPage({
             <input type="hidden" name="id" value={remontee.id} />
             <button
               type="submit"
-              className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+              className="whitespace-nowrap rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
             >
               Marquer comme traitée
             </button>
@@ -127,7 +127,7 @@ export default async function RemonteeDetailPage({
         {!dejaTransformee && (
           <Link
             href={`/ecarts/nouveau?remonteeId=${remontee.id}`}
-            className="rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
+            className="whitespace-nowrap rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700"
           >
             Transformer en écart
           </Link>

@@ -49,7 +49,7 @@ export default async function ActionDetailPage({
         : "Retour au plan d'action";
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-6 py-8">
       <BoutonRetour href={retourHref} label={retourLabel} />
       <div className="mb-6 flex items-start justify-between">
         <div>
@@ -71,7 +71,7 @@ export default async function ActionDetailPage({
             </Link>
           ) : null}
         </div>
-        <div data-no-print className="flex gap-2">
+        <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
           <BoutonExportPDF />
           <BoutonSupprimer
             action={supprimerAction}

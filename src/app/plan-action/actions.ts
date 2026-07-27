@@ -74,6 +74,8 @@ const actionEditSchema = z.object({
   echeance: z.string().optional(),
   obligatoire: z.string().optional(),
   preuve: z.string().optional(),
+  verifiePar: z.string().optional(),
+  verifieLe: z.string().optional(),
 });
 
 export async function mettreAJourAction(formData: FormData) {
@@ -88,6 +90,8 @@ export async function mettreAJourAction(formData: FormData) {
     echeance: formData.get("echeance") || undefined,
     obligatoire: formData.get("obligatoire") || undefined,
     preuve: formData.get("preuve") || undefined,
+    verifiePar: formData.get("verifiePar") || undefined,
+    verifieLe: formData.get("verifieLe") || undefined,
   });
 
   const action = await prisma.action.update({
@@ -99,6 +103,8 @@ export async function mettreAJourAction(formData: FormData) {
       echeance: parsed.echeance ? new Date(parsed.echeance) : undefined,
       obligatoire: parsed.obligatoire === "on",
       preuve: parsed.preuve,
+      verifiePar: parsed.verifiePar ?? null,
+      verifieLe: parsed.verifieLe ? new Date(parsed.verifieLe) : null,
       modifiePar: nomAuteur(session),
       modifieLe: new Date(),
     },

@@ -37,7 +37,7 @@ export default async function DossierDetailPage({
   const impact = await compterImpactSuppressionDossier(dossier.id);
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-6 py-8">
       <BoutonRetour href="/dossiers" label="Retour aux dossiers" />
       <div className="mb-6 flex items-start justify-between">
         <div>
@@ -50,11 +50,11 @@ export default async function DossierDetailPage({
           </div>
           <p className="text-sm text-slate-500">{dossier.chantier}</p>
         </div>
-        <div data-no-print className="flex gap-2">
+        <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
           <BoutonExportPDF />
           <Link
             href={`/ecarts/nouveau?dossierId=${dossier.id}`}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="whitespace-nowrap rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
             + Nouvel écart
           </Link>

@@ -71,7 +71,7 @@ export default async function FicheSSEDetailPage({
   const retourLabel = fiche.ecart ? "Retour à l'écart" : fiche.ecartAmiante ? "Retour à l'écart amiante" : "Retour aux évènements SSE";
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-6 py-8">
       <BoutonRetour href={retourHref} label={retourLabel} />
       <div className="mb-6 flex items-start justify-between">
         <div>
@@ -90,11 +90,11 @@ export default async function FicheSSEDetailPage({
             </Link>
           )}
         </div>
-        <div data-no-print className="flex gap-2">
+        <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
           <BoutonExportPDF />
           <Link
             href={`/plan-action/nouveau?ficheSSEId=${fiche.id}`}
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="whitespace-nowrap rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             + Action
           </Link>
@@ -103,7 +103,7 @@ export default async function FicheSSEDetailPage({
               <input type="hidden" name="id" value={fiche.id} />
               <button
                 type="submit"
-                className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
+                className="whitespace-nowrap rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700"
               >
                 Finaliser l&apos;évènement
               </button>

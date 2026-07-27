@@ -46,7 +46,7 @@ export function BoutonExportPDF() {
     <button
       type="button"
       onClick={() => window.print()}
-      className="flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+      className="whitespace-nowrap flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
     >
       <IconFileText className="h-4 w-4" />
       Exporter en PDF

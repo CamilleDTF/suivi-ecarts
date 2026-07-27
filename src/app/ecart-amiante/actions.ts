@@ -13,6 +13,10 @@ import { supprimerEcartAmianteCascade } from "@/lib/suppression";
 const bool = (v: FormDataEntryValue | null) => v === "on" || v === "true";
 const str = (v: FormDataEntryValue | null) => (v ? String(v) : undefined);
 const date = (v: FormDataEntryValue | null) => (v ? new Date(String(v)) : undefined);
+// Boutons Oui / Non : tant qu'aucun n'est coché, la question n'a pas été
+// tranchée et le champ reste vide — nuance qu'une case à cocher ne permet pas
+// d'exprimer, et qui compte sur une fiche d'exposition.
+const ouiNon = (v: FormDataEntryValue | null) => (v === "oui" ? true : v === "non" ? false : null);
 
 const schema = z.object({
   nomChantier: z.string().min(1, "Nom du chantier requis"),
@@ -35,13 +39,13 @@ function parse(formData: FormData) {
     typeAnalyse: str(formData.get("typeAnalyse")),
     referenceAnalyse: str(formData.get("referenceAnalyse")),
     typeEcart: str(formData.get("typeEcart")),
+    cause: str(formData.get("cause")),
     resultatAttendu: str(formData.get("resultatAttendu")),
     resultatObtenu: str(formData.get("resultatObtenu")),
     description: str(formData.get("description")),
-    expositionAccidentelle: bool(formData.get("expositionAccidentelle")),
+    expositionAccidentelle: ouiNon(formData.get("expositionAccidentelle")),
     personneConcernee: str(formData.get("personneConcernee")),
-    fie: bool(formData.get("fie")),
-    medecinTravail: str(formData.get("medecinTravail")),
+    fie: ouiNon(formData.get("fie")),
     besoinNouvelleAnalyse: bool(formData.get("besoinNouvelleAnalyse")),
     pasNouvelleAnalyse: str(formData.get("pasNouvelleAnalyse")),
     dateNouvelleAnalyse: date(formData.get("dateNouvelleAnalyse")),
@@ -49,7 +53,7 @@ function parse(formData: FormData) {
     chantierNouvelleAnalyse: str(formData.get("chantierNouvelleAnalyse")),
     resultatAttenduNouvelleAnalyse: str(formData.get("resultatAttenduNouvelleAnalyse")),
     resultatObtenuNouvelleAnalyse: str(formData.get("resultatObtenuNouvelleAnalyse")),
-    actionCloture: str(formData.get("actionCloture")),
+    dateCloture: date(formData.get("dateCloture")) ?? null,
     evenementSSE: bool(formData.get("evenementSSE")),
   };
 }
@@ -90,10 +94,17 @@ export async function mettreAJourStatutEcartAmiante(formData: FormData) {
   const id = String(formData.get("id"));
   const statut = lireStatutDossierEcart(formData.get("statut"));
 
-  await prisma.ecartAmiante.update({
+  // La date de clôture est aussi saisissable dans la fiche : on la pré-remplit
+  // à la clôture seulement si elle est vide, pour ne pas écraser une date
+  // corrigée à la main. Rouvrir l'écart la remet à vide.
+  const actuel = await prisma.ecartAmiante.findUniqueOrThrow({
     where: { id },
-    data: { statut, dateCloture: statut === "CLOTURE" ? new Date() : null },
+    select: { dateCloture: true },
   });
+  const dateCloture =
+    statut === "CLOTURE" ? (actuel.dateCloture ?? new Date()) : null;
+
+  await prisma.ecartAmiante.update({ where: { id }, data: { statut, dateCloture } });
   revalidatePath(`/ecart-amiante/${id}`);
   revalidatePath("/ecart-amiante");
 }

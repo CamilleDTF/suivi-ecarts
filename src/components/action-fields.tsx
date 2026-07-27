@@ -12,7 +12,13 @@ type ActionValues = {
   echeance?: Date | null;
   obligatoire: boolean;
   preuve?: string | null;
+  verifiePar?: string | null;
+  verifieLe?: Date | null;
 };
+
+function toDateInput(d?: Date | null) {
+  return d ? d.toISOString().slice(0, 10) : "";
+}
 
 async function fichierVersDataUrl(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
@@ -33,6 +39,10 @@ const labelCls = "mb-1 block text-sm font-medium text-slate-700";
 export function ActionFields({ v }: { v: ActionValues }) {
   const disabled = !useEditMode();
   const responsables = RESPONSABLES.includes(v.responsable) ? RESPONSABLES : [v.responsable, ...RESPONSABLES];
+  // Conserve un vérificateur déjà enregistré qui ne figurerait plus dans la
+  // liste, pour ne pas l'effacer au prochain enregistrement.
+  const verificateurs =
+    v.verifiePar && !RESPONSABLES.includes(v.verifiePar) ? [v.verifiePar, ...RESPONSABLES] : RESPONSABLES;
   const [preuve, setPreuve] = useState(v.preuve ?? "");
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -86,7 +96,26 @@ export function ActionFields({ v }: { v: ActionValues }) {
         Action obligatoire
       </label>
 
-      <div>
+      <div className="border-t border-slate-100 pt-4">
+        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Validation</h2>
+        <div className="mb-4 grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Vérifié par</label>
+            <select name="verifiePar" defaultValue={v.verifiePar ?? ""} className={inputCls}>
+              <option value="">—</option>
+              {verificateurs.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Le</label>
+            <input type="date" name="verifieLe" defaultValue={toDateInput(v.verifieLe)} className={inputCls} />
+          </div>
+        </div>
+
         <label className={labelCls}>Preuve</label>
         {preuve && (
           <img
