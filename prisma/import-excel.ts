@@ -118,7 +118,6 @@ async function main() {
         typeActivite: e.typeActivite as never,
         natures: e.natures,
         domaines: e.domaines,
-        pointsSensibles: e.pointsSensibles,
         // L'Excel ne renseigne pas de "gravité réelle" : la seule note de
         // gravité disponible est l'ancienne "gravité potentielle".
         gravite: e.graviteReelle ?? e.gravitePotentielle,
@@ -126,7 +125,6 @@ async function main() {
         description: e.description,
         mesureImmediate: e.mesureImmediate,
         cause: e.cause,
-        critereEfficacite: e.critereEfficacite,
         ficheSSECreee: e.ficheSSECreee,
       },
     });

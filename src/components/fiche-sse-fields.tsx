@@ -2,7 +2,13 @@
 
 import { useState, type ChangeEvent, type ReactNode } from "react";
 import { Badge } from "@/components/badge";
-import { GRAVITE_FREQUENCE_OPTIONS, CRITICITE_COLORS, calculerCriticite, THEME_OPTIONS } from "@/lib/labels";
+import {
+  GRAVITE_FREQUENCE_OPTIONS,
+  CRITICITE_COLORS,
+  calculerCriticite,
+  THEME_OPTIONS,
+  avecValeursExistantes,
+} from "@/lib/labels";
 import { useEditMode } from "@/components/formulaire-editable";
 
 const TYPE_ANALYSE_OPTIONS = [
@@ -134,7 +140,7 @@ function CasesACocher({
   const v = valeurs ?? [];
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-2">
-      {options.map((o) => (
+      {avecValeursExistantes(options, v).map((o) => (
         <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
           <input type="checkbox" name={name} value={o} defaultChecked={v.includes(o)} />
           {o}

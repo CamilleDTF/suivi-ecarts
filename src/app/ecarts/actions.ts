@@ -84,13 +84,11 @@ const ecartEditSchema = z.object({
   origine: z.enum(Object.values(Origine) as [string, ...string[]]),
   declarant: z.string().min(1, "Déclarant requis"),
   typeActivite: z.string().optional(),
-  pointsSensibles: z.string().optional(),
   gravite: z.string().optional(),
   frequence: z.string().optional(),
   description: z.string().optional(),
   mesureImmediate: z.string().optional(),
   cause: z.string().optional(),
-  critereEfficacite: z.string().optional(),
 });
 
 export async function mettreAJourEcart(formData: FormData) {
@@ -103,13 +101,11 @@ export async function mettreAJourEcart(formData: FormData) {
     origine: formData.get("origine"),
     declarant: formData.get("declarant"),
     typeActivite: formData.get("typeActivite") || undefined,
-    pointsSensibles: formData.get("pointsSensibles") || undefined,
     gravite: formData.get("gravite") || undefined,
     frequence: formData.get("frequence") || undefined,
     description: formData.get("description") || undefined,
     mesureImmediate: formData.get("mesureImmediate") || undefined,
     cause: formData.get("cause") || undefined,
-    critereEfficacite: formData.get("critereEfficacite") || undefined,
   });
 
   const natures = formData.getAll("natures").map(String);
@@ -126,7 +122,6 @@ export async function mettreAJourEcart(formData: FormData) {
       natures,
       domaines,
       theme,
-      pointsSensibles: parsed.pointsSensibles,
       gravite: parsed.gravite ?? null,
       frequence: parsed.frequence ?? null,
       // Recalculée côté serveur plutôt que reprise du champ caché du
@@ -136,7 +131,6 @@ export async function mettreAJourEcart(formData: FormData) {
       description: parsed.description,
       mesureImmediate: parsed.mesureImmediate,
       cause: parsed.cause,
-      critereEfficacite: parsed.critereEfficacite,
       modifiePar: nomAuteur(session),
       modifieLe: new Date(),
     },

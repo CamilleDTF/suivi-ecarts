@@ -130,7 +130,6 @@ model Ecart {
   typeActivite       TypeActivite?
   natures            String[]
   domaines           String[]
-  pointsSensibles    String?
   gravite            String?
   frequence          String?
   criticite          String?
@@ -138,7 +137,6 @@ model Ecart {
   description        String?
   mesureImmediate    String?
   cause              String?
-  critereEfficacite  String?
   ficheSSECreee      Boolean            @default(false)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt

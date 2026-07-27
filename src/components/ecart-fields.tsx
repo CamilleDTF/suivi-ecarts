@@ -11,6 +11,7 @@ import {
   GRAVITE_FREQUENCE_OPTIONS,
   CRITICITE_COLORS,
   calculerCriticite,
+  avecValeursExistantes,
 } from "@/lib/labels";
 import { Origine, TypeActivite } from "@/generated/prisma/enums";
 import { useEditMode } from "@/components/formulaire-editable";
@@ -23,14 +24,12 @@ type EcartValues = {
   natures?: string[] | null;
   domaines?: string[] | null;
   theme?: string[] | null;
-  pointsSensibles?: string | null;
   gravite?: string | null;
   frequence?: string | null;
   criticite?: string | null;
   description?: string | null;
   mesureImmediate?: string | null;
   cause?: string | null;
-  critereEfficacite?: string | null;
 };
 
 const inputCls =
@@ -39,14 +38,6 @@ const labelCls = "mb-1 block text-sm font-medium text-slate-700";
 
 function toDateInput(d?: Date | null) {
   return d ? d.toISOString().slice(0, 10) : "";
-}
-
-// Ajoute à la liste standard toute valeur déjà présente sur l'enregistrement
-// (ex. anciennes valeurs Excel retirées de la liste) pour ne pas la perdre
-// silencieusement au prochain enregistrement.
-function avecValeursExistantes(options: string[], valeurs: string[] | null | undefined) {
-  const extra = (valeurs ?? []).filter((v) => !options.includes(v));
-  return [...options, ...extra];
 }
 
 export function EcartFields({ v = {} }: { v?: EcartValues }) {
@@ -139,11 +130,6 @@ export function EcartFields({ v = {} }: { v?: EcartValues }) {
         </div>
       </fieldset>
 
-      <div>
-        <label className={labelCls}>Points sensibles</label>
-        <textarea name="pointsSensibles" defaultValue={v.pointsSensibles ?? ""} rows={2} className={inputCls} />
-      </div>
-
       <div className="grid grid-cols-3 gap-4">
         <div>
           <label className={labelCls}>Gravité</label>
@@ -199,11 +185,6 @@ export function EcartFields({ v = {} }: { v?: EcartValues }) {
       <div>
         <label className={labelCls}>Cause</label>
         <textarea name="cause" defaultValue={v.cause ?? ""} rows={2} className={inputCls} />
-      </div>
-
-      <div>
-        <label className={labelCls}>Critère d&apos;efficacité</label>
-        <textarea name="critereEfficacite" defaultValue={v.critereEfficacite ?? ""} rows={2} className={inputCls} />
       </div>
     </fieldset>
   );

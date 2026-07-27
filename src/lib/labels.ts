@@ -179,3 +179,11 @@ export const RESPONSABLES = [
   "Jallal", "Alexandre", "Khan", "Zakariae", "Camille", "Nassim", "Mamadou",
   "Ibrahim", "Halim", "Jalal", "Youssef", "Direction",
 ];
+
+// Ajoute à une liste d'options toute valeur déjà enregistrée qui n'y figure
+// plus (anciennes valeurs reprises de l'Excel, par exemple) : sans ça, la case
+// n'est pas affichée et la valeur disparaît au prochain enregistrement.
+export function avecValeursExistantes(options: string[], valeurs: string[] | null | undefined) {
+  const extra = (valeurs ?? []).filter((v) => !options.includes(v));
+  return [...options, ...extra];
+}

@@ -27,8 +27,11 @@ export default async function NouvelleFicheSSEPage({
         <AvertissementNonEnregistre />
         {ecartId && <input type="hidden" name="ecartId" value={ecartId} />}
 
+        {/* Un évènement rattaché à un écart hérite de ses domaines et thèmes :
+            c'est le même fait qualifié deux fois, et les deux listes d'options
+            sont identiques. Les cases restent modifiables. */}
         <FicheSSEFields
-          v={{ dateHeure: new Date() }}
+          v={{ dateHeure: new Date(), domaine: ecart?.domaines, theme: ecart?.theme }}
           defaultNomChantier={ecart?.dossier.chantier}
           apresTypeAnalyse={<ArbreCausesEditeur />}
           nouveau

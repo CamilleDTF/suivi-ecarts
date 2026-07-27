@@ -11,10 +11,19 @@ export function useEditMode() {
   return useContext(EditModeContext);
 }
 
+// Permet à un champ de signaler un traitement en cours (conversion d'une photo,
+// par exemple) pour que le bouton Enregistrer attende : sans ça, on enregistre
+// un formulaire dont un champ n'est pas encore rempli.
+const TraitementContext = createContext<(enCours: boolean) => void>(() => {});
+
+export function useTraitementEnCours() {
+  return useContext(TraitementContext);
+}
+
 // Doit être un enfant du <form> pour lire useFormStatus. Détecte la fin de
 // soumission (pending: true -> false) de façon asynchrone, après le commit,
 // pour ne pas interférer avec la soumission native du formulaire.
-function BoutonEnregistrer({ label, onDone }: { label: string; onDone: () => void }) {
+function BoutonEnregistrer({ label, onDone, occupe }: { label: string; onDone: () => void; occupe: boolean }) {
   const { pending } = useFormStatus();
   const etaitEnCours = useRef(false);
 
@@ -26,7 +35,7 @@ function BoutonEnregistrer({ label, onDone }: { label: string; onDone: () => voi
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || occupe}
       className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
     >
       {pending ? "Enregistrement..." : label}
@@ -52,6 +61,7 @@ export function FormulaireEditable({
   const [editMode, setEditMode] = useState(false);
   const [version, setVersion] = useState(0);
   const [toastVisible, setToastVisible] = useState(false);
+  const [occupe, setOccupe] = useState(false);
 
   useEffect(() => {
     if (!toastVisible) return;
@@ -91,7 +101,9 @@ export function FormulaireEditable({
       </div>
 
       <EditModeContext.Provider value={editMode}>
-        <div key={version}>{children}</div>
+        <TraitementContext.Provider value={setOccupe}>
+          <div key={version}>{children}</div>
+        </TraitementContext.Provider>
       </EditModeContext.Provider>
 
       {editMode && (
@@ -103,7 +115,7 @@ export function FormulaireEditable({
           >
             Annuler
           </button>
-          <BoutonEnregistrer label={labelBouton} onDone={onSaved} />
+          <BoutonEnregistrer label={labelBouton} onDone={onSaved} occupe={occupe} />
         </div>
       )}
 

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { TYPE_ACTION_LABELS, RESPONSABLES } from "@/lib/labels";
 import { TypeAction } from "@/generated/prisma/enums";
-import { useEditMode } from "@/components/formulaire-editable";
+import { useEditMode, useTraitementEnCours } from "@/components/formulaire-editable";
 
 type ActionValues = {
   type: string;
@@ -38,17 +38,39 @@ const labelCls = "mb-1 block text-sm font-medium text-slate-700";
 
 export function ActionFields({ v }: { v: ActionValues }) {
   const disabled = !useEditMode();
+  const signalerTraitement = useTraitementEnCours();
   const responsables = RESPONSABLES.includes(v.responsable) ? RESPONSABLES : [v.responsable, ...RESPONSABLES];
   // Conserve un vérificateur déjà enregistré qui ne figurerait plus dans la
   // liste, pour ne pas l'effacer au prochain enregistrement.
   const verificateurs =
     v.verifiePar && !RESPONSABLES.includes(v.verifiePar) ? [v.verifiePar, ...RESPONSABLES] : RESPONSABLES;
   const [preuve, setPreuve] = useState(v.preuve ?? "");
+  const [conversion, setConversion] = useState(false);
+  const [erreurPhoto, setErreurPhoto] = useState("");
+
+  // Les preuves reprises de l'Excel d'origine sont du texte ("Feuille
+  // d'émargement"), pas des images : les passer à <img> n'afficherait qu'une
+  // vignette cassée.
+  const estPhoto = preuve.startsWith("data:image/");
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setPreuve(await fichierVersDataUrl(file));
+    setErreurPhoto("");
+    // La conversion est asynchrone : sans ce verrou, enregistrer juste après
+    // avoir choisi la photo soumet le formulaire avant qu'elle soit prête —
+    // rien n'est enregistré, alors que l'émetteur voit son aperçu apparaître
+    // et croit que c'est fait.
+    setConversion(true);
+    signalerTraitement(true);
+    try {
+      setPreuve(await fichierVersDataUrl(file));
+    } catch {
+      setErreurPhoto("Photo illisible par le navigateur. Réessaie avec un JPEG ou un PNG.");
+    } finally {
+      setConversion(false);
+      signalerTraitement(false);
+    }
   }
 
   return (
@@ -117,17 +139,20 @@ export function ActionFields({ v }: { v: ActionValues }) {
         </div>
 
         <label className={labelCls}>Preuve</label>
-        {preuve && (
+        {estPhoto && (
           <img
             src={preuve}
             alt="Preuve"
             className="mb-2 max-h-64 rounded-md border border-slate-200 object-contain"
           />
         )}
+        {preuve && !estPhoto && <p className="mb-2 text-sm text-slate-700">{preuve}</p>}
         {!preuve && disabled && <p className="text-sm text-slate-400">Aucune photo</p>}
         {!disabled && (
           <input type="file" accept="image/*" onChange={onFileChange} className="block text-sm text-slate-600" />
         )}
+        {conversion && <p className="mt-1 text-sm text-slate-500">Préparation de la photo…</p>}
+        {erreurPhoto && <p className="mt-1 text-sm text-red-600">{erreurPhoto}</p>}
         <input type="hidden" name="preuve" value={preuve} />
       </div>
     </fieldset>
