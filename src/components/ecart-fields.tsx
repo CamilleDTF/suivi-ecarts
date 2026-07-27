@@ -24,8 +24,8 @@ type EcartValues = {
   domaines?: string[] | null;
   theme?: string[] | null;
   pointsSensibles?: string | null;
-  graviteReelle?: string | null;
-  gravitePotentielle?: string | null;
+  gravite?: string | null;
+  frequence?: string | null;
   criticite?: string | null;
   description?: string | null;
   mesureImmediate?: string | null;
@@ -55,8 +55,8 @@ export function EcartFields({ v = {} }: { v?: EcartValues }) {
 
   function handleGraviteOuFrequenceChange(form: HTMLFormElement | null) {
     if (!form) return;
-    const gravite = (form.elements.namedItem("graviteReelle") as HTMLSelectElement | null)?.value ?? "";
-    const frequence = (form.elements.namedItem("gravitePotentielle") as HTMLSelectElement | null)?.value ?? "";
+    const gravite = (form.elements.namedItem("gravite") as HTMLSelectElement | null)?.value ?? "";
+    const frequence = (form.elements.namedItem("frequence") as HTMLSelectElement | null)?.value ?? "";
     setCriticite(calculerCriticite(gravite, frequence));
   }
 
@@ -148,8 +148,8 @@ export function EcartFields({ v = {} }: { v?: EcartValues }) {
         <div>
           <label className={labelCls}>Gravité</label>
           <select
-            name="graviteReelle"
-            defaultValue={v.graviteReelle ?? ""}
+            name="gravite"
+            defaultValue={v.gravite ?? ""}
             onChange={(e: ChangeEvent<HTMLSelectElement>) => handleGraviteOuFrequenceChange(e.target.form)}
             className={inputCls}
           >
@@ -164,8 +164,8 @@ export function EcartFields({ v = {} }: { v?: EcartValues }) {
         <div>
           <label className={labelCls}>Fréquence</label>
           <select
-            name="gravitePotentielle"
-            defaultValue={v.gravitePotentielle ?? ""}
+            name="frequence"
+            defaultValue={v.frequence ?? ""}
             onChange={(e: ChangeEvent<HTMLSelectElement>) => handleGraviteOuFrequenceChange(e.target.form)}
             className={inputCls}
           >

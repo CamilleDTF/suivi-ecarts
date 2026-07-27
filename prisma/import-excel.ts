@@ -121,8 +121,9 @@ async function main() {
         natures: e.natures,
         domaines: e.domaines,
         pointsSensibles: e.pointsSensibles,
-        graviteReelle: e.graviteReelle,
-        gravitePotentielle: e.gravitePotentielle,
+        // L'Excel ne renseigne pas de "gravité réelle" : la seule note de
+        // gravité disponible est l'ancienne "gravité potentielle".
+        gravite: e.graviteReelle ?? e.gravitePotentielle,
         frequence: e.frequence,
         description: e.description,
         mesureImmediate: e.mesureImmediate,

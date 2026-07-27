@@ -6,8 +6,8 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
-import { StatutDossierEcart } from "@/generated/prisma/enums";
 import { nomAuteur } from "@/lib/audit";
+import { lireStatutDossierEcart } from "@/lib/validation";
 import { supprimerEcartAmianteCascade } from "@/lib/suppression";
 
 const bool = (v: FormDataEntryValue | null) => v === "on" || v === "true";
@@ -88,7 +88,7 @@ export async function mettreAJourStatutEcartAmiante(formData: FormData) {
   if (!session?.user) redirect("/connexion");
 
   const id = String(formData.get("id"));
-  const statut = String(formData.get("statut")) as StatutDossierEcart;
+  const statut = lireStatutDossierEcart(formData.get("statut"));
 
   await prisma.ecartAmiante.update({
     where: { id },

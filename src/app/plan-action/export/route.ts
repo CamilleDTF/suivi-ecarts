@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
-import { StatutAction } from "@/generated/prisma/enums";
 import { STATUT_ACTION_LABELS, TYPE_ACTION_LABELS } from "@/lib/labels";
+import { filtreStatutAction } from "@/lib/validation";
 
 function champCsv(valeur: string): string {
   if (/[",\n;]/.test(valeur)) {
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
   const actions = await prisma.action.findMany({
     where: {
-      statut: statut ? (statut as StatutAction) : undefined,
+      statut: filtreStatutAction(statut),
       responsable: responsable || undefined,
     },
     orderBy: { echeance: "asc" },

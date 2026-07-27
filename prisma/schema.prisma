@@ -119,8 +119,7 @@ model Ecart {
   natures            String[]
   domaines           String[]
   pointsSensibles    String?
-  graviteReelle      String?
-  gravitePotentielle String?
+  gravite            String?
   frequence          String?
   criticite          String?
   theme              String[]           @default([])

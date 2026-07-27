@@ -5,6 +5,7 @@ import { SelectAutoSubmit } from "@/components/select-auto-submit";
 import { Pagination } from "@/components/pagination";
 import { Origine, StatutDossierEcart } from "@/generated/prisma/enums";
 import { ORIGINE_LABELS, STATUT_DOSSIER_ECART_COLORS, STATUT_DOSSIER_ECART_LABELS } from "@/lib/labels";
+import { filtreStatutDossierEcart } from "@/lib/validation";
 
 const TAILLE_PAGE = 10;
 
@@ -17,7 +18,7 @@ export default async function DossiersPage({
   const page = Math.max(1, Number(pageParam) || 1);
 
   const where = {
-    statut: statut ? (statut as StatutDossierEcart) : undefined,
+    statut: filtreStatutDossierEcart(statut),
     origine: origine ? (origine as Origine) : undefined,
     OR: q
       ? [

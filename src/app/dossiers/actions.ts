@@ -5,9 +5,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
-import { Origine, StatutDossierEcart } from "@/generated/prisma/enums";
+import { Origine } from "@/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 import { nomAuteur } from "@/lib/audit";
+import { lireStatutDossierEcart } from "@/lib/validation";
 import { supprimerDossierCascade } from "@/lib/suppression";
 
 const dossierSchema = z.object({
@@ -76,7 +77,7 @@ export async function mettreAJourStatutDossier(formData: FormData) {
   if (!session?.user) redirect("/connexion");
 
   const id = String(formData.get("id"));
-  const statut = String(formData.get("statut")) as StatutDossierEcart;
+  const statut = lireStatutDossierEcart(formData.get("statut"));
 
   await prisma.dossier.update({ where: { id }, data: { statut } });
   revalidatePath(`/dossiers/${id}`);

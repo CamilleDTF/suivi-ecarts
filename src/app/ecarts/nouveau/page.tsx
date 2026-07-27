@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { creerEcart } from "@/app/ecarts/actions";
-import { ORIGINE_LABELS, TYPE_ACTIVITE_LABELS, NATURES_OPTIONS, DOMAINES_OPTIONS } from "@/lib/labels";
+import {
+  ORIGINE_LABELS,
+  TYPE_ACTIVITE_LABELS,
+  NATURES_OPTIONS,
+  DOMAINES_OPTIONS,
+  GRAVITE_FREQUENCE_OPTIONS,
+} from "@/lib/labels";
 import { Origine, TypeActivite } from "@/generated/prisma/enums";
 
 export default async function NouvelEcartPage({
@@ -132,20 +138,26 @@ export default async function NouvelEcartPage({
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Gravité potentielle</label>
-            <input
-              type="text"
-              name="gravitePotentielle"
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
+            <label className="mb-1 block text-sm font-medium text-slate-700">Gravité</label>
+            <select name="gravite" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+              <option value="">—</option>
+              {GRAVITE_FREQUENCE_OPTIONS.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Fréquence</label>
-            <input
-              type="text"
-              name="frequence"
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
+            <select name="frequence" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+              <option value="">—</option>
+              {GRAVITE_FREQUENCE_OPTIONS.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

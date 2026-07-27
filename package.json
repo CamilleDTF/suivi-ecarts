@@ -4,10 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma migrate deploy && prisma db seed && npx tsx prisma/import-excel.ts && next build",
+    "build": "prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "db:seed": "prisma db seed",
+    "db:import": "tsx prisma/import-excel.ts",
+    "db:recheck-statuts": "tsx prisma/recheck-statuts-fiches.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",

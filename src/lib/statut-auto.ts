@@ -8,15 +8,27 @@ function aUneActionOuverte(actions: { statut: StatutAction }[]): boolean {
   return actions.some((a) => STATUTS_ACTION_OUVERTS.includes(a.statut));
 }
 
+// Quand il ne reste plus aucune action, "En cours" n'a plus de sens : le statut
+// redevient "Ouvert". On ne touche en revanche jamais à un "Clôturé" — supprimer
+// des actions ne doit pas rouvrir ce qui a été fermé volontairement.
+function statutSansAction(statutActuel: StatutDossierEcart): StatutDossierEcart | null {
+  return statutActuel === "EN_COURS" ? "OUVERT" : null;
+}
+
 export async function recalculerStatutEcart(ecartId: string) {
   const [actions, ecart] = await Promise.all([
     prisma.action.findMany({ where: { ecartId }, select: { statut: true } }),
     prisma.ecart.findUnique({ where: { id: ecartId }, select: { statut: true, dossierId: true } }),
   ]);
-  if (!ecart || actions.length === 0) return;
+  if (!ecart) return;
 
-  const nouveauStatut: StatutDossierEcart = aUneActionOuverte(actions) ? "EN_COURS" : "CLOTURE";
-  if (ecart.statut === nouveauStatut) return;
+  const nouveauStatut: StatutDossierEcart | null =
+    actions.length === 0
+      ? statutSansAction(ecart.statut)
+      : aUneActionOuverte(actions)
+        ? "EN_COURS"
+        : "CLOTURE";
+  if (!nouveauStatut || ecart.statut === nouveauStatut) return;
 
   await prisma.ecart.update({ where: { id: ecartId }, data: { statut: nouveauStatut } });
   revalidatePath(`/ecarts/${ecartId}`);
@@ -29,10 +41,15 @@ export async function recalculerStatutEcartAmiante(ecartAmianteId: string) {
     prisma.action.findMany({ where: { ecartAmianteId }, select: { statut: true } }),
     prisma.ecartAmiante.findUnique({ where: { id: ecartAmianteId }, select: { statut: true } }),
   ]);
-  if (!ecartAmiante || actions.length === 0) return;
+  if (!ecartAmiante) return;
 
-  const nouveauStatut: StatutDossierEcart = aUneActionOuverte(actions) ? "EN_COURS" : "CLOTURE";
-  if (ecartAmiante.statut === nouveauStatut) return;
+  const nouveauStatut: StatutDossierEcart | null =
+    actions.length === 0
+      ? statutSansAction(ecartAmiante.statut)
+      : aUneActionOuverte(actions)
+        ? "EN_COURS"
+        : "CLOTURE";
+  if (!nouveauStatut || ecartAmiante.statut === nouveauStatut) return;
 
   await prisma.ecartAmiante.update({
     where: { id: ecartAmianteId },
@@ -51,8 +68,9 @@ export async function recalculerStatutFicheSSE(ficheSSEId: string) {
   });
   if (!fiche || fiche.statutFiche === "BROUILLON") return;
 
+  // Sans action rattachée, plus rien ne bloque : la fiche retrouve l'état
+  // "Finalisée" voulu par l'utilisateur quand il a cliqué sur "Finaliser".
   const actions = await prisma.action.findMany({ where: { ficheSSEId }, select: { statut: true } });
-  if (actions.length === 0) return;
 
   const nouveauStatut: StatutFiche = aUneActionOuverte(actions) ? "EN_COURS" : "FINALISEE";
   if (fiche.statutFiche === nouveauStatut) return;

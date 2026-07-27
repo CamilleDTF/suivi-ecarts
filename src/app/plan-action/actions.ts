@@ -6,9 +6,10 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
-import { TypeAction, StatutAction } from "@/generated/prisma/enums";
+import { TypeAction } from "@/generated/prisma/enums";
 import { recalculerStatutsParents } from "@/lib/statut-auto";
 import { nomAuteur } from "@/lib/audit";
+import { lireStatutAction } from "@/lib/validation";
 
 const actionSchema = z
   .object({
@@ -21,8 +22,11 @@ const actionSchema = z
     echeance: z.string().optional(),
     obligatoire: z.string().optional(),
   })
-  .refine((v) => v.ecartId || v.ficheSSEId || v.ecartAmianteId, {
-    message: "Écart, évènement ou écart amiante requis",
+  // Exactement un parent, et pas "au moins un" : une action rattachée
+  // simultanément à un écart, un évènement et un écart amiante rendrait le
+  // calcul des statuts et les suppressions en cascade ambigus.
+  .refine((v) => [v.ecartId, v.ficheSSEId, v.ecartAmianteId].filter(Boolean).length === 1, {
+    message: "Une action doit être rattachée à un et un seul écart, évènement SSE ou écart amiante",
   });
 
 export async function creerAction(formData: FormData) {
@@ -112,7 +116,7 @@ export async function mettreAJourStatutAction(formData: FormData) {
   if (!session?.user) redirect("/connexion");
 
   const id = String(formData.get("id"));
-  const statut = String(formData.get("statut")) as StatutAction;
+  const statut = lireStatutAction(formData.get("statut"));
 
   const action = await prisma.action.update({ where: { id }, data: { statut } });
   revalidatePath(`/plan-action/${id}`);

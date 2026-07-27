@@ -6,8 +6,10 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
-import { Origine, StatutDossierEcart, TypeActivite } from "@/generated/prisma/enums";
+import { Origine, TypeActivite } from "@/generated/prisma/enums";
 import { nomAuteur } from "@/lib/audit";
+import { lireStatutDossierEcart } from "@/lib/validation";
+import { calculerCriticite } from "@/lib/labels";
 import { supprimerEcartCascade } from "@/lib/suppression";
 
 const ecartSchema = z.object({
@@ -18,7 +20,7 @@ const ecartSchema = z.object({
   typeActivite: z.string().optional(),
   description: z.string().optional(),
   mesureImmediate: z.string().optional(),
-  gravitePotentielle: z.string().optional(),
+  gravite: z.string().optional(),
   frequence: z.string().optional(),
 });
 
@@ -34,7 +36,7 @@ export async function creerEcart(formData: FormData) {
     typeActivite: formData.get("typeActivite") || undefined,
     description: formData.get("description") || undefined,
     mesureImmediate: formData.get("mesureImmediate") || undefined,
-    gravitePotentielle: formData.get("gravitePotentielle") || undefined,
+    gravite: formData.get("gravite") || undefined,
     frequence: formData.get("frequence") || undefined,
   });
 
@@ -55,8 +57,9 @@ export async function creerEcart(formData: FormData) {
       domaines,
       description: parsed.description,
       mesureImmediate: parsed.mesureImmediate,
-      gravitePotentielle: parsed.gravitePotentielle,
+      gravite: parsed.gravite,
       frequence: parsed.frequence,
+      criticite: calculerCriticite(parsed.gravite ?? "", parsed.frequence ?? "") || undefined,
     },
   });
 
@@ -70,9 +73,8 @@ const ecartEditSchema = z.object({
   declarant: z.string().min(1, "Déclarant requis"),
   typeActivite: z.string().optional(),
   pointsSensibles: z.string().optional(),
-  graviteReelle: z.string().optional(),
-  gravitePotentielle: z.string().optional(),
-  criticite: z.string().optional(),
+  gravite: z.string().optional(),
+  frequence: z.string().optional(),
   description: z.string().optional(),
   mesureImmediate: z.string().optional(),
   cause: z.string().optional(),
@@ -90,9 +92,8 @@ export async function mettreAJourEcart(formData: FormData) {
     declarant: formData.get("declarant"),
     typeActivite: formData.get("typeActivite") || undefined,
     pointsSensibles: formData.get("pointsSensibles") || undefined,
-    graviteReelle: formData.get("graviteReelle") || undefined,
-    gravitePotentielle: formData.get("gravitePotentielle") || undefined,
-    criticite: formData.get("criticite") || undefined,
+    gravite: formData.get("gravite") || undefined,
+    frequence: formData.get("frequence") || undefined,
     description: formData.get("description") || undefined,
     mesureImmediate: formData.get("mesureImmediate") || undefined,
     cause: formData.get("cause") || undefined,
@@ -114,9 +115,12 @@ export async function mettreAJourEcart(formData: FormData) {
       domaines,
       theme,
       pointsSensibles: parsed.pointsSensibles,
-      graviteReelle: parsed.graviteReelle,
-      gravitePotentielle: parsed.gravitePotentielle,
-      criticite: parsed.criticite,
+      gravite: parsed.gravite ?? null,
+      frequence: parsed.frequence ?? null,
+      // Recalculée côté serveur plutôt que reprise du champ caché du
+      // formulaire : elle reste ainsi toujours cohérente avec gravité ×
+      // fréquence, quoi qu'envoie le client.
+      criticite: calculerCriticite(parsed.gravite ?? "", parsed.frequence ?? "") || null,
       description: parsed.description,
       mesureImmediate: parsed.mesureImmediate,
       cause: parsed.cause,
@@ -136,7 +140,7 @@ export async function mettreAJourStatutEcart(formData: FormData) {
   if (!session?.user) redirect("/connexion");
 
   const id = String(formData.get("id"));
-  const statut = String(formData.get("statut")) as StatutDossierEcart;
+  const statut = lireStatutDossierEcart(formData.get("statut"));
 
   const ecart = await prisma.ecart.update({ where: { id }, data: { statut } });
   revalidatePath(`/ecarts/${id}`);
