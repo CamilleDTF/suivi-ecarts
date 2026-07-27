@@ -10,7 +10,16 @@ import { FormulaireEditable } from "@/components/formulaire-editable";
 import { DossierFields } from "@/components/dossier-fields";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonRetour } from "@/components/bouton-retour";
+import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { compterImpactSuppressionDossier } from "@/lib/suppression";
+
+// Le navigateur nomme le PDF d’après le titre du document : sans titre
+// propre à la fiche, tous les exports s’enregistreraient sous le même nom.
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const fiche = await prisma.dossier.findUnique({ where: { id }, select: { reference: true } });
+  return { title: fiche ? `Dossier ${fiche.reference}` : "Dossier" };
+}
 
 export default async function DossierDetailPage({
   params,
@@ -41,7 +50,8 @@ export default async function DossierDetailPage({
           </div>
           <p className="text-sm text-slate-500">{dossier.chantier}</p>
         </div>
-        <div className="flex gap-2">
+        <div data-no-print className="flex gap-2">
+          <BoutonExportPDF />
           <Link
             href={`/ecarts/nouveau?dossierId=${dossier.id}`}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
@@ -56,7 +66,7 @@ export default async function DossierDetailPage({
         </div>
       </div>
 
-      <div className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
+      <div data-no-print className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
         <StatutSelectForm
           action={mettreAJourStatutDossier}
           hiddenName="id"

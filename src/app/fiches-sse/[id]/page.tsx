@@ -15,6 +15,15 @@ import { FicheSSEFields } from "@/components/fiche-sse-fields";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonRetour } from "@/components/bouton-retour";
+import { BoutonExportPDF } from "@/components/bouton-export-pdf";
+
+// Le navigateur nomme le PDF d’après le titre du document : sans titre
+// propre à la fiche, tous les exports s’enregistreraient sous le même nom.
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const fiche = await prisma.ficheSSE.findUnique({ where: { id }, select: { reference: true } });
+  return { title: fiche ? `Évènement SSE ${fiche.reference}` : "Évènement SSE" };
+}
 
 export default async function FicheSSEDetailPage({
   params,
@@ -81,7 +90,8 @@ export default async function FicheSSEDetailPage({
             </Link>
           )}
         </div>
-        <div className="flex gap-2">
+        <div data-no-print className="flex gap-2">
+          <BoutonExportPDF />
           <Link
             href={`/plan-action/nouveau?ficheSSEId=${fiche.id}`}
             className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"

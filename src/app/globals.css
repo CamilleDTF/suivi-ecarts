@@ -24,3 +24,114 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* --- Export PDF ---------------------------------------------------------
+   Le PDF est produit par l'impression du navigateur : la fiche affichée est
+   réutilisée telle quelle, débarrassée de la navigation et des commandes qui
+   n'ont pas de sens sur papier. Pas de seconde mise en page à maintenir, donc
+   pas de risque que le PDF diverge de l'écran. */
+
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  /* Navigation, boutons d'action et éléments explicitement exclus */
+  header,
+  button,
+  [data-no-print] {
+    display: none !important;
+  }
+
+  /* La barre latérale disparaissant, son décalage n'a plus lieu d'être */
+  main {
+    padding-left: 0 !important;
+  }
+
+  /* Le contenu occupe toute la largeur utile de la page */
+  main > div {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  /* Hors mode édition les champs sont désactivés : sans cela ils
+     s'imprimeraient en gris pâle sur fond gris, donc illisibles. */
+  fieldset:disabled,
+  fieldset[disabled] {
+    opacity: 1 !important;
+  }
+
+  input,
+  select,
+  textarea {
+    background: #fff !important;
+    color: #000 !important;
+    border-color: #94a3b8 !important;
+    opacity: 1 !important;
+  }
+
+  /* Retire la flèche des listes déroulantes, qui n'a pas de sens sur papier.
+     Volontairement limité aux <select> : appliqué à tous les champs, cela
+     effacerait aussi les cases à cocher, et on ne saurait plus lesquelles
+     sont cochées (natures, domaines, thèmes). */
+  select {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* Les navigateurs suppriment les aplats de couleur à l'impression : sans
+     cela, une case cochée et une case vide s'impriment à l'identique, et les
+     pastilles de statut ressortent blanches. */
+  input[type="checkbox"],
+  input[type="radio"],
+  [class*="bg-"] {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"] {
+    -webkit-appearance: auto !important;
+    appearance: auto !important;
+    accent-color: #000;
+  }
+
+  /* Une case cochée reste identifiable même si l'imprimante rend mal les
+     aplats, ou en noir et blanc : le libellé passe en gras, indice qui ne
+     dépend ni de la couleur ni du rendu natif de la case. Sur une fiche de
+     sécurité, savoir quelles natures ou quels thèmes s'appliquent ne doit
+     pas se jouer à une nuance de gris. */
+  label:has(input[type="checkbox"]:checked),
+  label:has(input[type="radio"]:checked) {
+    font-weight: 700;
+    color: #000 !important;
+  }
+
+  textarea {
+    overflow: visible !important;
+    resize: none;
+  }
+
+  /* Ne pas séparer une étiquette de son champ, ni couper une ligne de
+     tableau, entre deux pages. */
+  label {
+    break-after: avoid;
+  }
+
+  fieldset > div,
+  .grid > div,
+  tr {
+    break-inside: avoid;
+  }
+
+  /* Les liens perdent leur intérêt sur papier : on garde le texte lisible. */
+  a {
+    color: #000 !important;
+    text-decoration: none !important;
+  }
+}

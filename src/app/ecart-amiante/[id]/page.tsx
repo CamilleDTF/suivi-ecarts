@@ -23,7 +23,16 @@ import { StatutSelectForm } from "@/components/statut-select-form";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonRetour } from "@/components/bouton-retour";
+import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { compterImpactSuppressionEcartAmiante } from "@/lib/suppression";
+
+// Le navigateur nomme le PDF d’après le titre du document : sans titre
+// propre à la fiche, tous les exports s’enregistreraient sous le même nom.
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const fiche = await prisma.ecartAmiante.findUnique({ where: { id }, select: { reference: true } });
+  return { title: fiche ? `Écart amiante ${fiche.reference}` : "Écart amiante" };
+}
 
 export default async function EcartAmianteDetailPage({
   params,
@@ -59,7 +68,8 @@ export default async function EcartAmianteDetailPage({
             {ecartAmiante.nomChantier} ({ecartAmiante.numeroChantier}) — {ecartAmiante.date.toLocaleDateString("fr-FR")}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div data-no-print className="flex gap-2">
+          <BoutonExportPDF />
           {ecartAmiante.evenementSSE && (
             <form action={creerFicheSSEDepuisAmiante}>
               <input type="hidden" name="ecartAmianteId" value={ecartAmiante.id} />
@@ -101,7 +111,7 @@ export default async function EcartAmianteDetailPage({
         </div>
       )}
 
-      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
+      <div data-no-print className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
         <StatutSelectForm
           action={mettreAJourStatutEcartAmiante}
           hiddenName="id"

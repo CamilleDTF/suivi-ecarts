@@ -18,7 +18,16 @@ import { EcartFields } from "@/components/ecart-fields";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonRetour } from "@/components/bouton-retour";
+import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { compterImpactSuppressionEcart } from "@/lib/suppression";
+
+// Le navigateur nomme le PDF d’après le titre du document : sans titre
+// propre à la fiche, tous les exports s’enregistreraient sous le même nom.
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const fiche = await prisma.ecart.findUnique({ where: { id }, select: { reference: true } });
+  return { title: fiche ? `Écart ${fiche.reference}` : "Écart" };
+}
 
 export default async function EcartDetailPage({
   params,
@@ -64,7 +73,8 @@ export default async function EcartDetailPage({
             </Link>
           )}
         </div>
-        <div className="flex gap-2">
+        <div data-no-print className="flex gap-2">
+          <BoutonExportPDF />
           <Link
             href={`/fiches-sse/nouveau?ecartId=${ecart.id}`}
             className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -85,7 +95,7 @@ export default async function EcartDetailPage({
         </div>
       </div>
 
-      <div className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
+      <div data-no-print className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
         <StatutSelectForm
           action={mettreAJourStatutEcart}
           hiddenName="id"

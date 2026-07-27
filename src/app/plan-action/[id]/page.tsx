@@ -10,6 +10,15 @@ import { FormulaireEditable } from "@/components/formulaire-editable";
 import { ActionFields } from "@/components/action-fields";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonRetour } from "@/components/bouton-retour";
+import { BoutonExportPDF } from "@/components/bouton-export-pdf";
+
+// Le navigateur nomme le PDF d’après le titre du document : sans titre
+// propre à la fiche, tous les exports s’enregistreraient sous le même nom.
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const fiche = await prisma.action.findUnique({ where: { id }, select: { reference: true } });
+  return { title: fiche ? `Action ${fiche.reference}` : "Action" };
+}
 
 export default async function ActionDetailPage({
   params,
@@ -62,14 +71,17 @@ export default async function ActionDetailPage({
             </Link>
           ) : null}
         </div>
-        <BoutonSupprimer
-          action={supprimerAction}
-          hiddenFields={{ id: action.id }}
-          message="Supprimer cette action ? Cette action est irréversible."
-        />
+        <div data-no-print className="flex gap-2">
+          <BoutonExportPDF />
+          <BoutonSupprimer
+            action={supprimerAction}
+            hiddenFields={{ id: action.id }}
+            message="Supprimer cette action ? Cette action est irréversible."
+          />
+        </div>
       </div>
 
-      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
+      <div data-no-print className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
         <StatutSelectForm
           action={mettreAJourStatutAction}
           hiddenName="id"

@@ -15,6 +15,15 @@ import { FormulaireEditable } from "@/components/formulaire-editable";
 import { RemonteeFields } from "@/components/remontee-fields";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonRetour } from "@/components/bouton-retour";
+import { BoutonExportPDF } from "@/components/bouton-export-pdf";
+
+// Le navigateur nomme le PDF d’après le titre du document : sans titre
+// propre à la fiche, tous les exports s’enregistreraient sous le même nom.
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const fiche = await prisma.remonteeInfo.findUnique({ where: { id }, select: { reference: true } });
+  return { title: fiche ? `Remontée ${fiche.reference}` : "Remontée" };
+}
 
 export default async function RemonteeDetailPage({
   params,
@@ -54,11 +63,14 @@ export default async function RemonteeDetailPage({
           </div>
           <p className="text-sm text-slate-500">{remontee.objet}</p>
         </div>
-        <BoutonSupprimer
-          action={supprimerRemontee}
-          hiddenFields={{ id: remontee.id }}
-          message="Supprimer cette remontée d'information ? Cette action est irréversible."
-        />
+        <div data-no-print className="flex gap-2">
+          <BoutonExportPDF />
+          <BoutonSupprimer
+            action={supprimerRemontee}
+            hiddenFields={{ id: remontee.id }}
+            message="Supprimer cette remontée d'information ? Cette action est irréversible."
+          />
+        </div>
       </div>
 
       <p className="mb-6 rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-800">
@@ -75,7 +87,7 @@ export default async function RemonteeDetailPage({
         </div>
       )}
 
-      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
+      <div data-no-print className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
         <StatutSelectForm
           action={mettreAJourStatutRemontee}
           hiddenName="id"
