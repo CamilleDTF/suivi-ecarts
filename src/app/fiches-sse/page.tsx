@@ -68,7 +68,7 @@ export default async function FichesSSEPage({
   const filtreActif = !!q || !!statut;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">Évènements SSE</h1>
         <Link

@@ -56,7 +56,7 @@ export default async function PlanActionPage({
   const hrefExport = `/plan-action/export${paramsExport.toString() ? `?${paramsExport.toString()}` : ""}`;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">Plan d&apos;action</h1>
         <div className="flex gap-2">
@@ -127,40 +127,19 @@ export default async function PlanActionPage({
                     {a.reference}
                   </Link>
                 </td>
-                <td className="max-w-xs px-4 py-3">
+                <td className="px-4 py-3">
                   {a.ecart ? (
-                    <>
-                      <Link href={`/ecarts/${a.ecart.id}`} className="text-slate-600 hover:underline">
-                        {a.ecart.reference}
-                      </Link>
-                      {a.ecart.description && (
-                        <p className="truncate text-xs text-slate-400" title={a.ecart.description}>
-                          {a.ecart.description}
-                        </p>
-                      )}
-                    </>
+                    <Link href={`/ecarts/${a.ecart.id}`} className="text-slate-600 hover:underline">
+                      {a.ecart.reference}
+                    </Link>
                   ) : a.ficheSSE ? (
-                    <>
-                      <Link href={`/fiches-sse/${a.ficheSSE.id}`} className="text-slate-600 hover:underline">
-                        {a.ficheSSE.reference}
-                      </Link>
-                      {a.ficheSSE.descriptionFactuelle && (
-                        <p className="truncate text-xs text-slate-400" title={a.ficheSSE.descriptionFactuelle}>
-                          {a.ficheSSE.descriptionFactuelle}
-                        </p>
-                      )}
-                    </>
+                    <Link href={`/fiches-sse/${a.ficheSSE.id}`} className="text-slate-600 hover:underline">
+                      {a.ficheSSE.reference}
+                    </Link>
                   ) : a.ecartAmiante ? (
-                    <>
-                      <Link href={`/ecart-amiante/${a.ecartAmiante.id}`} className="text-slate-600 hover:underline">
-                        {a.ecartAmiante.reference}
-                      </Link>
-                      {a.ecartAmiante.description && (
-                        <p className="truncate text-xs text-slate-400" title={a.ecartAmiante.description}>
-                          {a.ecartAmiante.description}
-                        </p>
-                      )}
-                    </>
+                    <Link href={`/ecart-amiante/${a.ecartAmiante.id}`} className="text-slate-600 hover:underline">
+                      {a.ecartAmiante.reference}
+                    </Link>
                   ) : (
                     <span className="text-slate-400">—</span>
                   )}

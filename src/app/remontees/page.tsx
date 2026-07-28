@@ -69,7 +69,7 @@ export default async function RemonteesPage({
   const baseParams = { q, statut, origine, categorie, chantier, taille };
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
       <div className="mb-2 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Remontées d&apos;informations</h1>

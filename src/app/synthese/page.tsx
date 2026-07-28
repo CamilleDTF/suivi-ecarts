@@ -5,6 +5,13 @@ import { GraphiqueColonnes } from "@/components/graphique-colonnes";
 import { DonutChart } from "@/components/donut-chart";
 import { ActiviteRecente, type ActiviteItem } from "@/components/activite-recente";
 import { IconFolder, IconAlertTriangle, IconFileText } from "@/components/icons";
+import { BoutonExportPDF } from "@/components/bouton-export-pdf";
+
+// Le navigateur nomme le PDF d'après le titre du document : la date évite que
+// deux exports pris à des moments différents portent le même nom.
+export function generateMetadata() {
+  return { title: `Synthèse au ${new Date().toLocaleDateString("fr-FR")}` };
+}
 import {
   STATUT_DOSSIER_ECART_COLORS,
   STATUT_DOSSIER_ECART_LABELS,
@@ -230,8 +237,13 @@ export default async function SynthesePage() {
   const typeDominant = trouverDominant(typeRepartition, totalEvenements);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Synthèse</h1>
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <h1 className="text-2xl font-semibold text-slate-900">Synthèse</h1>
+        <div data-no-print>
+          <BoutonExportPDF />
+        </div>
+      </div>
 
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatTile

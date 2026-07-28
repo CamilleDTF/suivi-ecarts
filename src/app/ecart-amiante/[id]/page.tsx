@@ -53,7 +53,7 @@ export default async function EcartAmianteDetailPage({
   const impact = await compterImpactSuppressionEcartAmiante(ecartAmiante.id);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
       <BoutonRetour href="/ecart-amiante" label="Retour aux écarts amiante" />
       <div className="mb-6 flex items-start justify-between">
         <div>

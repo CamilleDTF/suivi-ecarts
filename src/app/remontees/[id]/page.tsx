@@ -49,7 +49,7 @@ export default async function RemonteeDetailPage({
   const dejaTransformee = !!remontee.ecart;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
       <BoutonRetour href="/remontees" label="Retour aux remontées" />
 
       <div className="mb-6 flex items-start justify-between">

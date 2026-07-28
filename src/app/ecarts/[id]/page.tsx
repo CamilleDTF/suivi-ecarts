@@ -50,7 +50,7 @@ export default async function EcartDetailPage({
   const impact = await compterImpactSuppressionEcart(ecart.id);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
       <BoutonRetour href={`/dossiers/${ecart.dossier.id}`} label="Retour au dossier" />
       <div className="mb-6 flex items-start justify-between">
         <div>

@@ -40,10 +40,24 @@ export default async function DossiersPage({
     }),
   ]);
 
+  // Écarts restant à traiter par dossier. Prisma ne sait pas renvoyer dans le
+  // même _count le total et un sous-total filtré : on compte à part.
+  // "Ouvert" au sens du suivi = pas encore clôturé, donc "Ouvert" comme
+  // "En cours".
+  const ouvertsParDossier = new Map(
+    (
+      await prisma.ecart.groupBy({
+        by: ["dossierId"],
+        where: { dossierId: { in: dossiers.map((d) => d.id) }, statut: { not: "CLOTURE" } },
+        _count: { _all: true },
+      })
+    ).map((r) => [r.dossierId, r._count._all]),
+  );
+
   const filtreActif = !!q || !!statut || !!origine;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">Dossiers</h1>
         <Link
@@ -97,6 +111,7 @@ export default async function DossiersPage({
               <th className="px-4 py-3 font-medium">Origine</th>
               <th className="px-4 py-3 font-medium">Statut</th>
               <th className="px-4 py-3 font-medium">Écarts</th>
+              <th className="px-4 py-3 font-medium">Écarts ouverts</th>
               <th className="px-4 py-3 font-medium">Détecté le</th>
             </tr>
           </thead>
@@ -118,6 +133,13 @@ export default async function DossiersPage({
                   />
                 </td>
                 <td className="px-4 py-3 text-slate-700">{d._count.ecarts}</td>
+                <td className="px-4 py-3">
+                  {(ouvertsParDossier.get(d.id) ?? 0) > 0 ? (
+                    <span className="font-medium text-slate-900">{ouvertsParDossier.get(d.id)}</span>
+                  ) : (
+                    <span className="text-slate-400">0</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-slate-500">
                   {d.dateDetection.toLocaleDateString("fr-FR")}
                 </td>
@@ -125,7 +147,7 @@ export default async function DossiersPage({
             ))}
             {dossiers.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
                   {filtreActif ? "Aucun dossier ne correspond à ce filtre." : "Aucun dossier pour l'instant."}
                 </td>
               </tr>

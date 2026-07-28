@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
-import { STATUT_ACTION_COLORS, STATUT_ACTION_LABELS } from "@/lib/labels";
+import { STATUT_ACTION_COLORS, STATUT_ACTION_LABELS, libelleRattachement } from "@/lib/labels";
 import {
   mettreAJourStatutAction,
   mettreAJourAction,
@@ -43,15 +43,15 @@ export default async function ActionDetailPage({
   const [ecartsChoix, evenementsChoix, amianteChoix] = await Promise.all([
     prisma.ecart.findMany({
       orderBy: { reference: "asc" },
-      select: { id: true, reference: true, dossier: { select: { chantier: true } } },
+      select: { id: true, reference: true, description: true, dossier: { select: { chantier: true } } },
     }),
     prisma.ficheSSE.findMany({
       orderBy: { reference: "asc" },
-      select: { id: true, reference: true, nomChantier: true },
+      select: { id: true, reference: true, nomChantier: true, descriptionFactuelle: true },
     }),
     prisma.ecartAmiante.findMany({
       orderBy: { reference: "asc" },
-      select: { id: true, reference: true, nomChantier: true, numeroChantier: true },
+      select: { id: true, reference: true, nomChantier: true, numeroChantier: true, description: true },
     }),
   ]);
 
@@ -71,7 +71,7 @@ export default async function ActionDetailPage({
         : "Retour au plan d'action";
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
       <BoutonRetour href={retourHref} label={retourLabel} />
       <div className="mb-6 flex items-start justify-between">
         <div>
@@ -105,7 +105,7 @@ export default async function ActionDetailPage({
                   valeurActuelle: action.ecartId,
                   options: ecartsChoix.map((e) => ({
                     id: e.id,
-                    libelle: `${e.reference} — ${e.dossier.chantier}`,
+                    libelle: libelleRattachement(e.reference, e.dossier.chantier, e.description),
                   })),
                 },
                 {
@@ -115,7 +115,7 @@ export default async function ActionDetailPage({
                   valeurActuelle: action.ficheSSEId,
                   options: evenementsChoix.map((e) => ({
                     id: e.id,
-                    libelle: `${e.reference}${e.nomChantier ? ` — ${e.nomChantier}` : ""}`,
+                    libelle: libelleRattachement(e.reference, e.nomChantier, e.descriptionFactuelle),
                   })),
                 },
                 {
@@ -125,7 +125,7 @@ export default async function ActionDetailPage({
                   valeurActuelle: action.ecartAmianteId,
                   options: amianteChoix.map((e) => ({
                     id: e.id,
-                    libelle: `${e.reference} — ${e.nomChantier} (${e.numeroChantier})`,
+                    libelle: libelleRattachement(e.reference, `${e.nomChantier} (${e.numeroChantier})`, e.description),
                   })),
                 },
               ]}

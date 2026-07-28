@@ -187,3 +187,13 @@ export function avecValeursExistantes(options: string[], valeurs: string[] | nul
   const extra = (valeurs ?? []).filter((v) => !options.includes(v));
   return [...options, ...extra];
 }
+
+// Libellé d'une option de rattachement. La référence et le chantier ne
+// suffisent pas à distinguer quinze écarts du même chantier : le début de la
+// description est ce qui permet de reconnaître le bon.
+export function libelleRattachement(reference: string, contexte: string | null, description: string | null) {
+  const debut = description?.trim().replace(/\s+/g, " ");
+  return [reference, contexte, debut && debut.length > 70 ? `${debut.slice(0, 70)}…` : debut]
+    .filter(Boolean)
+    .join(" — ");
+}

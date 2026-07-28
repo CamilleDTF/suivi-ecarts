@@ -37,7 +37,7 @@ export default async function DossierDetailPage({
   const impact = await compterImpactSuppressionDossier(dossier.id);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
       <BoutonRetour href="/dossiers" label="Retour aux dossiers" />
       <div className="mb-6 flex items-start justify-between">
         <div>
