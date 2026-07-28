@@ -7,13 +7,32 @@ import { Origine, StatutDossierEcart } from "@/generated/prisma/enums";
 import { ORIGINE_LABELS, STATUT_DOSSIER_ECART_COLORS, STATUT_DOSSIER_ECART_LABELS } from "@/lib/labels";
 import { filtreStatutDossierEcart } from "@/lib/validation";
 import { lireTaillePage } from "@/lib/pagination";
+import { construireTri } from "@/lib/tri";
+import { EnteteTriable } from "@/components/entete-triable";
+
+const COLONNES_TRI = {
+  reference: "reference",
+  chantier: "chantier",
+  declarant: "declarant",
+  origine: "origine",
+  statut: "statut",
+  dateDetection: "dateDetection",
+};
 
 export default async function DossiersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; origine?: string; page?: string; taille?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    statut?: string;
+    origine?: string;
+    page?: string;
+    taille?: string;
+    tri?: string;
+    sens?: string;
+  }>;
 }) {
-  const { q, statut, origine, page: pageParam, taille } = await searchParams;
+  const { q, statut, origine, page: pageParam, taille, tri, sens } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const taillePage = lireTaillePage(taille);
 
@@ -33,7 +52,7 @@ export default async function DossiersPage({
     prisma.dossier.count({ where }),
     prisma.dossier.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: construireTri(tri, sens, COLONNES_TRI, { createdAt: "desc" as const }),
       include: { _count: { select: { ecarts: true } } },
       skip: (page - 1) * taillePage,
       take: taillePage,
@@ -105,14 +124,50 @@ export default async function DossiersPage({
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
-              <th className="px-4 py-3 font-medium">Référence</th>
-              <th className="px-4 py-3 font-medium">Chantier</th>
-              <th className="px-4 py-3 font-medium">Déclarant</th>
-              <th className="px-4 py-3 font-medium">Origine</th>
-              <th className="px-4 py-3 font-medium">Statut</th>
+              <EnteteTriable
+                colonne="reference"
+                libelle="Référence"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, origine, taille }}
+              />
+              <EnteteTriable
+                colonne="chantier"
+                libelle="Chantier"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, origine, taille }}
+              />
+              <EnteteTriable
+                colonne="declarant"
+                libelle="Déclarant"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, origine, taille }}
+              />
+              <EnteteTriable
+                colonne="origine"
+                libelle="Origine"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, origine, taille }}
+              />
+              <EnteteTriable
+                colonne="statut"
+                libelle="Statut"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, origine, taille }}
+              />
               <th className="px-4 py-3 font-medium">Écarts</th>
               <th className="px-4 py-3 font-medium">Écarts ouverts</th>
-              <th className="px-4 py-3 font-medium">Détecté le</th>
+              <EnteteTriable
+                colonne="dateDetection"
+                libelle="Détecté le"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, origine, taille }}
+              />
             </tr>
           </thead>
           <tbody>

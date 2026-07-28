@@ -11,6 +11,7 @@ import { nomAuteur } from "@/lib/audit";
 import { lireStatutDossierEcart } from "@/lib/validation";
 import { calculerCriticite } from "@/lib/labels";
 import { supprimerEcartCascade } from "@/lib/suppression";
+import { texte } from "@/lib/formulaire";
 
 const ecartSchema = z.object({
   dossierId: z.string().min(1, "Dossier requis"),
@@ -140,7 +141,7 @@ export async function mettreAJourEcart(formData: FormData) {
 
   revalidatePath(`/ecarts/${id}`);
   revalidatePath("/ecarts");
-  revalidatePath(`/dossiers/${ecart.dossierId}`);
+  if (ecart.dossierId) revalidatePath(`/dossiers/${ecart.dossierId}`);
 }
 
 export async function mettreAJourStatutEcart(formData: FormData) {
@@ -153,7 +154,35 @@ export async function mettreAJourStatutEcart(formData: FormData) {
   const ecart = await prisma.ecart.update({ where: { id }, data: { statut } });
   revalidatePath(`/ecarts/${id}`);
   revalidatePath("/ecarts");
-  revalidatePath(`/dossiers/${ecart.dossierId}`);
+  if (ecart.dossierId) revalidatePath(`/dossiers/${ecart.dossierId}`);
+}
+
+// Correction d'un rattachement erroné, ou détachement : un écart peut ne plus
+// appartenir à aucun dossier, comme une action ou un évènement.
+export async function changerRattachementEcart(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/connexion");
+
+  const id = String(formData.get("id"));
+  const type = String(formData.get("typeRattachement") ?? "aucun");
+  const dossierId = type === "dossier" ? texte(formData.get("dossierId")) : null;
+
+  // Type choisi sans cible : on ne détache pas l'écart par inadvertance.
+  if (type === "dossier" && !dossierId) return;
+
+  const avant = await prisma.ecart.findUniqueOrThrow({ where: { id }, select: { dossierId: true } });
+
+  await prisma.ecart.update({
+    where: { id },
+    data: { dossierId, modifiePar: nomAuteur(session), modifieLe: new Date() },
+  });
+
+  // L'ancien dossier perd un écart, le nouveau en gagne un.
+  for (const chemin of [avant.dossierId, dossierId]) {
+    if (chemin) revalidatePath(`/dossiers/${chemin}`);
+  }
+  revalidatePath(`/ecarts/${id}`);
+  revalidatePath("/ecarts");
 }
 
 export async function marquerFicheSSECreee(ecartId: string) {
@@ -170,6 +199,6 @@ export async function supprimerEcart(formData: FormData) {
   await supprimerEcartCascade(id);
 
   revalidatePath("/ecarts");
-  revalidatePath(`/dossiers/${ecart.dossierId}`);
-  redirect(`/dossiers/${ecart.dossierId}`);
+  if (ecart.dossierId) revalidatePath(`/dossiers/${ecart.dossierId}`);
+  redirect(ecart.dossierId ? `/dossiers/${ecart.dossierId}` : "/ecarts");
 }

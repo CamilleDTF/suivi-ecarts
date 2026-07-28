@@ -80,7 +80,6 @@ enum StatutAction {
   EN_COURS
   EN_RETARD
   REALISEE
-  VERIFIEE_EFFICACE
   ANNULEE
 }
 
@@ -121,8 +120,8 @@ model Dossier {
 model Ecart {
   id                 String             @id @default(cuid())
   reference          String             @unique
-  dossier            Dossier            @relation(fields: [dossierId], references: [id])
-  dossierId          String
+  dossier            Dossier?           @relation(fields: [dossierId], references: [id])
+  dossierId          String?
   dateDetection      DateTime
   origine            Origine
   statut             StatutDossierEcart @default(OUVERT)

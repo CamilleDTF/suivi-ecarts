@@ -4,6 +4,7 @@ import { useEditMode } from "@/components/formulaire-editable";
 import { TYPES_ECART_AMIANTE, CAUSES_ECART_AMIANTE } from "@/lib/labels";
 
 type EcartAmianteValues = {
+  date?: Date | null;
   nomChantier?: string | null;
   numeroChantier?: string | null;
   conducteur?: string | null;
@@ -69,6 +70,10 @@ export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Identification</h2>
         <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelCls}>Date</label>
+            <input type="date" name="date" defaultValue={toDateInput(v.date)} required className={inputCls} />
+          </div>
           <div>
             <label className={labelCls}>Nom du chantier</label>
             <input name="nomChantier" defaultValue={v.nomChantier ?? ""} required className={inputCls} />
@@ -141,7 +146,7 @@ export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Cause</h2>
         <select name="cause" defaultValue={v.cause ?? ""} className={inputCls}>
-          <option value="">Choisissez un élément.</option>
+          <option value="">—</option>
           {avecValeurExistante(CAUSES_ECART_AMIANTE, v.cause).map((c) => (
             <option key={c} value={c}>
               {c}

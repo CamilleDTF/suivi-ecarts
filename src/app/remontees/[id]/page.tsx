@@ -82,7 +82,8 @@ export default async function RemonteeDetailPage({
         <div className="mb-6 rounded-lg border border-purple-200 bg-purple-50 p-4 text-sm">
           <p className="font-medium text-purple-900">Transformée en écart</p>
           <Link href={`/ecarts/${remontee.ecart!.id}`} className="text-purple-800 hover:underline">
-            {remontee.ecart!.reference} — {remontee.ecart!.dossier.chantier}
+            {remontee.ecart!.reference}
+            {remontee.ecart!.dossier ? ` — ${remontee.ecart!.dossier.chantier}` : ""}
           </Link>
         </div>
       )}

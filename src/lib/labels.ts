@@ -107,7 +107,6 @@ export const STATUT_ACTION_LABELS: Record<string, string> = {
   EN_COURS: "En cours",
   EN_RETARD: "En retard",
   REALISEE: "Réalisée",
-  VERIFIEE_EFFICACE: "Vérifiée efficace",
   ANNULEE: "Annulée",
 };
 
@@ -116,7 +115,6 @@ export const STATUT_ACTION_COLORS: Record<string, string> = {
   EN_COURS: "bg-blue-100 text-blue-800",
   EN_RETARD: "bg-red-100 text-red-800",
   REALISEE: "bg-green-100 text-green-800",
-  VERIFIEE_EFFICACE: "bg-emerald-100 text-emerald-800",
   ANNULEE: "bg-slate-200 text-slate-500",
 };
 

@@ -19,7 +19,8 @@ export default async function NouvelleFicheSSEPage({
       <h1 className="mb-1 text-2xl font-semibold text-slate-900">Nouvel évènement SSE</h1>
       {ecart && (
         <p className="mb-6 text-sm text-slate-500">
-          Rattaché à l&apos;écart {ecart.reference} ({ecart.dossier.chantier})
+          Rattaché à l&apos;écart {ecart.reference}
+          {ecart.dossier ? ` (${ecart.dossier.chantier})` : ""}
         </p>
       )}
 
@@ -32,7 +33,7 @@ export default async function NouvelleFicheSSEPage({
             sont identiques. Les cases restent modifiables. */}
         <FicheSSEFields
           v={{ dateHeure: new Date(), domaine: ecart?.domaines, theme: ecart?.theme }}
-          defaultNomChantier={ecart?.dossier.chantier}
+          defaultNomChantier={ecart?.dossier?.chantier}
           apresTypeAnalyse={<ArbreCausesEditeur />}
           nouveau
         />

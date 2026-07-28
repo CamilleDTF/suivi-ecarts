@@ -36,6 +36,11 @@ body {
   margin: 14mm;
 }
 
+@page {
+  size: A4 portrait;
+  margin: 12mm;
+}
+
 @media print {
   body {
     background: #fff !important;
@@ -66,13 +71,26 @@ body {
     opacity: 1 !important;
   }
 
-  input,
+  /* Sur papier, une fiche se lit comme un document, pas comme un formulaire :
+     les encadrés de saisie deviennent un simple filet sous la valeur. Cases à
+     cocher et boutons radio sont exclus — eux doivent rester des cases. */
+  input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
     background: #fff !important;
     color: #000 !important;
-    border-color: #94a3b8 !important;
     opacity: 1 !important;
+    border: 0 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    border-radius: 0 !important;
+    padding: 0 0 1px 0 !important;
+    font-weight: 500;
+  }
+
+  /* Un champ date vide imprime son gabarit ("jj/mm/aaaa") comme s'il
+     s'agissait d'une valeur. La ligne reste, le faux contenu part. */
+  input[type="date"][value=""]::-webkit-datetime-edit {
+    visibility: hidden;
   }
 
   /* Retire la flèche des listes déroulantes, qui n'a pas de sens sur papier.
@@ -126,6 +144,41 @@ body {
   fieldset > div,
   .grid > div,
   tr {
+    break-inside: avoid;
+  }
+
+  /* Un tableau plus large que la page se retrouvait amputé de ses dernières
+     colonnes : sur papier il n'y a pas de défilement horizontal. On laisse
+     déborder puis on resserre pour que tout tienne. */
+  .overflow-x-auto {
+    overflow: visible !important;
+  }
+
+  table {
+    width: 100% !important;
+    font-size: 10px !important;
+    table-layout: fixed;
+  }
+
+  th,
+  td {
+    padding: 3px 4px !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    max-width: none !important;
+  }
+
+  /* Une valeur tronquée à l'écran par "truncate" doit s'imprimer en entier. */
+  td.truncate,
+  td > .truncate {
+    overflow: visible !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
+  }
+
+  /* Une section ne se coupe pas en plein milieu entre deux pages. */
+  fieldset > div,
+  section {
     break-inside: avoid;
   }
 

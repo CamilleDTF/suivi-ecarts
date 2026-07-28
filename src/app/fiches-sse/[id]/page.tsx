@@ -100,7 +100,8 @@ export default async function FicheSSEDetailPage({
           </div>
           {fiche.ecart && (
             <Link href={`/ecarts/${fiche.ecart.id}`} className="block text-sm text-slate-500 hover:underline">
-              Écart {fiche.ecart.reference} — {fiche.ecart.dossier.chantier}
+              Écart {fiche.ecart.reference}
+              {fiche.ecart.dossier ? ` — ${fiche.ecart.dossier.chantier}` : ""}
             </Link>
           )}
           {fiche.ecartAmiante && (
@@ -123,7 +124,7 @@ export default async function FicheSSEDetailPage({
                   valeurActuelle: fiche.ecartId,
                   options: ecartsChoix.map((e) => ({
                     id: e.id,
-                    libelle: libelleRattachement(e.reference, e.dossier.chantier, e.description),
+                    libelle: libelleRattachement(e.reference, e.dossier?.chantier ?? null, e.description),
                   })),
                 },
                 {

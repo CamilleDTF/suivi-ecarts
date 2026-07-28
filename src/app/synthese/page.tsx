@@ -27,7 +27,7 @@ import {
 const STATUT_ORDER = ["OUVERT", "EN_COURS", "CLOTURE"] as const;
 const STATUT_FICHE_ORDER = ["BROUILLON", "EN_COURS", "FINALISEE"] as const;
 const STATUT_ECART_AMIANTE_ORDER = ["OUVERT", "EN_COURS", "CLOTURE"] as const;
-const STATUT_ACTION_ORDER = ["A_FAIRE", "EN_COURS", "EN_RETARD", "REALISEE", "VERIFIEE_EFFICACE", "ANNULEE"] as const;
+const STATUT_ACTION_ORDER = ["A_FAIRE", "EN_COURS", "EN_RETARD", "REALISEE", "ANNULEE"] as const;
 const STATUT_REMONTEE_ORDER = ["A_TRAITER", "EN_COURS", "TRAITEE", "TRANSFORMEE_EN_ECART"] as const;
 // Ordre de gravité croissante : un classement, pas un alphabet.
 const CRITICITE_ORDER = ["Faible", "Moyenne", "Élevée"] as const;
@@ -103,7 +103,7 @@ export default async function SynthesePage() {
   const [
     dossiersOuverts,
     ecartsOuverts,
-    fichesBrouillon,
+    evenementsOuverts,
     ecartAmianteOuverts,
     dossiersParStatut,
     ecartsParStatut,
@@ -112,7 +112,9 @@ export default async function SynthesePage() {
   ] = await Promise.all([
     prisma.dossier.count({ where: { statut: { not: "CLOTURE" } } }),
     prisma.ecart.count({ where: { statut: { not: "CLOTURE" } } }),
-    prisma.ficheSSE.count({ where: { statutFiche: "BROUILLON" } }),
+    // "Ouvert" comme pour les dossiers et les écarts : tout ce qui n'est pas
+    // finalisé, donc brouillons et évènements en cours.
+    prisma.ficheSSE.count({ where: { statutFiche: { not: "FINALISEE" } } }),
     prisma.ecartAmiante.count({ where: { statut: { not: "CLOTURE" } } }),
     prisma.dossier.groupBy({ by: ["statut"], _count: { _all: true } }),
     prisma.ecart.groupBy({ by: ["statut"], _count: { _all: true } }),
@@ -259,8 +261,8 @@ export default async function SynthesePage() {
           couleur="orange"
         />
         <StatTile
-          label="Évènements SSE en brouillon"
-          value={fichesBrouillon}
+          label="Évènements SSE ouverts"
+          value={evenementsOuverts}
           icon={<IconFileText className="h-5 w-5" />}
           couleur="violet"
         />

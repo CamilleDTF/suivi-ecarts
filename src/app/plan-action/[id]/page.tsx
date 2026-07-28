@@ -81,7 +81,8 @@ export default async function ActionDetailPage({
           </div>
           {action.ecart ? (
             <Link href={`/ecarts/${action.ecart.id}`} className="text-sm text-slate-500 hover:underline">
-              Écart {action.ecart.reference} — {action.ecart.dossier.chantier}
+              Écart {action.ecart.reference}
+              {action.ecart.dossier ? ` — ${action.ecart.dossier.chantier}` : ""}
             </Link>
           ) : action.ficheSSE ? (
             <Link href={`/fiches-sse/${action.ficheSSE.id}`} className="text-sm text-slate-500 hover:underline">
@@ -96,7 +97,6 @@ export default async function ActionDetailPage({
             <ChangerRattachement
               action={changerRattachementAction}
               hiddenFields={{ id: action.id }}
-              autoriserAucun={false}
               types={[
                 {
                   cle: "ecart",
@@ -105,7 +105,7 @@ export default async function ActionDetailPage({
                   valeurActuelle: action.ecartId,
                   options: ecartsChoix.map((e) => ({
                     id: e.id,
-                    libelle: libelleRattachement(e.reference, e.dossier.chantier, e.description),
+                    libelle: libelleRattachement(e.reference, e.dossier?.chantier ?? null, e.description),
                   })),
                 },
                 {

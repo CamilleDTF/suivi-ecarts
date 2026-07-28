@@ -7,13 +7,32 @@ import { STATUT_ACTION_COLORS, STATUT_ACTION_LABELS, TYPE_ACTION_LABELS, RESPONS
 import { Pagination } from "@/components/pagination";
 import { filtreStatutAction } from "@/lib/validation";
 import { lireTaillePage } from "@/lib/pagination";
+import { construireTri } from "@/lib/tri";
+import { EnteteTriable } from "@/components/entete-triable";
+
+const COLONNES_TRI = {
+  reference: "reference",
+  type: "type",
+  action: "action",
+  responsable: "responsable",
+  echeance: "echeance",
+  statut: "statut",
+};
 
 export default async function PlanActionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; responsable?: string; page?: string; taille?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    statut?: string;
+    responsable?: string;
+    page?: string;
+    taille?: string;
+    tri?: string;
+    sens?: string;
+  }>;
 }) {
-  const { q, statut, responsable, page: pageParam, taille } = await searchParams;
+  const { q, statut, responsable, page: pageParam, taille, tri, sens } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const taillePage = lireTaillePage(taille);
 
@@ -41,7 +60,7 @@ export default async function PlanActionPage({
     prisma.action.count({ where }),
     prisma.action.findMany({
       where,
-      orderBy: { echeance: "asc" },
+      orderBy: construireTri(tri, sens, COLONNES_TRI, { echeance: "asc" as const }, ["echeance"]),
       include: { ecart: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true },
       skip: (page - 1) * taillePage,
       take: taillePage,
@@ -110,13 +129,49 @@ export default async function PlanActionPage({
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
-              <th className="px-4 py-3 font-medium">Référence</th>
+              <EnteteTriable
+                colonne="reference"
+                libelle="Référence"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, responsable, taille }}
+              />
               <th className="px-4 py-3 font-medium">Rattaché à</th>
-              <th className="px-4 py-3 font-medium">Type</th>
-              <th className="px-4 py-3 font-medium">Action</th>
-              <th className="px-4 py-3 font-medium">Responsable</th>
-              <th className="px-4 py-3 font-medium">Échéance</th>
-              <th className="px-4 py-3 font-medium">Statut</th>
+              <EnteteTriable
+                colonne="type"
+                libelle="Type"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, responsable, taille }}
+              />
+              <EnteteTriable
+                colonne="action"
+                libelle="Action"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, responsable, taille }}
+              />
+              <EnteteTriable
+                colonne="responsable"
+                libelle="Responsable"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, responsable, taille }}
+              />
+              <EnteteTriable
+                colonne="echeance"
+                libelle="Échéance"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, responsable, taille }}
+              />
+              <EnteteTriable
+                colonne="statut"
+                libelle="Statut"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, responsable, taille }}
+              />
             </tr>
           </thead>
           <tbody>

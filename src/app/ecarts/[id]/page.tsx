@@ -11,7 +11,13 @@ import {
   STATUT_ACTION_COLORS,
   STATUT_ACTION_LABELS,
 } from "@/lib/labels";
-import { mettreAJourStatutEcart, mettreAJourEcart, supprimerEcart } from "@/app/ecarts/actions";
+import {
+  mettreAJourStatutEcart,
+  mettreAJourEcart,
+  supprimerEcart,
+  changerRattachementEcart,
+} from "@/app/ecarts/actions";
+import { ChangerRattachement } from "@/components/changer-rattachement";
 import { StatutDossierEcart } from "@/generated/prisma/enums";
 import { StatutSelectForm } from "@/components/statut-select-form";
 import { EcartFields } from "@/components/ecart-fields";
@@ -49,9 +55,18 @@ export default async function EcartDetailPage({
 
   const impact = await compterImpactSuppressionEcart(ecart.id);
 
+  // Dossiers proposés pour corriger un rattachement erroné.
+  const dossiersChoix = await prisma.dossier.findMany({
+    orderBy: { reference: "asc" },
+    select: { id: true, reference: true, chantier: true },
+  });
+
   return (
     <div className="mx-auto max-w-[100rem] px-6 py-8">
-      <BoutonRetour href={`/dossiers/${ecart.dossier.id}`} label="Retour au dossier" />
+      <BoutonRetour
+        href={ecart.dossier ? `/dossiers/${ecart.dossier.id}` : "/ecarts"}
+        label={ecart.dossier ? "Retour au dossier" : "Retour aux écarts"}
+      />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
@@ -61,9 +76,31 @@ export default async function EcartDetailPage({
               colorClass={STATUT_DOSSIER_ECART_COLORS[ecart.statut]}
             />
           </div>
-          <Link href={`/dossiers/${ecart.dossier.id}`} className="block text-sm text-slate-500 hover:underline">
-            Dossier {ecart.dossier.reference} — {ecart.dossier.chantier}
-          </Link>
+          {ecart.dossier ? (
+            <Link href={`/dossiers/${ecart.dossier.id}`} className="block text-sm text-slate-500 hover:underline">
+              Dossier {ecart.dossier.reference} — {ecart.dossier.chantier}
+            </Link>
+          ) : (
+            <p className="text-sm text-slate-400">Rattaché à aucun dossier</p>
+          )}
+          <div data-no-print className="mt-1">
+            <ChangerRattachement
+              action={changerRattachementEcart}
+              hiddenFields={{ id: ecart.id }}
+              types={[
+                {
+                  cle: "dossier",
+                  libelle: "Dossier",
+                  champ: "dossierId",
+                  valeurActuelle: ecart.dossierId,
+                  options: dossiersChoix.map((d) => ({
+                    id: d.id,
+                    libelle: `${d.reference} — ${d.chantier}`,
+                  })),
+                },
+              ]}
+            />
+          </div>
           {ecart.remontee && (
             <Link
               href={`/remontees/${ecart.remontee.id}`}

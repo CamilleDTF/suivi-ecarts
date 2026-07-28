@@ -14,13 +14,23 @@ import {
 } from "@/lib/labels";
 import { filtreStatutDossierEcart } from "@/lib/validation";
 import { lireTaillePage } from "@/lib/pagination";
+import { construireTri } from "@/lib/tri";
+import { EnteteTriable } from "@/components/entete-triable";
+
+const COLONNES_TRI = {
+  reference: "reference",
+  dossier: "dossier.reference",
+  description: "description",
+  statut: "statut",
+  dateDetection: "dateDetection",
+};
 
 export default async function EcartsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; origine?: string; page?: string; taille?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; origine?: string; page?: string; taille?: string; tri?: string; sens?: string }>;
 }) {
-  const { q, statut, origine, page: pageParam, taille } = await searchParams;
+  const { q, statut, origine, page: pageParam, taille, tri, sens } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const taillePage = lireTaillePage(taille);
 
@@ -59,7 +69,7 @@ export default async function EcartsPage({
     prisma.ecart.count({ where }),
     prisma.ecart.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: construireTri(tri, sens, COLONNES_TRI, { createdAt: "desc" as const }, ["description"]),
       include: { dossier: true },
       skip: (page - 1) * taillePage,
       take: taillePage,
@@ -117,11 +127,41 @@ export default async function EcartsPage({
         <table className="w-full text-left text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
-              <th className="px-4 py-3 font-medium">Référence</th>
-              <th className="px-4 py-3 font-medium">Dossier</th>
-              <th className="px-4 py-3 font-medium">Description</th>
-              <th className="px-4 py-3 font-medium">Statut</th>
-              <th className="px-4 py-3 font-medium">Détecté le</th>
+              <EnteteTriable
+                colonne="reference"
+                libelle="Référence"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, origine, taille }}
+              />
+              <EnteteTriable
+                colonne="dossier"
+                libelle="Dossier"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, origine, taille }}
+              />
+              <EnteteTriable
+                colonne="description"
+                libelle="Description"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, origine, taille }}
+              />
+              <EnteteTriable
+                colonne="statut"
+                libelle="Statut"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, origine, taille }}
+              />
+              <EnteteTriable
+                colonne="dateDetection"
+                libelle="Détecté le"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, origine, taille }}
+              />
             </tr>
           </thead>
           <tbody>
@@ -133,9 +173,13 @@ export default async function EcartsPage({
                   </Link>
                 </td>
                 <td className="px-4 py-3">
-                  <Link href={`/dossiers/${e.dossier.id}`} className="text-slate-600 hover:underline">
-                    {e.dossier.reference}
-                  </Link>
+                  {e.dossier ? (
+                    <Link href={`/dossiers/${e.dossier.id}`} className="text-slate-600 hover:underline">
+                      {e.dossier.reference}
+                    </Link>
+                  ) : (
+                    <span className="text-slate-400">—</span>
+                  )}
                 </td>
                 <td className="max-w-md truncate px-4 py-3 text-slate-700">{e.description}</td>
                 <td className="px-4 py-3">

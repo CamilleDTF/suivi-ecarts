@@ -37,6 +37,7 @@ function parse(formData: FormData) {
   });
   return {
     ...parsed,
+    date: date(formData.get("date")) ?? new Date(),
     zone: str(formData.get("zone")),
     processus: str(formData.get("processus")),
     typeAnalyse: str(formData.get("typeAnalyse")),
@@ -69,7 +70,7 @@ export async function creerEcartAmiante(formData: FormData) {
   const reference = await generateReference("EcartAmiante", "EA");
 
   const ecartAmiante = await prisma.ecartAmiante.create({
-    data: { reference, date: new Date(), ...data },
+    data: { reference, ...data },
   });
 
   redirect(`/ecart-amiante/${ecartAmiante.id}`);

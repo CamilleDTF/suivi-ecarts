@@ -33,7 +33,7 @@ export async function recalculerStatutEcart(ecartId: string) {
   await prisma.ecart.update({ where: { id: ecartId }, data: { statut: nouveauStatut } });
   revalidatePath(`/ecarts/${ecartId}`);
   revalidatePath("/ecarts");
-  revalidatePath(`/dossiers/${ecart.dossierId}`);
+  if (ecart.dossierId) revalidatePath(`/dossiers/${ecart.dossierId}`);
 }
 
 export async function recalculerStatutEcartAmiante(ecartAmianteId: string) {

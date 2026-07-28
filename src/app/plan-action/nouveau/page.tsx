@@ -62,7 +62,8 @@ export default async function NouvelleActionPage({
               </option>
               {ecarts.map((e) => (
                 <option key={e.id} value={e.id}>
-                  {e.reference} — {e.dossier.chantier}
+                  {e.reference}
+                  {e.dossier ? ` — ${e.dossier.chantier}` : ""}
                 </option>
               ))}
             </select>

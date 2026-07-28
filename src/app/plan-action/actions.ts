@@ -98,8 +98,8 @@ export async function mettreAJourAction(formData: FormData) {
   });
 
   // Une date de réalisation vaut déclaration : l'action passe à "Réalisée".
-  // On ne redescend pas une action déjà vérifiée efficace ou annulée, et on ne
-  // rouvre pas une action dont on efface la date — ce choix-là reste manuel.
+  // On ne redescend pas une action annulée, et on ne rouvre pas une action dont
+  // on efface la date — ce choix-là reste manuel.
   const actuelle = await prisma.action.findUniqueOrThrow({ where: { id }, select: { statut: true } });
   const statutAuto =
     parsed.realiseeLe && ["A_FAIRE", "EN_COURS", "EN_RETARD"].includes(actuelle.statut)
@@ -162,9 +162,9 @@ export async function changerRattachementAction(formData: FormData) {
   const type = String(formData.get("typeRattachement") ?? "");
   const cible = texte(formData.get(type === "ecart" ? "ecartId" : type === "evenement" ? "ficheSSEId" : "ecartAmianteId"));
 
-  // Une action doit rester rattachée : pas de "Aucun", et pas de type choisi
-  // sans cible.
-  if (!["ecart", "evenement", "amiante"].includes(type) || !cible) return;
+  // Type choisi sans cible : on ne détache pas l'action par inadvertance.
+  // "aucun" en revanche est un choix explicite.
+  if (type !== "aucun" && (!["ecart", "evenement", "amiante"].includes(type) || !cible)) return;
 
   const avant = await prisma.action.findUniqueOrThrow({
     where: { id },
