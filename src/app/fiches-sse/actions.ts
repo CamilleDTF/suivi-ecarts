@@ -128,6 +128,48 @@ export async function mettreAJourFicheSSE(formData: FormData) {
   if (fiche.ecartId) revalidatePath(`/ecarts/${fiche.ecartId}`);
 }
 
+// Correction d'un rattachement erroné. Le lien est normalement fixé à la
+// création ; quand il est faux, le corriger imposait jusqu'ici de passer par la
+// base. Un seul parent à la fois, comme pour les actions : deux rattachements
+// rendraient le calcul des statuts et les suppressions en cascade ambigus.
+export async function changerRattachementFicheSSE(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/connexion");
+
+  const id = String(formData.get("id"));
+  const type = String(formData.get("typeRattachement") ?? "aucun");
+  const ecartId = type === "ecart" ? texte(formData.get("ecartId")) : null;
+  const ecartAmianteId = type === "amiante" ? texte(formData.get("ecartAmianteId")) : null;
+
+  // Un type choisi sans cible : on ne détache pas la fiche par inadvertance.
+  if ((type === "ecart" && !ecartId) || (type === "amiante" && !ecartAmianteId)) return;
+
+  const avant = await prisma.ficheSSE.findUniqueOrThrow({
+    where: { id },
+    select: { ecartId: true, ecartAmianteId: true },
+  });
+
+  await prisma.ficheSSE.update({
+    where: { id },
+    data: { ecartId, ecartAmianteId, modifiePar: nomAuteur(session), modifieLe: new Date() },
+  });
+
+  if (ecartId) await marquerFicheSSECreee(ecartId);
+
+  // Les deux parents, l'ancien et le nouveau, voient leur liste d'évènements
+  // changer.
+  for (const chemin of [
+    avant.ecartId && `/ecarts/${avant.ecartId}`,
+    avant.ecartAmianteId && `/ecart-amiante/${avant.ecartAmianteId}`,
+    ecartId && `/ecarts/${ecartId}`,
+    ecartAmianteId && `/ecart-amiante/${ecartAmianteId}`,
+  ]) {
+    if (chemin) revalidatePath(chemin);
+  }
+  revalidatePath(`/fiches-sse/${id}`);
+  revalidatePath("/fiches-sse");
+}
+
 export async function ajouterCause(ficheSSEId: string, formData: FormData) {
   const session = await auth();
   if (!session?.user) redirect("/connexion");

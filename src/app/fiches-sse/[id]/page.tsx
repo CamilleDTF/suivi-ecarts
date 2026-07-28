@@ -9,7 +9,13 @@ import {
   STATUT_ACTION_COLORS,
   STATUT_ACTION_LABELS,
 } from "@/lib/labels";
-import { mettreAJourFicheSSE, finaliserFicheSSE, supprimerFicheSSE } from "@/app/fiches-sse/actions";
+import {
+  mettreAJourFicheSSE,
+  finaliserFicheSSE,
+  supprimerFicheSSE,
+  changerRattachementFicheSSE,
+} from "@/app/fiches-sse/actions";
+import { ChangerRattachement } from "@/components/changer-rattachement";
 import { ArbreCauses } from "@/components/arbre-causes";
 import { FicheSSEFields } from "@/components/fiche-sse-fields";
 import { FormulaireEditable } from "@/components/formulaire-editable";
@@ -63,6 +69,18 @@ export default async function FicheSSEDetailPage({
     return "—";
   }
 
+  // Listes proposées pour corriger un rattachement erroné.
+  const [ecartsChoix, amianteChoix] = await Promise.all([
+    prisma.ecart.findMany({
+      orderBy: { reference: "asc" },
+      select: { id: true, reference: true, dossier: { select: { chantier: true } } },
+    }),
+    prisma.ecartAmiante.findMany({
+      orderBy: { reference: "asc" },
+      select: { id: true, reference: true, nomChantier: true, numeroChantier: true },
+    }),
+  ]);
+
   const retourHref = fiche.ecart
     ? `/ecarts/${fiche.ecart.id}`
     : fiche.ecartAmiante
@@ -89,6 +107,22 @@ export default async function FicheSSEDetailPage({
               Écart amiante {fiche.ecartAmiante.reference} — {fiche.ecartAmiante.nomChantier}
             </Link>
           )}
+          {!fiche.ecart && !fiche.ecartAmiante && (
+            <p className="text-sm text-slate-400">Rattaché à aucun écart</p>
+          )}
+          <div data-no-print className="mt-1">
+            <ChangerRattachement
+              action={changerRattachementFicheSSE}
+              ficheSSEId={fiche.id}
+              ecartIdActuel={fiche.ecartId}
+              ecartAmianteIdActuel={fiche.ecartAmianteId}
+              ecarts={ecartsChoix.map((e) => ({ id: e.id, libelle: `${e.reference} — ${e.dossier.chantier}` }))}
+              ecartsAmiante={amianteChoix.map((e) => ({
+                id: e.id,
+                libelle: `${e.reference} — ${e.nomChantier} (${e.numeroChantier})`,
+              }))}
+            />
+          </div>
         </div>
         <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
           <BoutonExportPDF />
