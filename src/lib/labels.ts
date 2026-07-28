@@ -177,7 +177,7 @@ export const CATEGORIES_REMONTEE = [
 export const RESPONSABLES = [
   "Brahim", "Mohamed", "Said", "Amine", "Kasso", "Ayoub", "Ahmed", "Ilias",
   "Jallal", "Alexandre", "Khan", "Zakariae", "Camille", "Nassim", "Mamadou",
-  "Ibrahim", "Halim", "Jalal", "Youssef", "Direction",
+  "Ibrahim", "Halim", "Jalal", "Youssef", "Soufiane", "Direction",
 ];
 
 // Ajoute à une liste d'options toute valeur déjà enregistrée qui n'y figure

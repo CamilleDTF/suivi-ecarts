@@ -122,24 +122,45 @@ export default async function PlanActionPage({
           <tbody>
             {actions.map((a) => (
               <tr key={a.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                <td className="px-4 py-3">
+                <td className="whitespace-nowrap px-4 py-3">
                   <Link href={`/plan-action/${a.id}`} className="font-medium text-blue-700 hover:underline">
                     {a.reference}
                   </Link>
                 </td>
-                <td className="px-4 py-3">
+                <td className="max-w-xs px-4 py-3">
                   {a.ecart ? (
-                    <Link href={`/ecarts/${a.ecart.id}`} className="text-slate-600 hover:underline">
-                      {a.ecart.reference}
-                    </Link>
+                    <>
+                      <Link href={`/ecarts/${a.ecart.id}`} className="text-slate-600 hover:underline">
+                        {a.ecart.reference}
+                      </Link>
+                      {a.ecart.description && (
+                        <p className="truncate text-xs text-slate-400" title={a.ecart.description}>
+                          {a.ecart.description}
+                        </p>
+                      )}
+                    </>
                   ) : a.ficheSSE ? (
-                    <Link href={`/fiches-sse/${a.ficheSSE.id}`} className="text-slate-600 hover:underline">
-                      {a.ficheSSE.reference}
-                    </Link>
+                    <>
+                      <Link href={`/fiches-sse/${a.ficheSSE.id}`} className="text-slate-600 hover:underline">
+                        {a.ficheSSE.reference}
+                      </Link>
+                      {a.ficheSSE.descriptionFactuelle && (
+                        <p className="truncate text-xs text-slate-400" title={a.ficheSSE.descriptionFactuelle}>
+                          {a.ficheSSE.descriptionFactuelle}
+                        </p>
+                      )}
+                    </>
                   ) : a.ecartAmiante ? (
-                    <Link href={`/ecart-amiante/${a.ecartAmiante.id}`} className="text-slate-600 hover:underline">
-                      {a.ecartAmiante.reference}
-                    </Link>
+                    <>
+                      <Link href={`/ecart-amiante/${a.ecartAmiante.id}`} className="text-slate-600 hover:underline">
+                        {a.ecartAmiante.reference}
+                      </Link>
+                      {a.ecartAmiante.description && (
+                        <p className="truncate text-xs text-slate-400" title={a.ecartAmiante.description}>
+                          {a.ecartAmiante.description}
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <span className="text-slate-400">—</span>
                   )}

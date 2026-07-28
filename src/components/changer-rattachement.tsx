@@ -3,7 +3,17 @@
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
 
-type Option = { id: string; libelle: string };
+export type Option = { id: string; libelle: string };
+
+/** Un rattachement possible : le champ visé et les cibles proposées. */
+export type TypeRattachement = {
+  cle: string;
+  libelle: string;
+  /** Nom du champ envoyé au serveur (ecartId, ficheSSEId, ecartAmianteId). */
+  champ: string;
+  options: Option[];
+  valeurActuelle: string | null;
+};
 
 function BoutonEnregistrer() {
   const { pending } = useFormStatus();
@@ -18,29 +28,22 @@ function BoutonEnregistrer() {
   );
 }
 
-// Corriger un rattachement erroné se faisait jusqu'ici en base : ce panneau
-// permet de le faire depuis la fiche. Un évènement est rattaché à un écart, à
-// un écart amiante, ou à rien — jamais aux deux, sinon le calcul des statuts et
-// les suppressions en cascade deviennent ambigus.
+// Corriger un rattachement erroné se faisait jusqu'ici en base. Un seul parent
+// à la fois : deux rattachements simultanés rendraient le calcul des statuts et
+// les suppressions en cascade ambigus.
 export function ChangerRattachement({
   action,
-  ficheSSEId,
-  ecartIdActuel,
-  ecartAmianteIdActuel,
-  ecarts,
-  ecartsAmiante,
+  hiddenFields,
+  types,
+  autoriserAucun = true,
 }: {
   action: (formData: FormData) => void | Promise<void>;
-  ficheSSEId: string;
-  ecartIdActuel: string | null;
-  ecartAmianteIdActuel: string | null;
-  ecarts: Option[];
-  ecartsAmiante: Option[];
+  hiddenFields: Record<string, string>;
+  types: TypeRattachement[];
+  autoriserAucun?: boolean;
 }) {
   const [ouvert, setOuvert] = useState(false);
-  const [type, setType] = useState<"aucun" | "ecart" | "amiante">(
-    ecartAmianteIdActuel ? "amiante" : ecartIdActuel ? "ecart" : "aucun",
-  );
+  const [choisi, setChoisi] = useState(types.find((t) => t.valeurActuelle)?.cle ?? "aucun");
 
   if (!ouvert) {
     return (
@@ -54,47 +57,49 @@ export function ChangerRattachement({
     );
   }
 
+  const actif = types.find((t) => t.cle === choisi);
+
   return (
     <form action={action} className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-3">
-      <input type="hidden" name="id" value={ficheSSEId} />
+      {Object.entries(hiddenFields).map(([name, value]) => (
+        <input key={name} type="hidden" name={name} value={value} />
+      ))}
+
       <div className="mb-2 flex flex-wrap items-center gap-4 text-sm text-slate-700">
-        <label className="flex items-center gap-1.5">
-          <input type="radio" name="typeRattachement" value="ecart" checked={type === "ecart"} onChange={() => setType("ecart")} />
-          Écart
-        </label>
-        <label className="flex items-center gap-1.5">
-          <input type="radio" name="typeRattachement" value="amiante" checked={type === "amiante"} onChange={() => setType("amiante")} />
-          Écart amiante
-        </label>
-        <label className="flex items-center gap-1.5">
-          <input type="radio" name="typeRattachement" value="aucun" checked={type === "aucun"} onChange={() => setType("aucun")} />
-          Aucun
-        </label>
+        {types.map((t) => (
+          <label key={t.cle} className="flex items-center gap-1.5">
+            <input
+              type="radio"
+              name="typeRattachement"
+              value={t.cle}
+              checked={choisi === t.cle}
+              onChange={() => setChoisi(t.cle)}
+            />
+            {t.libelle}
+          </label>
+        ))}
+        {autoriserAucun && (
+          <label className="flex items-center gap-1.5">
+            <input
+              type="radio"
+              name="typeRattachement"
+              value="aucun"
+              checked={choisi === "aucun"}
+              onChange={() => setChoisi("aucun")}
+            />
+            Aucun
+          </label>
+        )}
       </div>
 
-      {type === "ecart" && (
+      {actif && (
         <select
-          name="ecartId"
-          defaultValue={ecartIdActuel ?? ""}
+          name={actif.champ}
+          defaultValue={actif.valeurActuelle ?? ""}
           className="mb-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
         >
-          <option value="">— Choisir un écart —</option>
-          {ecarts.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.libelle}
-            </option>
-          ))}
-        </select>
-      )}
-
-      {type === "amiante" && (
-        <select
-          name="ecartAmianteId"
-          defaultValue={ecartAmianteIdActuel ?? ""}
-          className="mb-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-        >
-          <option value="">— Choisir un écart amiante —</option>
-          {ecartsAmiante.map((o) => (
+          <option value="">— Choisir —</option>
+          {actif.options.map((o) => (
             <option key={o.id} value={o.id}>
               {o.libelle}
             </option>

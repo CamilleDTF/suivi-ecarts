@@ -113,14 +113,29 @@ export default async function FicheSSEDetailPage({
           <div data-no-print className="mt-1">
             <ChangerRattachement
               action={changerRattachementFicheSSE}
-              ficheSSEId={fiche.id}
-              ecartIdActuel={fiche.ecartId}
-              ecartAmianteIdActuel={fiche.ecartAmianteId}
-              ecarts={ecartsChoix.map((e) => ({ id: e.id, libelle: `${e.reference} — ${e.dossier.chantier}` }))}
-              ecartsAmiante={amianteChoix.map((e) => ({
-                id: e.id,
-                libelle: `${e.reference} — ${e.nomChantier} (${e.numeroChantier})`,
-              }))}
+              hiddenFields={{ id: fiche.id }}
+              types={[
+                {
+                  cle: "ecart",
+                  libelle: "Écart",
+                  champ: "ecartId",
+                  valeurActuelle: fiche.ecartId,
+                  options: ecartsChoix.map((e) => ({
+                    id: e.id,
+                    libelle: `${e.reference} — ${e.dossier.chantier}`,
+                  })),
+                },
+                {
+                  cle: "amiante",
+                  libelle: "Écart amiante",
+                  champ: "ecartAmianteId",
+                  valeurActuelle: fiche.ecartAmianteId,
+                  options: amianteChoix.map((e) => ({
+                    id: e.id,
+                    libelle: `${e.reference} — ${e.nomChantier} (${e.numeroChantier})`,
+                  })),
+                },
+              ]}
             />
           </div>
         </div>

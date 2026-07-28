@@ -10,6 +10,7 @@ import { TypeAction, StatutAction } from "@/generated/prisma/enums";
 import { recalculerStatutsParents } from "@/lib/statut-auto";
 import { nomAuteur } from "@/lib/audit";
 import { lireStatutAction } from "@/lib/validation";
+import { texte } from "@/lib/formulaire";
 
 const actionSchema = z
   .object({
@@ -148,6 +149,56 @@ export async function mettreAJourStatutAction(formData: FormData) {
   if (action.ficheSSEId) revalidatePath(`/fiches-sse/${action.ficheSSEId}`);
   if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
   await recalculerStatutsParents(action);
+}
+
+// Correction d'un rattachement erroné. Exactement un parent, comme à la
+// création : deux rattachements rendraient le calcul des statuts et les
+// suppressions en cascade ambigus.
+export async function changerRattachementAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/connexion");
+
+  const id = String(formData.get("id"));
+  const type = String(formData.get("typeRattachement") ?? "");
+  const cible = texte(formData.get(type === "ecart" ? "ecartId" : type === "evenement" ? "ficheSSEId" : "ecartAmianteId"));
+
+  // Une action doit rester rattachée : pas de "Aucun", et pas de type choisi
+  // sans cible.
+  if (!["ecart", "evenement", "amiante"].includes(type) || !cible) return;
+
+  const avant = await prisma.action.findUniqueOrThrow({
+    where: { id },
+    select: { ecartId: true, ficheSSEId: true, ecartAmianteId: true },
+  });
+
+  const action = await prisma.action.update({
+    where: { id },
+    data: {
+      ecartId: type === "ecart" ? cible : null,
+      ficheSSEId: type === "evenement" ? cible : null,
+      ecartAmianteId: type === "amiante" ? cible : null,
+      modifiePar: nomAuteur(session),
+      modifieLe: new Date(),
+    },
+  });
+
+  // L'ancien parent perd une action, le nouveau en gagne une : leurs statuts
+  // sont recalculés tous les deux.
+  await recalculerStatutsParents(avant);
+  await recalculerStatutsParents(action);
+
+  for (const chemin of [
+    avant.ecartId && `/ecarts/${avant.ecartId}`,
+    avant.ficheSSEId && `/fiches-sse/${avant.ficheSSEId}`,
+    avant.ecartAmianteId && `/ecart-amiante/${avant.ecartAmianteId}`,
+    action.ecartId && `/ecarts/${action.ecartId}`,
+    action.ficheSSEId && `/fiches-sse/${action.ficheSSEId}`,
+    action.ecartAmianteId && `/ecart-amiante/${action.ecartAmianteId}`,
+  ]) {
+    if (chemin) revalidatePath(chemin);
+  }
+  revalidatePath(`/plan-action/${id}`);
+  revalidatePath("/plan-action");
 }
 
 export async function supprimerAction(formData: FormData) {

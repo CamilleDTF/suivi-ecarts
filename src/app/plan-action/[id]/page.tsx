@@ -3,7 +3,13 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
 import { STATUT_ACTION_COLORS, STATUT_ACTION_LABELS } from "@/lib/labels";
-import { mettreAJourStatutAction, mettreAJourAction, supprimerAction } from "@/app/plan-action/actions";
+import {
+  mettreAJourStatutAction,
+  mettreAJourAction,
+  supprimerAction,
+  changerRattachementAction,
+} from "@/app/plan-action/actions";
+import { ChangerRattachement } from "@/components/changer-rattachement";
 import { StatutAction } from "@/generated/prisma/enums";
 import { StatutSelectForm } from "@/components/statut-select-form";
 import { FormulaireEditable } from "@/components/formulaire-editable";
@@ -32,6 +38,22 @@ export default async function ActionDetailPage({
   });
 
   if (!action) notFound();
+
+  // Listes proposées pour corriger un rattachement erroné.
+  const [ecartsChoix, evenementsChoix, amianteChoix] = await Promise.all([
+    prisma.ecart.findMany({
+      orderBy: { reference: "asc" },
+      select: { id: true, reference: true, dossier: { select: { chantier: true } } },
+    }),
+    prisma.ficheSSE.findMany({
+      orderBy: { reference: "asc" },
+      select: { id: true, reference: true, nomChantier: true },
+    }),
+    prisma.ecartAmiante.findMany({
+      orderBy: { reference: "asc" },
+      select: { id: true, reference: true, nomChantier: true, numeroChantier: true },
+    }),
+  ]);
 
   const retourHref = action.ecart
     ? `/ecarts/${action.ecart.id}`
@@ -70,6 +92,45 @@ export default async function ActionDetailPage({
               Écart amiante {action.ecartAmiante.reference}
             </Link>
           ) : null}
+          <div data-no-print className="mt-1">
+            <ChangerRattachement
+              action={changerRattachementAction}
+              hiddenFields={{ id: action.id }}
+              autoriserAucun={false}
+              types={[
+                {
+                  cle: "ecart",
+                  libelle: "Écart",
+                  champ: "ecartId",
+                  valeurActuelle: action.ecartId,
+                  options: ecartsChoix.map((e) => ({
+                    id: e.id,
+                    libelle: `${e.reference} — ${e.dossier.chantier}`,
+                  })),
+                },
+                {
+                  cle: "evenement",
+                  libelle: "Évènement SSE",
+                  champ: "ficheSSEId",
+                  valeurActuelle: action.ficheSSEId,
+                  options: evenementsChoix.map((e) => ({
+                    id: e.id,
+                    libelle: `${e.reference}${e.nomChantier ? ` — ${e.nomChantier}` : ""}`,
+                  })),
+                },
+                {
+                  cle: "amiante",
+                  libelle: "Écart amiante",
+                  champ: "ecartAmianteId",
+                  valeurActuelle: action.ecartAmianteId,
+                  options: amianteChoix.map((e) => ({
+                    id: e.id,
+                    libelle: `${e.reference} — ${e.nomChantier} (${e.numeroChantier})`,
+                  })),
+                },
+              ]}
+            />
+          </div>
         </div>
         <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
           <BoutonExportPDF />
