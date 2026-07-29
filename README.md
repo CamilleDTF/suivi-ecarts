@@ -66,22 +66,25 @@ créent en relançant le seed avec d'autres variables, ou directement en base.
 | Commande | Rôle |
 |---|---|
 | `npm run dev` | Serveur de développement |
-| `npm run build` | Construction seule — **ne touche plus à la base** |
-| `npm run db:migrate` | Applique les migrations (étape de déploiement séparée) |
+| `npm run build` | Applique les migrations puis construit |
+| `npm run db:migrate` | Applique les migrations seules |
 | `npm run db:seed` | Crée le compte d'administration |
 | `npm run db:import` | Importe le classeur Excel converti en JSON |
 | `npm run db:recheck-statuts` | Recalcule les statuts des évènements SSE |
 
-`build` et `db:migrate` sont volontairement séparés : lancer une migration
-pendant un build de prévisualisation risquerait de l'appliquer à la mauvaise base
-si les variables d'environnement ne sont pas cloisonnées.
+`build` applique les migrations avant de construire. Ce n'est pas la pratique la
+plus propre — un build de prévisualisation mal cloisonné migrerait la mauvaise
+base — mais c'est le seul point d'exécution disponible sur ce déploiement. Les
+avoir séparés a déjà causé une panne : le build réussissait, l'application
+plantait faute de colonnes. Tant qu'il n'y a pas d'étape de déploiement dédiée,
+les deux restent ensemble.
 
 ## Déploiement (Vercel)
 
 1. Pousser le dépôt sur GitHub, puis importer le projet dans Vercel.
 2. Renseigner `DATABASE_URL` et `AUTH_SECRET` (`npx auth secret` une fois).
-3. **Appliquer les migrations séparément**, depuis une machine dont
-   `DATABASE_URL` pointe vers la production :
+3. Les migrations s'appliquent automatiquement au build. Pour les passer à la
+   main depuis une machine dont `DATABASE_URL` pointe vers la production :
    ```bash
    DATABASE_URL="<url de prod>" npm run db:migrate
    ```
