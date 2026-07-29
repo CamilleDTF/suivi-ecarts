@@ -8,6 +8,7 @@ import {
   GRAVITE_FREQUENCE_OPTIONS,
 } from "@/lib/labels";
 import { Origine, TypeActivite } from "@/generated/prisma/enums";
+import { ChoixDossier } from "@/components/choix-dossier";
 
 export default async function NouvelEcartPage({
   searchParams,
@@ -27,31 +28,18 @@ export default async function NouvelEcartPage({
       <h1 className="mb-1 text-2xl font-semibold text-slate-900">Nouvel écart</h1>
       {remontee && (
         <p className="mb-6 text-sm text-slate-500">
-          Créé à partir de la remontée {remontee.reference} — {remontee.objet}. Choisissez le dossier
-          de rattachement : la remontée passera ensuite en « Transformée en écart ».
+          Créé à partir de la remontée {remontee.reference} — {remontee.objet}. La remontée passera
+          en « Transformée en écart ».
         </p>
       )}
 
       <form action={creerEcart} className="mt-6 space-y-4 rounded-lg border border-slate-200 bg-white p-6">
         {remonteeId && <input type="hidden" name="remonteeId" value={remonteeId} />}
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Dossier</label>
-          <select
-            name="dossierId"
-            required
-            defaultValue={dossierId ?? ""}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="" disabled>
-              Sélectionner un dossier
-            </option>
-            {dossiers.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.reference} — {d.chantier}
-              </option>
-            ))}
-          </select>
-        </div>
+        <ChoixDossier
+          dossiers={dossiers}
+          dossierId={dossierId}
+          chantierPropose={remontee?.chantierService}
+        />
 
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">

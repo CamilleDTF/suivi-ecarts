@@ -8,11 +8,11 @@ import { auth } from "@/auth";
 import { Origine } from "@/generated/prisma/enums";
 import { revalidatePath } from "next/cache";
 import { nomAuteur } from "@/lib/audit";
-import { lireStatutDossierEcart } from "@/lib/validation";
+import { lireStatutDossierEcart, dateObligatoire } from "@/lib/validation";
 import { supprimerDossierCascade } from "@/lib/suppression";
 
 const dossierSchema = z.object({
-  dateDetection: z.string().min(1, "Date requise"),
+  dateDetection: dateObligatoire,
   origine: z.enum(Object.values(Origine) as [string, ...string[]]),
   declarant: z.string().min(1, "Déclarant requis"),
   chantier: z.string().min(1, "Chantier requis"),

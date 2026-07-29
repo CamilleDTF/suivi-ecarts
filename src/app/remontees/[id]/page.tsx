@@ -14,6 +14,8 @@ import { StatutSelectForm } from "@/components/statut-select-form";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { RemonteeFields } from "@/components/remontee-fields";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { BoutonArchiver } from "@/components/bouton-archiver";
+import { archiver, desarchiver } from "@/app/archivage/actions";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 
@@ -65,11 +67,21 @@ export default async function RemonteeDetailPage({
         </div>
         <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
           <BoutonExportPDF />
-          <BoutonSupprimer
-            action={supprimerRemontee}
-            hiddenFields={{ id: remontee.id }}
-            message="Supprimer cette remontée d'information ? Cette action est irréversible."
+          <BoutonArchiver
+            action={remontee.archiveLe ? desarchiver : archiver}
+            entite="remontee"
+            id={remontee.id}
+            archive={!!remontee.archiveLe}
           />
+          {/* Supprimer une remontée transformée effacerait l'origine d'un écart
+              qui, lui, reste au registre : seul l'archivage est proposé. */}
+          {!dejaTransformee && (
+            <BoutonSupprimer
+              action={supprimerRemontee}
+              hiddenFields={{ id: remontee.id }}
+              message="Supprimer cette remontée d'information ? Cette action est irréversible."
+            />
+          )}
         </div>
       </div>
 
@@ -88,21 +100,27 @@ export default async function RemonteeDetailPage({
         </div>
       )}
 
-      <div data-no-print className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
-        <StatutSelectForm
-          action={mettreAJourStatutRemontee}
-          hiddenName="id"
-          hiddenValue={remontee.id}
-          selectName="statut"
-          defaultValue={remontee.statut}
-          options={Object.values(StatutRemontee)
-            // Ce statut découle de la transformation, il ne se choisit pas à la
-            // main — sauf pour une remontée déjà transformée, où il faut pouvoir
-            // le réafficher.
-            .filter((s) => s !== "TRANSFORMEE_EN_ECART" || dejaTransformee)
-            .map((s) => ({ value: s, label: STATUT_REMONTEE_LABELS[s] }))}
-        />
-      </div>
+      {/* Une fois l'écart créé, le statut décrit un fait acquis : on retire le
+          sélecteur plutôt que de laisser proposer un choix qui sera refusé. */}
+      {dejaTransformee ? (
+        <div data-no-print className="mb-6 rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500">
+          Statut figé : cette remontée a été transformée en écart.
+        </div>
+      ) : (
+        <div data-no-print className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
+          <StatutSelectForm
+            action={mettreAJourStatutRemontee}
+            hiddenName="id"
+            hiddenValue={remontee.id}
+            selectName="statut"
+            defaultValue={remontee.statut}
+            options={Object.values(StatutRemontee)
+              // Ce statut découle de la transformation, il ne se choisit pas.
+              .filter((s) => s !== "TRANSFORMEE_EN_ECART")
+              .map((s) => ({ value: s, label: STATUT_REMONTEE_LABELS[s] }))}
+          />
+        </div>
+      )}
 
       <FormulaireEditable
         action={mettreAJourRemontee}

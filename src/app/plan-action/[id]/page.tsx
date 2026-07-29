@@ -15,6 +15,8 @@ import { StatutSelectForm } from "@/components/statut-select-form";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { ActionFields } from "@/components/action-fields";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { BoutonArchiver } from "@/components/bouton-archiver";
+import { archiver, desarchiver } from "@/app/archivage/actions";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 
@@ -134,6 +136,12 @@ export default async function ActionDetailPage({
         </div>
         <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
           <BoutonExportPDF />
+          <BoutonArchiver
+            action={action.archiveLe ? desarchiver : archiver}
+            entite="action"
+            id={action.id}
+            archive={!!action.archiveLe}
+          />
           <BoutonSupprimer
             action={supprimerAction}
             hiddenFields={{ id: action.id }}

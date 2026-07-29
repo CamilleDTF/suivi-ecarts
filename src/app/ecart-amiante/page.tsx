@@ -5,6 +5,8 @@ import { SelectAutoSubmit } from "@/components/select-auto-submit";
 import { Pagination } from "@/components/pagination";
 import { STATUT_DOSSIER_ECART_LABELS, STATUT_DOSSIER_ECART_COLORS } from "@/lib/labels";
 import { lireTaillePage } from "@/lib/pagination";
+import { filtreArchive } from "@/lib/archivage";
+import { LienArchives } from "@/components/lien-archives";
 
 const ONGLETS = [
   { valeur: "tous", label: "Tous" },
@@ -31,9 +33,9 @@ function dateDebutPeriode(periode: string | undefined): Date | undefined {
 export default async function EcartAmiantePage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; onglet?: string; periode?: string; page?: string; taille?: string }>;
+  searchParams: Promise<{ q?: string; onglet?: string; periode?: string; page?: string; taille?: string; archives?: string }>;
 }) {
-  const { q, onglet, periode, page: pageParam, taille } = await searchParams;
+  const { q, onglet, periode, page: pageParam, taille, archives } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const taillePage = lireTaillePage(taille);
   const debutPeriode = dateDebutPeriode(periode);
@@ -76,7 +78,8 @@ export default async function EcartAmiantePage({
           ? { statut: "CLOTURE" as const }
           : {};
 
-  const where = { ...whereBase, ...whereOnglet };
+  const where = {
+    ...filtreArchive(archives), ...whereBase, ...whereOnglet };
 
   const [total, ecarts, totalTous, totalOuverts, totalEnCours, totalClotures] = await Promise.all([
     prisma.ecartAmiante.count({ where }),
@@ -156,6 +159,7 @@ export default async function EcartAmiantePage({
             Réinitialiser
           </Link>
         )}
+        <LienArchives archives={archives} params={{ q, taille }} />
       </form>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">

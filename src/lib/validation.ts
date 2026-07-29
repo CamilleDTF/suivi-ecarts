@@ -54,3 +54,20 @@ export function filtreStatutDossierEcart(v: string | undefined): StatutDossierEc
   const r = statutDossierEcartSchema.safeParse(v);
   return r.success ? (r.data as StatutDossierEcart) : undefined;
 }
+
+/**
+ * Date reçue d'un formulaire.
+ *
+ * `z.string().min(1)` ne validait que la présence : "tartiflette" passait, puis
+ * `new Date(...)` produisait une date invalide enregistrée telle quelle. On
+ * vérifie donc que la chaîne désigne bien une date.
+ */
+export const dateObligatoire = z
+  .string()
+  .min(1, "Date requise")
+  .refine((v) => !Number.isNaN(new Date(v).getTime()), "Date invalide");
+
+export const dateFacultative = z
+  .string()
+  .refine((v) => v === "" || !Number.isNaN(new Date(v).getTime()), "Date invalide")
+  .optional();

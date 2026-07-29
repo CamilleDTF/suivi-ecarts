@@ -30,6 +30,7 @@ enum Origine {
   CONTROLE_TERRAIN
   RONDE_SECURITE
   INCIDENT_ACCIDENT
+  RECLAMATION_PLAINTE
   AUTRE
 }
 
@@ -114,6 +115,7 @@ model Dossier {
   updatedAt     DateTime           @updatedAt
   modifiePar    String?
   modifieLe     DateTime?
+  archiveLe DateTime?
   ecarts        Ecart[]
 }
 
@@ -141,6 +143,7 @@ model Ecart {
   updatedAt          DateTime           @updatedAt
   modifiePar         String?
   modifieLe          DateTime?
+  archiveLe DateTime?
   fichesSSE          FicheSSE[]
   actions            Action[]
   remontee           RemonteeInfo?
@@ -169,6 +172,7 @@ model RemonteeInfo {
   updatedAt         DateTime        @updatedAt
   modifiePar        String?
   modifieLe         DateTime?
+  archiveLe DateTime?
 }
 
 model FicheSSE {
@@ -215,6 +219,7 @@ model FicheSSE {
   updatedAt                    DateTime      @updatedAt
   modifiePar                   String?
   modifieLe                    DateTime?
+  archiveLe DateTime?
   causes                       CauseArbre[]
   actions                      Action[]
 }
@@ -270,6 +275,7 @@ model EcartAmiante {
   updatedAt                      DateTime   @updatedAt
   modifiePar                     String?
   modifieLe                      DateTime?
+  archiveLe DateTime?
   fichesSSE                      FicheSSE[]
   actions                        Action[]
 }
@@ -301,4 +307,5 @@ model Action {
   updatedAt       DateTime      @updatedAt
   modifiePar      String?
   modifieLe       DateTime?
+  archiveLe DateTime?
 }

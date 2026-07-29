@@ -30,6 +30,13 @@ async function ecartDans(tx: TxClient, ecartId: string) {
   const fiches = await tx.ficheSSE.findMany({ where: { ecartId }, select: { id: true } });
   for (const f of fiches) await ficheSSEDans(tx, f.id);
   await tx.action.deleteMany({ where: { ecartId } });
+  // La contrainte remet ecartId à NULL, mais laisserait la remontée d'origine
+  // marquée "Transformée en écart" alors qu'il n'y a plus d'écart : elle
+  // redevient à traiter, puisque le sujet qu'elle signalait n'est plus suivi.
+  await tx.remonteeInfo.updateMany({
+    where: { ecartId },
+    data: { ecartId: null, statut: "A_TRAITER" },
+  });
   await tx.ecart.delete({ where: { id: ecartId } });
 }
 

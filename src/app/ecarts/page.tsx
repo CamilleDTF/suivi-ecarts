@@ -14,6 +14,8 @@ import {
 } from "@/lib/labels";
 import { filtreStatutDossierEcart } from "@/lib/validation";
 import { lireTaillePage } from "@/lib/pagination";
+import { filtreArchive } from "@/lib/archivage";
+import { LienArchives } from "@/components/lien-archives";
 import { construireTri } from "@/lib/tri";
 import { EnteteTriable } from "@/components/entete-triable";
 
@@ -28,9 +30,9 @@ const COLONNES_TRI = {
 export default async function EcartsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; origine?: string; page?: string; taille?: string; tri?: string; sens?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; origine?: string; page?: string; taille?: string; tri?: string; sens?: string; archives?: string }>;
 }) {
-  const { q, statut, origine, page: pageParam, taille, tri, sens } = await searchParams;
+  const { q, statut, origine, page: pageParam, taille, tri, sens, archives } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const taillePage = lireTaillePage(taille);
 
@@ -46,6 +48,7 @@ export default async function EcartsPage({
 
   const contient = { contains: q, mode: "insensitive" as const };
   const where = {
+    ...filtreArchive(archives),
     statut: filtreStatutDossierEcart(statut),
     origine: origine ? (origine as Origine) : undefined,
     OR: q
@@ -121,6 +124,7 @@ export default async function EcartsPage({
             Réinitialiser
           </Link>
         )}
+        <LienArchives archives={archives} params={{ q, statut, origine, taille, tri, sens }} />
       </form>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">

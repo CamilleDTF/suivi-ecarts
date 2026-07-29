@@ -6,13 +6,15 @@ import { Pagination } from "@/components/pagination";
 import { StatutFiche } from "@/generated/prisma/enums";
 import { STATUT_FICHE_COLORS, STATUT_FICHE_LABELS, THEME_OPTIONS, DOMAINES_OPTIONS } from "@/lib/labels";
 import { lireTaillePage } from "@/lib/pagination";
+import { filtreArchive } from "@/lib/archivage";
+import { LienArchives } from "@/components/lien-archives";
 
 export default async function FichesSSEPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; page?: string; taille?: string }>;
+  searchParams: Promise<{ q?: string; statut?: string; page?: string; taille?: string; archives?: string }>;
 }) {
-  const { q, statut, page: pageParam, taille } = await searchParams;
+  const { q, statut, page: pageParam, taille, archives } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const taillePage = lireTaillePage(taille);
 
@@ -23,6 +25,7 @@ export default async function FichesSSEPage({
 
   const contient = { contains: q, mode: "insensitive" as const };
   const where = {
+    ...filtreArchive(archives),
     statutFiche: statut ? (statut as StatutFiche) : undefined,
     OR: q
       ? [
@@ -100,6 +103,7 @@ export default async function FichesSSEPage({
             Réinitialiser
           </Link>
         )}
+        <LienArchives archives={archives} params={{ q, taille }} />
       </form>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">

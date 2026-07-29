@@ -7,6 +7,8 @@ import { STATUT_ACTION_COLORS, STATUT_ACTION_LABELS, TYPE_ACTION_LABELS, RESPONS
 import { Pagination } from "@/components/pagination";
 import { filtreStatutAction } from "@/lib/validation";
 import { lireTaillePage } from "@/lib/pagination";
+import { filtreArchive } from "@/lib/archivage";
+import { LienArchives } from "@/components/lien-archives";
 import { construireTri } from "@/lib/tri";
 import { EnteteTriable } from "@/components/entete-triable";
 
@@ -30,14 +32,16 @@ export default async function PlanActionPage({
     taille?: string;
     tri?: string;
     sens?: string;
+    archives?: string;
   }>;
 }) {
-  const { q, statut, responsable, page: pageParam, taille, tri, sens } = await searchParams;
+  const { q, statut, responsable, page: pageParam, taille, tri, sens, archives } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const taillePage = lireTaillePage(taille);
 
   const contient = { contains: q, mode: "insensitive" as const };
   const where = {
+    ...filtreArchive(archives),
     statut: filtreStatutAction(statut),
     responsable: responsable || undefined,
     OR: q
@@ -123,6 +127,7 @@ export default async function PlanActionPage({
             Réinitialiser
           </Link>
         )}
+        <LienArchives archives={archives} params={{ q, statut, responsable, taille, tri, sens }} />
       </form>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">

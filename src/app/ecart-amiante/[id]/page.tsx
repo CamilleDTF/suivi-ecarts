@@ -22,6 +22,8 @@ import { StatutDossierEcart } from "@/generated/prisma/enums";
 import { StatutSelectForm } from "@/components/statut-select-form";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { BoutonArchiver } from "@/components/bouton-archiver";
+import { archiver, desarchiver } from "@/app/archivage/actions";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { compterImpactSuppressionEcartAmiante } from "@/lib/suppression";
@@ -87,6 +89,12 @@ export default async function EcartAmianteDetailPage({
           >
             + Action
           </Link>
+          <BoutonArchiver
+            action={ecartAmiante.archiveLe ? desarchiver : archiver}
+            entite="ecartAmiante"
+            id={ecartAmiante.id}
+            archive={!!ecartAmiante.archiveLe}
+          />
           <BoutonSupprimer
             action={supprimerEcartAmiante}
             hiddenFields={{ id: ecartAmiante.id }}

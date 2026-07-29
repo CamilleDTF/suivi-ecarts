@@ -8,14 +8,16 @@ import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
 import { Origine, TypeActivite } from "@/generated/prisma/enums";
 import { nomAuteur } from "@/lib/audit";
-import { lireStatutDossierEcart } from "@/lib/validation";
+import { lireStatutDossierEcart, dateObligatoire } from "@/lib/validation";
 import { calculerCriticite } from "@/lib/labels";
 import { supprimerEcartCascade } from "@/lib/suppression";
 import { texte } from "@/lib/formulaire";
 
 const ecartSchema = z.object({
-  dossierId: z.string().min(1, "Dossier requis"),
-  dateDetection: z.string().min(1, "Date requise"),
+  // Facultatif : un écart peut exister hors dossier, et le rattachement se
+  // corrige ensuite depuis sa fiche.
+  dossierId: z.string().optional(),
+  dateDetection: dateObligatoire,
   origine: z.enum(Object.values(Origine) as [string, ...string[]]),
   declarant: z.string().min(1, "Déclarant requis"),
   typeActivite: z.string().optional(),
@@ -30,7 +32,7 @@ export async function creerEcart(formData: FormData) {
   if (!session?.user) redirect("/connexion");
 
   const parsed = ecartSchema.parse({
-    dossierId: formData.get("dossierId"),
+    dossierId: formData.get("dossierId") || undefined,
     dateDetection: formData.get("dateDetection"),
     origine: formData.get("origine"),
     declarant: formData.get("declarant"),
@@ -45,43 +47,87 @@ export async function creerEcart(formData: FormData) {
   const domaines = formData.getAll("domaines").map(String);
 
   const reference = await generateReference("Ecart", "EC");
+  const remonteeId = texte(formData.get("remonteeId"));
+  const modeDossier = String(formData.get("modeDossier") ?? "existant");
+  const nouveauDossierChantier = texte(formData.get("nouveauDossierChantier"));
+  // La référence du dossier est réservée hors transaction : le compteur pose un
+  // verrou, et le garder pendant toute la transaction sérialiserait les
+  // créations concurrentes.
+  const referenceDossier =
+    modeDossier === "nouveau" && nouveauDossierChantier ? await generateReference("Dossier", "D") : null;
 
-  const ecart = await prisma.ecart.create({
-    data: {
-      reference,
-      dossierId: parsed.dossierId,
-      dateDetection: new Date(parsed.dateDetection),
-      origine: parsed.origine as Origine,
-      declarant: parsed.declarant,
-      typeActivite: parsed.typeActivite ? (parsed.typeActivite as TypeActivite) : undefined,
-      natures,
-      domaines,
-      description: parsed.description,
-      mesureImmediate: parsed.mesureImmediate,
-      gravite: parsed.gravite,
-      frequence: parsed.frequence,
-      criticite: calculerCriticite(parsed.gravite ?? "", parsed.frequence ?? "") || undefined,
-    },
+  // Création de l'écart et bascule de la remontée dans la même transaction :
+  // séparées, un échec de la seconde laissait un écart créé mais une remontée
+  // non reliée, donc un écart sans origine traçable.
+  const ecart = await prisma.$transaction(async (tx) => {
+    if (remonteeId) {
+      const remontee = await tx.remonteeInfo.findUniqueOrThrow({
+        where: { id: remonteeId },
+        select: { ecartId: true },
+      });
+      // Le bouton disparaît une fois la remontée transformée, mais l'URL
+      // reste rejouable : c'est ici que la règle doit tenir.
+      if (remontee.ecartId) {
+        throw new Error("Cette remontée a déjà été transformée en écart.");
+      }
+    }
+
+    // Nouveau dossier demandé : il reprend la date, le déclarant et l'origine
+    // de l'écart, qui décrivent le même fait.
+    let dossierId = modeDossier === "existant" ? (parsed.dossierId ?? null) : null;
+    if (referenceDossier && nouveauDossierChantier) {
+      const dossier = await tx.dossier.create({
+        data: {
+          reference: referenceDossier,
+          chantier: nouveauDossierChantier,
+          dateDetection: new Date(parsed.dateDetection),
+          origine: parsed.origine as Origine,
+          declarant: parsed.declarant,
+        },
+      });
+      dossierId = dossier.id;
+    }
+
+    const cree = await tx.ecart.create({
+      data: {
+        reference,
+        dossierId,
+        dateDetection: new Date(parsed.dateDetection),
+        origine: parsed.origine as Origine,
+        declarant: parsed.declarant,
+        typeActivite: parsed.typeActivite ? (parsed.typeActivite as TypeActivite) : undefined,
+        natures,
+        domaines,
+        description: parsed.description,
+        mesureImmediate: parsed.mesureImmediate,
+        gravite: parsed.gravite,
+        frequence: parsed.frequence,
+        criticite: calculerCriticite(parsed.gravite ?? "", parsed.frequence ?? "") || undefined,
+      },
+    });
+
+    if (remonteeId) {
+      await tx.remonteeInfo.update({
+        where: { id: remonteeId },
+        data: { ecartId: cree.id, statut: "TRANSFORMEE_EN_ECART" },
+      });
+    }
+    return cree;
   });
 
-  // Écart né d'une remontée d'information : on relie les deux et on bascule la
-  // remontée en "Transformée en écart", pour garder la trace de son origine.
-  const remonteeId = formData.get("remonteeId");
   if (remonteeId) {
-    await prisma.remonteeInfo.update({
-      where: { id: String(remonteeId) },
-      data: { ecartId: ecart.id, statut: "TRANSFORMEE_EN_ECART" },
-    });
     revalidatePath(`/remontees/${remonteeId}`);
     revalidatePath("/remontees");
   }
 
-  revalidatePath(`/dossiers/${parsed.dossierId}`);
+  revalidatePath("/ecarts");
+  revalidatePath("/dossiers");
+  if (ecart.dossierId) revalidatePath(`/dossiers/${ecart.dossierId}`);
   redirect(`/ecarts/${ecart.id}`);
 }
 
 const ecartEditSchema = z.object({
-  dateDetection: z.string().min(1, "Date requise"),
+  dateDetection: dateObligatoire,
   origine: z.enum(Object.values(Origine) as [string, ...string[]]),
   declarant: z.string().min(1, "Déclarant requis"),
   typeActivite: z.string().optional(),

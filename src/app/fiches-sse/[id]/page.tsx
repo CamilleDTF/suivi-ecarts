@@ -21,6 +21,8 @@ import { ArbreCauses } from "@/components/arbre-causes";
 import { FicheSSEFields } from "@/components/fiche-sse-fields";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { BoutonArchiver } from "@/components/bouton-archiver";
+import { archiver, desarchiver } from "@/app/archivage/actions";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 
@@ -160,6 +162,12 @@ export default async function FicheSSEDetailPage({
               </button>
             </form>
           )}
+          <BoutonArchiver
+            action={fiche.archiveLe ? desarchiver : archiver}
+            entite="ficheSSE"
+            id={fiche.id}
+            archive={!!fiche.archiveLe}
+          />
           <BoutonSupprimer
             action={supprimerFicheSSE}
             hiddenFields={{ id: fiche.id }}

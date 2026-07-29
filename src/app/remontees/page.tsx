@@ -14,6 +14,8 @@ import {
 } from "@/lib/labels";
 import { filtreStatutRemontee } from "@/lib/validation";
 import { lireTaillePage } from "@/lib/pagination";
+import { filtreArchive } from "@/lib/archivage";
+import { LienArchives } from "@/components/lien-archives";
 
 export default async function RemonteesPage({
   searchParams,
@@ -26,13 +28,15 @@ export default async function RemonteesPage({
     chantier?: string;
     page?: string;
     taille?: string;
+    archives?: string;
   }>;
 }) {
-  const { q, statut, origine, categorie, chantier, page: pageParam, taille } = await searchParams;
+  const { q, statut, origine, categorie, chantier, page: pageParam, taille, archives } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const taillePage = lireTaillePage(taille);
 
   const where = {
+    ...filtreArchive(archives),
     statut: filtreStatutRemontee(statut),
     origine: origine && origine in OrigineRemontee ? (origine as OrigineRemontee) : undefined,
     categorie: categorie || undefined,
@@ -142,6 +146,7 @@ export default async function RemonteesPage({
             Réinitialiser
           </Link>
         )}
+        <LienArchives archives={archives} params={{ q, statut, origine, categorie, chantier, taille }} />
       </form>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">

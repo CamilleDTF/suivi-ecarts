@@ -44,3 +44,7 @@ next-env.d.ts
 
 # captures de vérification locale (non versionnées)
 /screenshots
+
+# Données réelles importées depuis le classeur Excel : chantiers et noms de
+# collaborateurs. Déposé le temps de l'import, jamais versionné.
+prisma/import-data/*.json

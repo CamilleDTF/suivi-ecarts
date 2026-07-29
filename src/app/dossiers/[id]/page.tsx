@@ -9,6 +9,8 @@ import { StatutSelectForm } from "@/components/statut-select-form";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { DossierFields } from "@/components/dossier-fields";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { BoutonArchiver } from "@/components/bouton-archiver";
+import { archiver, desarchiver } from "@/app/archivage/actions";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { compterImpactSuppressionDossier } from "@/lib/suppression";
@@ -58,6 +60,12 @@ export default async function DossierDetailPage({
           >
             + Nouvel écart
           </Link>
+          <BoutonArchiver
+            action={dossier.archiveLe ? desarchiver : archiver}
+            entite="dossier"
+            id={dossier.id}
+            archive={!!dossier.archiveLe}
+          />
           <BoutonSupprimer
             action={supprimerDossier}
             hiddenFields={{ id: dossier.id }}

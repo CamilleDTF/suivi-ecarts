@@ -9,7 +9,7 @@ import { auth } from "@/auth";
 import { TypeAction, StatutAction } from "@/generated/prisma/enums";
 import { recalculerStatutsParents } from "@/lib/statut-auto";
 import { nomAuteur } from "@/lib/audit";
-import { lireStatutAction } from "@/lib/validation";
+import { lireStatutAction, dateFacultative } from "@/lib/validation";
 import { texte } from "@/lib/formulaire";
 
 const actionSchema = z
@@ -20,8 +20,8 @@ const actionSchema = z
     type: z.enum(Object.values(TypeAction) as [string, ...string[]]),
     action: z.string().min(1, "Description de l'action requise"),
     responsable: z.string().min(1, "Responsable requis"),
-    echeance: z.string().optional(),
-    realiseeLe: z.string().optional(),
+    echeance: dateFacultative,
+    realiseeLe: dateFacultative,
   })
   // Exactement un parent, et pas "au moins un" : une action rattachée
   // simultanément à un écart, un évènement et un écart amiante rendrait le
@@ -74,11 +74,11 @@ const actionEditSchema = z.object({
   type: z.enum(Object.values(TypeAction) as [string, ...string[]]),
   action: z.string().min(1, "Description de l'action requise"),
   responsable: z.string().min(1, "Responsable requis"),
-  echeance: z.string().optional(),
-  realiseeLe: z.string().optional(),
+  echeance: dateFacultative,
+  realiseeLe: dateFacultative,
   preuve: z.string().optional(),
   verifiePar: z.string().optional(),
-  verifieLe: z.string().optional(),
+  verifieLe: dateFacultative,
 });
 
 export async function mettreAJourAction(formData: FormData) {

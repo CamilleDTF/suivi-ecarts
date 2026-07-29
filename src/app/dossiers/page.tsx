@@ -7,6 +7,8 @@ import { Origine, StatutDossierEcart } from "@/generated/prisma/enums";
 import { ORIGINE_LABELS, STATUT_DOSSIER_ECART_COLORS, STATUT_DOSSIER_ECART_LABELS } from "@/lib/labels";
 import { filtreStatutDossierEcart } from "@/lib/validation";
 import { lireTaillePage } from "@/lib/pagination";
+import { filtreArchive } from "@/lib/archivage";
+import { LienArchives } from "@/components/lien-archives";
 import { construireTri } from "@/lib/tri";
 import { EnteteTriable } from "@/components/entete-triable";
 
@@ -30,13 +32,15 @@ export default async function DossiersPage({
     taille?: string;
     tri?: string;
     sens?: string;
+    archives?: string;
   }>;
 }) {
-  const { q, statut, origine, page: pageParam, taille, tri, sens } = await searchParams;
+  const { q, statut, origine, page: pageParam, taille, tri, sens, archives } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const taillePage = lireTaillePage(taille);
 
   const where = {
+    ...filtreArchive(archives),
     statut: filtreStatutDossierEcart(statut),
     origine: origine ? (origine as Origine) : undefined,
     OR: q
@@ -118,6 +122,7 @@ export default async function DossiersPage({
             Réinitialiser
           </Link>
         )}
+        <LienArchives archives={archives} params={{ q, statut, origine, taille, tri, sens }} />
       </form>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">

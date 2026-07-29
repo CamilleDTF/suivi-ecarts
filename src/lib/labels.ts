@@ -6,6 +6,7 @@ export const ORIGINE_LABELS: Record<string, string> = {
   CONTROLE_TERRAIN: "Contrôle terrain",
   RONDE_SECURITE: "Ronde sécurité",
   INCIDENT_ACCIDENT: "Incident / accident",
+  RECLAMATION_PLAINTE: "Réclamation / plainte",
   AUTRE: "Autre",
 };
 

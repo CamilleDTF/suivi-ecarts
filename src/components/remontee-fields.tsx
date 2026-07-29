@@ -100,8 +100,10 @@ export function RemonteeFields({
           </datalist>
         </div>
         <div>
-          <label className={labelCls}>Personne ayant saisi l&apos;information</label>
-          <input name="personneSaisie" defaultValue={v.personneSaisie ?? ""} className={inputCls} />
+          <label className={labelCls}>Enregistrée par</label>
+          {/* Donnée d'audit : renseignée depuis la session, jamais saisie —
+              sinon n'importe qui peut attribuer sa saisie à un collègue. */}
+          <p className="px-3 py-2 text-sm text-slate-500">{v.personneSaisie ?? "—"}</p>
         </div>
       </div>
 

@@ -23,6 +23,8 @@ import { StatutSelectForm } from "@/components/statut-select-form";
 import { EcartFields } from "@/components/ecart-fields";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { BoutonArchiver } from "@/components/bouton-archiver";
+import { archiver, desarchiver } from "@/app/archivage/actions";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { compterImpactSuppressionEcart } from "@/lib/suppression";
@@ -124,6 +126,12 @@ export default async function EcartDetailPage({
           >
             + Action
           </Link>
+          <BoutonArchiver
+            action={ecart.archiveLe ? desarchiver : archiver}
+            entite="ecart"
+            id={ecart.id}
+            archive={!!ecart.archiveLe}
+          />
           <BoutonSupprimer
             action={supprimerEcart}
             hiddenFields={{ id: ecart.id }}
