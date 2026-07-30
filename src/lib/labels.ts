@@ -39,7 +39,6 @@ export const NATURES_OPTIONS = [
   "Remarque",
   "Non-conformité",
   "Non-conformité critique",
-  "Événement SSE",
   "Point sensible",
   "Réclamation",
   "Remontée terrain",
@@ -78,6 +77,15 @@ export function calculerCriticite(gravite: string, frequence: string): string {
   if (produit >= 4) return "Moyenne";
   return "Faible";
 }
+
+// La criticité décide de la profondeur d'analyse attendue : un écart faible se
+// corrige sur place, un écart élevé impose de remonter aux causes. C'est la
+// règle métier reprise de l'application d'origine.
+export const CRITICITE_VERS_TYPE_ANALYSE: Record<string, string> = {
+  Faible: "Correction immédiate",
+  Moyenne: "Action corrective à réaliser",
+  Élevée: "Analyse des causes",
+};
 
 export const CRITICITE_COLORS: Record<string, string> = {
   Faible: "bg-green-100 text-green-800",

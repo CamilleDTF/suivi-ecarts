@@ -31,7 +31,12 @@ export default async function DossierDetailPage({
   const { id } = await params;
   const dossier = await prisma.dossier.findUnique({
     where: { id },
-    include: { ecarts: { orderBy: { createdAt: "desc" } } },
+    include: {
+      ecarts: {
+        orderBy: { createdAt: "desc" },
+        include: { _count: { select: { fichesSSE: true } } },
+      },
+    },
   });
 
   if (!dossier) notFound();
@@ -110,6 +115,7 @@ export default async function DossierDetailPage({
             <tr>
               <th className="px-4 py-3 font-medium">Référence</th>
               <th className="px-4 py-3 font-medium">Description</th>
+              <th className="px-4 py-3 font-medium">Évènement</th>
               <th className="px-4 py-3 font-medium">Statut</th>
               <th className="px-4 py-3 font-medium">Détecté le</th>
             </tr>
@@ -124,6 +130,13 @@ export default async function DossierDetailPage({
                 </td>
                 <td className="max-w-md truncate px-4 py-3 text-slate-700">{e.description}</td>
                 <td className="px-4 py-3">
+                  {e._count.fichesSSE > 0 ? (
+                    <span className="font-medium text-slate-900">Oui</span>
+                  ) : (
+                    <span className="text-slate-400">Non</span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
                   <Badge
                     label={STATUT_DOSSIER_ECART_LABELS[e.statut]}
                     colorClass={STATUT_DOSSIER_ECART_COLORS[e.statut]}
@@ -136,7 +149,7 @@ export default async function DossierDetailPage({
             ))}
             {dossier.ecarts.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
                   Aucun écart pour ce dossier.
                 </td>
               </tr>

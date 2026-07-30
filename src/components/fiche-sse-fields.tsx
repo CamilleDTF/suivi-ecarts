@@ -8,6 +8,7 @@ import {
   calculerCriticite,
   THEME_OPTIONS,
   avecValeursExistantes,
+  CRITICITE_VERS_TYPE_ANALYSE,
 } from "@/lib/labels";
 import { useEditMode } from "@/components/formulaire-editable";
 
@@ -17,12 +18,6 @@ const TYPE_ANALYSE_OPTIONS = [
   "Analyse des causes",
   "Arbre des causes + analyse collective",
 ];
-
-const CRITICITE_VERS_TYPE_ANALYSE: Record<string, string> = {
-  Faible: "Correction immédiate",
-  Moyenne: "Action corrective à réaliser",
-  Élevée: "Analyse des causes",
-};
 
 const TYPE_EVENEMENT_OPTIONS = [
   "Accident",

@@ -23,6 +23,7 @@ const COLONNES_TRI = {
   reference: "reference",
   dossier: "dossier.reference",
   description: "description",
+  evenement: "fichesSSE._count",
   statut: "statut",
   dateDetection: "dateDetection",
 };
@@ -73,7 +74,9 @@ export default async function EcartsPage({
     prisma.ecart.findMany({
       where,
       orderBy: construireTri(tri, sens, COLONNES_TRI, { createdAt: "desc" as const }, ["description"]),
-      include: { dossier: true },
+      // Le décompte des évènements plutôt que le drapeau ficheSSECreee : ce
+      // dernier reste à true si l'évènement est ensuite détaché ou supprimé.
+      include: { dossier: true, _count: { select: { fichesSSE: true } } },
       skip: (page - 1) * taillePage,
       take: taillePage,
     }),
@@ -153,6 +156,13 @@ export default async function EcartsPage({
                 params={{ q, statut, origine, taille }}
               />
               <EnteteTriable
+                colonne="evenement"
+                libelle="Évènement"
+                triActuel={tri}
+                sensActuel={sens}
+                params={{ q, statut, origine, taille }}
+              />
+              <EnteteTriable
                 colonne="statut"
                 libelle="Statut"
                 triActuel={tri}
@@ -187,6 +197,13 @@ export default async function EcartsPage({
                 </td>
                 <td className="max-w-md truncate px-4 py-3 text-slate-700">{e.description}</td>
                 <td className="px-4 py-3">
+                  {e._count.fichesSSE > 0 ? (
+                    <span className="font-medium text-slate-900">Oui</span>
+                  ) : (
+                    <span className="text-slate-400">Non</span>
+                  )}
+                </td>
+                <td className="px-4 py-3">
                   <Badge
                     label={STATUT_DOSSIER_ECART_LABELS[e.statut]}
                     colorClass={STATUT_DOSSIER_ECART_COLORS[e.statut]}
@@ -199,7 +216,7 @@ export default async function EcartsPage({
             ))}
             {ecarts.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
                   {filtreActif ? "Aucun écart ne correspond à ce filtre." : "Aucun écart pour l'instant."}
                 </td>
               </tr>

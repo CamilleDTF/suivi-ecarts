@@ -3,6 +3,7 @@ import { creerFicheSSE } from "@/app/fiches-sse/actions";
 import { FicheSSEFields } from "@/components/fiche-sse-fields";
 import { ArbreCausesEditeur } from "@/components/arbre-causes-editeur";
 import { AvertissementNonEnregistre } from "@/components/avertissement-non-enregistre";
+import { calculerCriticite, CRITICITE_VERS_TYPE_ANALYSE } from "@/lib/labels";
 
 export default async function NouvelleFicheSSEPage({
   searchParams,
@@ -13,6 +14,12 @@ export default async function NouvelleFicheSSEPage({
   const ecart = ecartId
     ? await prisma.ecart.findUnique({ where: { id: ecartId }, include: { dossier: true } })
     : null;
+
+  // La cotation de l'écart est reprise telle quelle : c'est le même fait, coté
+  // une fois. La criticité qui en découle pré-sélectionne le type d'analyse —
+  // un écart élevé impose de remonter aux causes, un écart faible se corrige
+  // sur place. Tout reste modifiable avant enregistrement.
+  const criticiteHeritee = calculerCriticite(ecart?.gravite ?? "", ecart?.frequence ?? "");
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
@@ -32,7 +39,15 @@ export default async function NouvelleFicheSSEPage({
             c'est le même fait qualifié deux fois, et les deux listes d'options
             sont identiques. Les cases restent modifiables. */}
         <FicheSSEFields
-          v={{ dateHeure: new Date(), domaine: ecart?.domaines, theme: ecart?.theme }}
+          v={{
+            dateHeure: new Date(),
+            domaine: ecart?.domaines,
+            theme: ecart?.theme,
+            gravite: ecart?.gravite,
+            frequence: ecart?.frequence,
+            criticite: criticiteHeritee || undefined,
+            typeAnalyse: CRITICITE_VERS_TYPE_ANALYSE[criticiteHeritee],
+          }}
           defaultNomChantier={ecart?.dossier?.chantier}
           apresTypeAnalyse={<ArbreCausesEditeur />}
           nouveau
