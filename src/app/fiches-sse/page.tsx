@@ -51,6 +51,11 @@ export default async function FichesSSEPage({
           { validationNom: contient },
           { validationFonction: contient },
           { causes: { some: { libelle: contient } } },
+          // Chercher la référence du parent ramène ses évènements, quel que
+          // soit le type de rattachement.
+          { ecart: { reference: contient } },
+          { ecartAmiante: { reference: contient } },
+          { ecartAmiante: { nomChantier: contient } },
           ...(themesTrouves.length ? [{ theme: { hasSome: themesTrouves } }] : []),
           ...(domainesTrouves.length ? [{ domaine: { hasSome: domainesTrouves } }] : []),
         ]
@@ -62,7 +67,7 @@ export default async function FichesSSEPage({
     prisma.ficheSSE.findMany({
       where,
       orderBy: { createdAt: "desc" },
-      include: { ecart: { include: { dossier: true } } },
+      include: { ecart: { include: { dossier: true } }, ecartAmiante: true },
       skip: (page - 1) * taillePage,
       take: taillePage,
     }),
@@ -111,7 +116,7 @@ export default async function FichesSSEPage({
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
               <th className="px-4 py-3 font-medium">Référence</th>
-              <th className="px-4 py-3 font-medium">Écart lié</th>
+              <th className="px-4 py-3 font-medium">Rattaché à</th>
               <th className="px-4 py-3 font-medium">Chantier</th>
               <th className="px-4 py-3 font-medium">Émetteur</th>
               <th className="px-4 py-3 font-medium">Statut</th>
@@ -126,9 +131,17 @@ export default async function FichesSSEPage({
                   </Link>
                 </td>
                 <td className="px-4 py-3">
+                  {/* Un évènement peut naître d'un écart ou d'un écart amiante :
+                      la colonne montrait le premier cas et affichait "Aucun"
+                      pour le second, alors que le rattachement existe. */}
                   {f.ecart ? (
                     <Link href={`/ecarts/${f.ecart.id}`} className="text-slate-600 hover:underline">
                       {f.ecart.reference}
+                    </Link>
+                  ) : f.ecartAmiante ? (
+                    <Link href={`/ecart-amiante/${f.ecartAmiante.id}`} className="text-slate-600 hover:underline">
+                      {f.ecartAmiante.reference}
+                      <span className="ml-1 text-xs text-slate-400">(amiante)</span>
                     </Link>
                   ) : (
                     <span className="text-slate-400">Aucun</span>
