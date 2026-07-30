@@ -35,14 +35,16 @@ export default async function NouvelleFicheSSEPage({
         <AvertissementNonEnregistre />
         {ecartId && <input type="hidden" name="ecartId" value={ecartId} />}
 
-        {/* Un évènement rattaché à un écart hérite de ses domaines et thèmes :
-            c'est le même fait qualifié deux fois, et les deux listes d'options
-            sont identiques. Les cases restent modifiables. */}
+        {/* Un évènement rattaché à un écart décrit le même fait : il reprend la
+            description, la mesure immédiate, les domaines, les thèmes et la
+            cotation de l'écart. Tout reste modifiable avant enregistrement. */}
         <FicheSSEFields
           v={{
             dateHeure: new Date(),
             domaine: ecart?.domaines,
             theme: ecart?.theme,
+            descriptionFactuelle: ecart?.description,
+            mesuresImmediatesPrises: ecart?.mesureImmediate,
             gravite: ecart?.gravite,
             frequence: ecart?.frequence,
             criticite: criticiteHeritee || undefined,
