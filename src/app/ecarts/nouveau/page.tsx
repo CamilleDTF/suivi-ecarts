@@ -9,6 +9,7 @@ import {
 } from "@/lib/labels";
 import { Origine, TypeActivite } from "@/generated/prisma/enums";
 import { ChoixDossier } from "@/components/choix-dossier";
+import { BoutonCreer } from "@/components/bouton-creer";
 
 export default async function NouvelEcartPage({
   searchParams,
@@ -162,12 +163,7 @@ export default async function NouvelEcartPage({
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="submit"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Créer l&apos;écart
-          </button>
+          <BoutonCreer>Créer l&apos;écart</BoutonCreer>
         </div>
       </form>
     </div>

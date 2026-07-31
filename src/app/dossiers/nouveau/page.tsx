@@ -1,6 +1,7 @@
 import { creerDossier } from "@/app/dossiers/actions";
 import { ORIGINE_LABELS } from "@/lib/labels";
 import { Origine } from "@/generated/prisma/enums";
+import { BoutonCreer } from "@/components/bouton-creer";
 
 export default function NouveauDossierPage() {
   const today = new Date().toISOString().slice(0, 10);
@@ -55,12 +56,7 @@ export default function NouveauDossierPage() {
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="submit"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Créer le dossier
-          </button>
+          <BoutonCreer>Créer le dossier</BoutonCreer>
         </div>
       </form>
     </div>

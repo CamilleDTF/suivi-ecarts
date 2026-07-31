@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { creerAction } from "@/app/plan-action/actions";
 import { TYPE_ACTION_LABELS, RESPONSABLES } from "@/lib/labels";
 import { TypeAction } from "@/generated/prisma/enums";
+import { BoutonCreer } from "@/components/bouton-creer";
 
 export default async function NouvelleActionPage({
   searchParams,
@@ -127,12 +128,7 @@ export default async function NouvelleActionPage({
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="submit"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Créer l&apos;action
-          </button>
+          <BoutonCreer>Créer l&apos;action</BoutonCreer>
         </div>
       </form>
     </div>

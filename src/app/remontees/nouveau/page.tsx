@@ -3,6 +3,7 @@ import { creerRemontee } from "@/app/remontees/actions";
 import { RemonteeFields } from "@/components/remontee-fields";
 import { AvertissementNonEnregistre } from "@/components/avertissement-non-enregistre";
 import { BoutonRetour } from "@/components/bouton-retour";
+import { BoutonCreer } from "@/components/bouton-creer";
 
 export default async function NouvelleRemonteePage() {
   // Suggestions : chantiers déjà connus des dossiers et des remontées.
@@ -30,12 +31,7 @@ export default async function NouvelleRemonteePage() {
         <RemonteeFields chantiersConnus={chantiersConnus} />
 
         <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="submit"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Enregistrer la remontée
-          </button>
+          <BoutonCreer>Enregistrer la remontée</BoutonCreer>
         </div>
       </form>
     </div>

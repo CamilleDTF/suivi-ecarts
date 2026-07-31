@@ -4,6 +4,7 @@ import { FicheSSEFields } from "@/components/fiche-sse-fields";
 import { ArbreCausesEditeur } from "@/components/arbre-causes-editeur";
 import { AvertissementNonEnregistre } from "@/components/avertissement-non-enregistre";
 import { calculerCriticite, CRITICITE_VERS_TYPE_ANALYSE } from "@/lib/labels";
+import { BoutonCreer } from "@/components/bouton-creer";
 
 export default async function NouvelleFicheSSEPage({
   searchParams,
@@ -60,12 +61,7 @@ export default async function NouvelleFicheSSEPage({
         </p>
 
         <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="submit"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Enregistrer le brouillon
-          </button>
+          <BoutonCreer>Enregistrer le brouillon</BoutonCreer>
         </div>
       </form>
     </div>

@@ -1,5 +1,6 @@
 import { creerEcartAmiante } from "@/app/ecart-amiante/actions";
 import { EcartAmianteFields } from "@/components/ecart-amiante-fields";
+import { BoutonCreer } from "@/components/bouton-creer";
 
 export default function NouvelEcartAmiantePage() {
   return (
@@ -10,12 +11,7 @@ export default function NouvelEcartAmiantePage() {
         <EcartAmianteFields />
 
         <div className="flex justify-end gap-3 pt-2">
-          <button
-            type="submit"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Créer l&apos;écart amiante
-          </button>
+          <BoutonCreer>Créer l&apos;écart amiante</BoutonCreer>
         </div>
       </form>
     </div>
