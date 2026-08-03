@@ -75,6 +75,22 @@ export const THEME_OPTIONS = [
   "Organisation",
 ];
 
+// Partagé entre le formulaire d'évènement et le filtre de la liste : deux
+// listes séparées finiraient par diverger, et le filtre ne proposerait plus
+// les mêmes types que la saisie.
+export const TYPE_EVENEMENT_OPTIONS = [
+  "Accident",
+  "Presqu'accident",
+  "Situation dangereuse",
+  "Comportement à risque",
+  "Impact environnemental",
+  "Impact environnemental & situation dangereuse",
+  "Impact environnemental & comportement à risque",
+  "Situation dangereuse & comportement à risque",
+  "Comportement à risque & presqu'accident",
+  "Presqu'accident & situation dangereuse",
+];
+
 export const GRAVITE_FREQUENCE_OPTIONS = ["1", "2", "3", "4"];
 
 export function calculerCriticite(gravite: string, frequence: string): string {

@@ -4,12 +4,20 @@ import { Badge } from "@/components/badge";
 import { SelectAutoSubmit } from "@/components/select-auto-submit";
 import { Pagination } from "@/components/pagination";
 import { StatutFiche } from "@/generated/prisma/enums";
-import { STATUT_FICHE_COLORS, STATUT_FICHE_LABELS, THEME_OPTIONS, DOMAINES_OPTIONS } from "@/lib/labels";
+import {
+  STATUT_FICHE_COLORS,
+  STATUT_FICHE_LABELS,
+  THEME_OPTIONS,
+  DOMAINES_OPTIONS,
+  TYPE_EVENEMENT_OPTIONS,
+  avecValeursExistantes,
+} from "@/lib/labels";
 import { lireTaillePage } from "@/lib/pagination";
 import { filtreArchive } from "@/lib/archivage";
 import { LienArchives } from "@/components/lien-archives";
 import { construireTri } from "@/lib/tri";
 import { EnteteTriable } from "@/components/entete-triable";
+import { DateAutoSubmit } from "@/components/date-auto-submit";
 
 const COLONNES_TRI = {
   reference: "reference",
@@ -31,6 +39,9 @@ export default async function FichesSSEPage({
   searchParams: Promise<{
     q?: string;
     statut?: string;
+    type?: string;
+    du?: string;
+    au?: string;
     page?: string;
     taille?: string;
     tri?: string;
@@ -38,9 +49,20 @@ export default async function FichesSSEPage({
     archives?: string;
   }>;
 }) {
-  const { q, statut, page: pageParam, taille, tri, sens, archives } = await searchParams;
+  const { q, statut, type, du, au, page: pageParam, taille, tri, sens, archives } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const taillePage = lireTaillePage(taille);
+
+  // Une date d'URL invalide ("2026-13-45", un paramètre bricolé à la main)
+  // donnerait un Invalid Date, que Prisma refuse : le filtre est alors ignoré
+  // plutôt que de faire échouer la page.
+  const jour = (valeur: string | undefined, fin: boolean) => {
+    if (!valeur) return undefined;
+    const d = new Date(`${valeur}T${fin ? "23:59:59.999" : "00:00:00.000"}Z`);
+    return Number.isNaN(d.getTime()) ? undefined : d;
+  };
+  const depuis = jour(du, false);
+  const jusqua = jour(au, true);
 
   const optionsCorrespondantes = (options: string[]) =>
     q ? options.filter((o) => o.toLowerCase().includes(q.toLowerCase())) : [];
@@ -51,6 +73,10 @@ export default async function FichesSSEPage({
   const where = {
     ...filtreArchive(archives),
     statutFiche: statut ? (statut as StatutFiche) : undefined,
+    typeEvenement: type || undefined,
+    // Une seule des deux bornes suffit : « depuis le… » et « jusqu'au… » sont
+    // des filtres à part entière.
+    dateHeure: depuis || jusqua ? { gte: depuis, lte: jusqua } : undefined,
     OR: q
       ? [
           { reference: contient },
@@ -86,7 +112,7 @@ export default async function FichesSSEPage({
       : undefined,
   };
 
-  const [total, fiches] = await Promise.all([
+  const [total, fiches, typesEnBase] = await Promise.all([
     prisma.ficheSSE.count({ where }),
     prisma.ficheSSE.findMany({
       where,
@@ -95,9 +121,20 @@ export default async function FichesSSEPage({
       skip: (page - 1) * taillePage,
       take: taillePage,
     }),
+    // Les types repris de l'Excel ne figurent pas tous dans la liste de saisie :
+    // sans eux, les évènements concernés seraient introuvables au filtre.
+    prisma.ficheSSE.findMany({ distinct: ["typeEvenement"], select: { typeEvenement: true } }),
   ]);
 
-  const filtreActif = !!q || !!statut;
+  const typesProposes = avecValeursExistantes(
+    TYPE_EVENEMENT_OPTIONS,
+    typesEnBase.map((f) => f.typeEvenement).filter((t): t is string => !!t),
+  );
+
+  const filtreActif = !!q || !!statut || !!type || !!du || !!au;
+  // Les entêtes de tri et la pagination doivent reconduire les filtres en
+  // cours, sinon trier une liste filtrée la déferait.
+  const paramsListe = { q, statut, type, du, au, taille, archives };
 
   return (
     <div className="mx-auto max-w-[100rem] px-6 py-8">
@@ -127,12 +164,29 @@ export default async function FichesSSEPage({
             ...Object.values(StatutFiche).map((s) => ({ value: s, label: STATUT_FICHE_LABELS[s] })),
           ]}
         />
+        <SelectAutoSubmit
+          name="type"
+          defaultValue={type ?? ""}
+          options={[
+            { value: "", label: "Type : Tous" },
+            ...typesProposes.map((t) => ({ value: t, label: t })),
+          ]}
+        />
+        <DateAutoSubmit name="du" defaultValue={du ?? ""} label="Du" />
+        <DateAutoSubmit name="au" defaultValue={au ?? ""} label="au" />
+        {/* Le tri, la taille de page et la vue archives ne sont pas des champs
+            du formulaire : sans ces champs cachés, filtrer les remettrait à
+            zéro. */}
+        {tri && <input type="hidden" name="tri" value={tri} />}
+        {sens && <input type="hidden" name="sens" value={sens} />}
+        {taille && <input type="hidden" name="taille" value={taille} />}
+        {archives && <input type="hidden" name="archives" value={archives} />}
         {filtreActif && (
           <Link href="/fiches-sse" className="text-sm text-slate-500 hover:underline">
             Réinitialiser
           </Link>
         )}
-        <LienArchives archives={archives} params={{ q, statut, taille, tri, sens }} />
+        <LienArchives archives={archives} params={{ q, statut, type, du, au, taille, tri, sens }} />
       </form>
 
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
@@ -144,21 +198,21 @@ export default async function FichesSSEPage({
                 libelle="Référence"
                 triActuel={tri}
                 sensActuel={sens}
-                params={{ q, statut, taille, archives }}
+                params={paramsListe}
               />
               <EnteteTriable
                 colonne="date"
                 libelle="Date"
                 triActuel={tri}
                 sensActuel={sens}
-                params={{ q, statut, taille, archives }}
+                params={paramsListe}
               />
               <EnteteTriable
                 colonne="type"
                 libelle="Type d'évènement"
                 triActuel={tri}
                 sensActuel={sens}
-                params={{ q, statut, taille, archives }}
+                params={paramsListe}
               />
               <th className="px-4 py-3 font-medium">Rattaché à</th>
               <EnteteTriable
@@ -166,21 +220,21 @@ export default async function FichesSSEPage({
                 libelle="Chantier"
                 triActuel={tri}
                 sensActuel={sens}
-                params={{ q, statut, taille, archives }}
+                params={paramsListe}
               />
               <EnteteTriable
                 colonne="emetteur"
                 libelle="Émetteur"
                 triActuel={tri}
                 sensActuel={sens}
-                params={{ q, statut, taille, archives }}
+                params={paramsListe}
               />
               <EnteteTriable
                 colonne="statut"
                 libelle="Statut"
                 triActuel={tri}
                 sensActuel={sens}
-                params={{ q, statut, taille, archives }}
+                params={paramsListe}
               />
             </tr>
           </thead>
@@ -234,7 +288,7 @@ export default async function FichesSSEPage({
             total={total}
             page={page}
             pageSize={taillePage}
-            baseParams={{ q, statut, taille, tri, sens, archives }}
+            baseParams={{ ...paramsListe, tri, sens }}
           />
         )}
       </div>
