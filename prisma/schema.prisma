@@ -162,6 +162,7 @@ model RemonteeInfo {
   personneRemontant String?
   personneSaisie    String?
   objet             String
+  natures           String[]        @default([])
   categorie         String?
   description       String?
   suiteDonnee       String?

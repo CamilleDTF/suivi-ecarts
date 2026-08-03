@@ -22,7 +22,12 @@ const remonteeSchema = z.object({
 });
 
 function lireFormulaire(formData: FormData) {
-  return remonteeSchema.parse({
+  // Les cases à cocher arrivent en plusieurs entrées du même nom : getAll, et
+  // non get, sinon seule la première serait retenue.
+  const natures = formData.getAll("natures").map(String);
+  return {
+    natures,
+    ...remonteeSchema.parse({
     dateRemontee: formData.get("dateRemontee"),
     origine: formData.get("origine"),
     chantierService: formData.get("chantierService"),
@@ -31,7 +36,8 @@ function lireFormulaire(formData: FormData) {
     categorie: formData.get("categorie") || undefined,
     description: formData.get("description") || undefined,
     suiteDonnee: formData.get("suiteDonnee") || undefined,
-  });
+    }),
+  };
 }
 
 export async function creerRemontee(formData: FormData) {
@@ -53,6 +59,7 @@ export async function creerRemontee(formData: FormData) {
       // déclarer que quelqu'un d'autre a fait la saisie.
       personneSaisie: nomAuteur(session),
       objet: parsed.objet,
+      natures: parsed.natures,
       categorie: parsed.categorie,
       description: parsed.description,
       suiteDonnee: parsed.suiteDonnee,
@@ -78,6 +85,7 @@ export async function mettreAJourRemontee(formData: FormData) {
       chantierService: parsed.chantierService,
       personneRemontant: parsed.personneRemontant ?? null,
       objet: parsed.objet,
+      natures: parsed.natures,
       categorie: parsed.categorie ?? null,
       description: parsed.description ?? null,
       suiteDonnee: parsed.suiteDonnee ?? null,

@@ -15,6 +15,7 @@ import {
 import { filtreStatutRemontee } from "@/lib/validation";
 import { lireTaillePage } from "@/lib/pagination";
 import { filtreArchive } from "@/lib/archivage";
+import { NATURES_REMONTEE } from "@/lib/labels";
 import { LienArchives } from "@/components/lien-archives";
 
 export default async function RemonteesPage({
@@ -35,6 +36,10 @@ export default async function RemonteesPage({
   const page = Math.max(1, Number(pageParam) || 1);
   const taillePage = lireTaillePage(taille);
 
+  const naturesTrouvees = q
+    ? NATURES_REMONTEE.filter((n) => n.toLowerCase().includes(q.toLowerCase()))
+    : [];
+
   const where = {
     ...filtreArchive(archives),
     statut: filtreStatutRemontee(statut),
@@ -51,6 +56,9 @@ export default async function RemonteesPage({
           { personneRemontant: { contains: q, mode: "insensitive" as const } },
           { personneSaisie: { contains: q, mode: "insensitive" as const } },
           { categorie: { contains: q, mode: "insensitive" as const } },
+          // Les natures sont stockées en tableau : on cherche d'abord les
+          // options correspondant au texte saisi, puis on filtre dessus.
+          ...(naturesTrouvees.length ? [{ natures: { hasSome: naturesTrouvees } }] : []),
         ]
       : undefined,
   };

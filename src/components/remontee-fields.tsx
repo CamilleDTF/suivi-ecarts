@@ -1,6 +1,12 @@
 "use client";
 
-import { ORIGINE_REMONTEE_LABELS, CATEGORIES_REMONTEE, RESPONSABLES } from "@/lib/labels";
+import {
+  ORIGINE_REMONTEE_LABELS,
+  CATEGORIES_REMONTEE,
+  RESPONSABLES,
+  NATURES_REMONTEE,
+  avecValeursExistantes,
+} from "@/lib/labels";
 import { OrigineRemontee } from "@/generated/prisma/enums";
 import { useEditMode } from "@/components/formulaire-editable";
 
@@ -11,6 +17,7 @@ type RemonteeValues = {
   personneRemontant?: string | null;
   personneSaisie?: string | null;
   objet?: string | null;
+  natures?: string[] | null;
   categorie?: string | null;
   description?: string | null;
   suiteDonnee?: string | null;
@@ -41,6 +48,7 @@ export function RemonteeFields({
   const disabled = !useEditMode();
   const personnes = avecValeurExistante(RESPONSABLES, v.personneRemontant);
   const categories = avecValeurExistante(CATEGORIES_REMONTEE, v.categorie);
+  const natures = avecValeursExistantes(NATURES_REMONTEE, v.natures);
 
   return (
     <fieldset disabled={disabled} className="space-y-4 disabled:opacity-60">
@@ -111,6 +119,18 @@ export function RemonteeFields({
         <label className={labelCls}>Objet</label>
         <input name="objet" defaultValue={v.objet ?? ""} required className={inputCls} />
       </div>
+
+      <fieldset>
+        <legend className={labelCls}>Nature</legend>
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
+          {natures.map((n) => (
+            <label key={n} className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" name="natures" value={n} defaultChecked={(v.natures ?? []).includes(n)} />
+              {n}
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
       <div>
         <label className={labelCls}>Catégorie</label>

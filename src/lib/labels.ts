@@ -35,15 +35,24 @@ export const TYPE_ACTIVITE_LABELS: Record<string, string> = {
   AUTRE: "Autre",
 };
 
+// Nature d'un écart : ce qui constate un manquement. Ce qui relève de
+// l'information ou de l'amélioration est passé aux remontées, ci-dessous.
 export const NATURES_OPTIONS = [
   "Remarque",
   "Non-conformité",
   "Non-conformité critique",
-  "Point sensible",
   "Réclamation",
+];
+
+// Nature d'une remontée d'information : ce que le terrain signale sans que ce
+// soit nécessairement un écart.
+export const NATURES_REMONTEE = [
+  "Information",
   "Remontée terrain",
+  "Point sensible",
   "Opportunité d'amélioration",
   "Bonne pratique",
+  "Veille réglementaire",
 ];
 
 export const DOMAINES_OPTIONS = ["Santé", "Sécurité", "Environnement"];
