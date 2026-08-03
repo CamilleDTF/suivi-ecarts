@@ -158,7 +158,12 @@ export async function supprimerRemontee(formData: FormData) {
     throw new Error("Une remontée transformée en écart ne peut pas être supprimée. Archivez-la.");
   }
 
-  await prisma.remonteeInfo.delete({ where: { id } });
+  // Les actions nées de cette remontée disparaissent avec elle : la contrainte
+  // les détacherait sinon, et elles se retrouveraient sans rattachement.
+  await prisma.$transaction(async (tx) => {
+    await tx.action.deleteMany({ where: { remonteeId: id } });
+    await tx.remonteeInfo.delete({ where: { id } });
+  });
 
   revalidatePath("/remontees");
   redirect("/remontees");

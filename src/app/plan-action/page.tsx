@@ -56,6 +56,8 @@ export default async function PlanActionPage({
           { ficheSSE: { reference: contient } },
           { ecartAmiante: { reference: contient } },
           { ecartAmiante: { nomChantier: contient } },
+          { remontee: { reference: contient } },
+          { remontee: { objet: contient } },
         ]
       : undefined,
   };
@@ -65,7 +67,7 @@ export default async function PlanActionPage({
     prisma.action.findMany({
       where,
       orderBy: construireTri(tri, sens, COLONNES_TRI, { echeance: "asc" as const }, ["echeance"]),
-      include: { ecart: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true },
+      include: { ecart: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true, remontee: true },
       skip: (page - 1) * taillePage,
       take: taillePage,
     }),
@@ -199,6 +201,10 @@ export default async function PlanActionPage({
                   ) : a.ecartAmiante ? (
                     <Link href={`/ecart-amiante/${a.ecartAmiante.id}`} className="text-slate-600 hover:underline">
                       {a.ecartAmiante.reference}
+                    </Link>
+                  ) : a.remontee ? (
+                    <Link href={`/remontees/${a.remontee.id}`} className="text-slate-600 hover:underline">
+                      {a.remontee.reference}
                     </Link>
                   ) : (
                     <span className="text-slate-400">—</span>

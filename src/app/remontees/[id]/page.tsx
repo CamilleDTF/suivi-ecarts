@@ -2,7 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
-import { STATUT_REMONTEE_COLORS, STATUT_REMONTEE_LABELS } from "@/lib/labels";
+import {
+  STATUT_REMONTEE_COLORS,
+  STATUT_REMONTEE_LABELS,
+  TYPE_ACTION_LABELS,
+  STATUT_ACTION_COLORS,
+  STATUT_ACTION_LABELS,
+} from "@/lib/labels";
 import {
   mettreAJourRemontee,
   mettreAJourStatutRemontee,
@@ -35,7 +41,10 @@ export default async function RemonteeDetailPage({
   const { id } = await params;
   const remontee = await prisma.remonteeInfo.findUnique({
     where: { id },
-    include: { ecart: { include: { dossier: true } } },
+    include: {
+      ecart: { include: { dossier: true } },
+      actions: { orderBy: { createdAt: "desc" } },
+    },
   });
 
   if (!remontee) notFound();
@@ -67,6 +76,12 @@ export default async function RemonteeDetailPage({
         </div>
         <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
           <BoutonExportPDF />
+          <Link
+            href={`/plan-action/nouveau?remonteeId=${remontee.id}`}
+            className="whitespace-nowrap rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            + Action
+          </Link>
           <BoutonArchiver
             action={remontee.archiveLe ? desarchiver : archiver}
             entite="remontee"
@@ -130,6 +145,53 @@ export default async function RemonteeDetailPage({
       >
         <RemonteeFields v={remontee} chantiersConnus={chantiersConnus} />
       </FormulaireEditable>
+
+      <div className="mt-8">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">
+          Plan d&apos;action ({remontee.actions.length})
+        </h2>
+        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
+              <tr>
+                <th className="px-4 py-3 font-medium">Référence</th>
+                <th className="px-4 py-3 font-medium">Type</th>
+                <th className="px-4 py-3 font-medium">Action</th>
+                <th className="px-4 py-3 font-medium">Responsable</th>
+                <th className="px-4 py-3 font-medium">Échéance</th>
+                <th className="px-4 py-3 font-medium">Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {remontee.actions.map((a) => (
+                <tr key={a.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <Link href={`/plan-action/${a.id}`} className="font-medium text-blue-700 hover:underline">
+                      {a.reference}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-slate-700">{TYPE_ACTION_LABELS[a.type]}</td>
+                  <td className="max-w-xs truncate px-4 py-3 text-slate-700">{a.action}</td>
+                  <td className="px-4 py-3 text-slate-700">{a.responsable}</td>
+                  <td className="px-4 py-3 text-slate-500">
+                    {a.echeance ? a.echeance.toLocaleDateString("fr-FR") : "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge label={STATUT_ACTION_LABELS[a.statut]} colorClass={STATUT_ACTION_COLORS[a.statut]} />
+                  </td>
+                </tr>
+              ))}
+              {remontee.actions.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                    Aucune action.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <div className="mt-4 flex flex-wrap justify-end gap-3">
         {remontee.statut !== "TRAITEE" && !dejaTransformee && (

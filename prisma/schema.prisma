@@ -173,7 +173,8 @@ model RemonteeInfo {
   updatedAt         DateTime        @updatedAt
   modifiePar        String?
   modifieLe         DateTime?
-  archiveLe DateTime?
+  archiveLe         DateTime?
+  actions           Action[]
 }
 
 model FicheSSE {
@@ -294,6 +295,8 @@ model Action {
   ficheSSEId      String?
   ecartAmiante    EcartAmiante? @relation(fields: [ecartAmianteId], references: [id])
   ecartAmianteId  String?
+  remontee        RemonteeInfo? @relation(fields: [remonteeId], references: [id])
+  remonteeId      String?
   type            TypeAction
   action          String
   responsable     String

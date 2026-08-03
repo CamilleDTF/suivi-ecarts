@@ -36,13 +36,13 @@ export default async function ActionDetailPage({
   const { id } = await params;
   const action = await prisma.action.findUnique({
     where: { id },
-    include: { ecart: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true },
+    include: { ecart: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true, remontee: true },
   });
 
   if (!action) notFound();
 
   // Listes proposées pour corriger un rattachement erroné.
-  const [ecartsChoix, evenementsChoix, amianteChoix] = await Promise.all([
+  const [ecartsChoix, evenementsChoix, amianteChoix, remonteesChoix] = await Promise.all([
     prisma.ecart.findMany({
       orderBy: { reference: "asc" },
       select: { id: true, reference: true, description: true, dossier: { select: { chantier: true } } },
@@ -55,6 +55,10 @@ export default async function ActionDetailPage({
       orderBy: { reference: "asc" },
       select: { id: true, reference: true, nomChantier: true, numeroChantier: true, description: true },
     }),
+    prisma.remonteeInfo.findMany({
+      orderBy: { reference: "asc" },
+      select: { id: true, reference: true, chantierService: true, objet: true },
+    }),
   ]);
 
   const retourHref = action.ecart
@@ -63,7 +67,9 @@ export default async function ActionDetailPage({
       ? `/fiches-sse/${action.ficheSSE.id}`
       : action.ecartAmiante
         ? `/ecart-amiante/${action.ecartAmiante.id}`
-        : "/plan-action";
+        : action.remontee
+          ? `/remontees/${action.remontee.id}`
+          : "/plan-action";
   const retourLabel = action.ecart
     ? "Retour à l'écart"
     : action.ficheSSE
@@ -93,6 +99,10 @@ export default async function ActionDetailPage({
           ) : action.ecartAmiante ? (
             <Link href={`/ecart-amiante/${action.ecartAmiante.id}`} className="text-sm text-slate-500 hover:underline">
               Écart amiante {action.ecartAmiante.reference}
+            </Link>
+          ) : action.remontee ? (
+            <Link href={`/remontees/${action.remontee.id}`} className="text-sm text-slate-500 hover:underline">
+              Remontée {action.remontee.reference} — {action.remontee.objet}
             </Link>
           ) : null}
           <div data-no-print className="mt-1">
@@ -128,6 +138,16 @@ export default async function ActionDetailPage({
                   options: amianteChoix.map((e) => ({
                     id: e.id,
                     libelle: libelleRattachement(e.reference, `${e.nomChantier} (${e.numeroChantier})`, e.description),
+                  })),
+                },
+                {
+                  cle: "remontee",
+                  libelle: "Remontée",
+                  champ: "remonteeId",
+                  valeurActuelle: action.remonteeId,
+                  options: remonteesChoix.map((r) => ({
+                    id: r.id,
+                    libelle: libelleRattachement(r.reference, r.chantierService, r.objet),
                   })),
                 },
               ]}
