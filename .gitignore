@@ -58,3 +58,6 @@ prisma/import-data/*.json
 skills-lock.json
 AGENTS.md
 CLAUDE.md
+
+# Sauvegardes locales : données réelles, jamais dans le dépôt.
+sauvegardes/

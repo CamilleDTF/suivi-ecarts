@@ -3,12 +3,14 @@
 import { ORIGINE_LABELS } from "@/lib/labels";
 import { Origine } from "@/generated/prisma/enums";
 import { useEditMode } from "@/components/formulaire-editable";
+import { ChampPhoto } from "@/components/champ-photo";
 
 type DossierValues = {
   dateDetection: Date;
   origine: string;
   declarant: string;
   chantier: string;
+  photo?: string | null;
 };
 
 const inputCls =
@@ -22,29 +24,45 @@ function toDateInput(d: Date) {
 export function DossierFields({ v }: { v: DossierValues }) {
   const disabled = !useEditMode();
   return (
-    <fieldset disabled={disabled} className="grid grid-cols-2 gap-4 disabled:opacity-60">
-      <div>
-        <label className={labelCls}>Chantier</label>
-        <input name="chantier" defaultValue={v.chantier} required className={inputCls} />
-      </div>
-      <div>
-        <label className={labelCls}>Déclarant</label>
-        <input name="declarant" defaultValue={v.declarant} required className={inputCls} />
-      </div>
-      <div>
-        <label className={labelCls}>Date de détection</label>
-        <input type="date" name="dateDetection" defaultValue={toDateInput(v.dateDetection)} required className={inputCls} />
-      </div>
-      <div>
-        <label className={labelCls}>Origine</label>
-        <select name="origine" defaultValue={v.origine} required className={inputCls}>
-          {Object.values(Origine).map((o) => (
-            <option key={o} value={o}>
-              {ORIGINE_LABELS[o]}
-            </option>
-          ))}
-        </select>
-      </div>
-    </fieldset>
+    <div className="space-y-4">
+      <fieldset disabled={disabled} className="grid grid-cols-2 gap-4 disabled:opacity-60">
+        <div>
+          <label className={labelCls}>Chantier</label>
+          <input name="chantier" defaultValue={v.chantier} required className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>Déclarant</label>
+          <input name="declarant" defaultValue={v.declarant} required className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>Date de détection</label>
+          <input type="date" name="dateDetection" defaultValue={toDateInput(v.dateDetection)} required className={inputCls} />
+        </div>
+        <div>
+          <label className={labelCls}>Origine</label>
+          <select name="origine" defaultValue={v.origine} required className={inputCls}>
+            {Object.values(Origine).map((o) => (
+              <option key={o} value={o}>
+                {ORIGINE_LABELS[o]}
+              </option>
+            ))}
+          </select>
+        </div>
+      </fieldset>
+
+      {/* Hors du fieldset : son `disabled:opacity-60` grise les champs en
+          lecture seule, ce qui délaverait aussi la photo — or la photo est du
+          contenu, pas une commande de saisie. */}
+      <ChampPhoto
+        name="photo"
+        label="Enregistrement"
+        valeurInitiale={v.photo}
+        disabled={disabled}
+        libelleAjouter="Ajouter un enregistrement"
+        libelleRemplacer="Remplacer l'enregistrement"
+        libelleRetirer="Retirer l'enregistrement"
+        libelleVide="Aucun enregistrement"
+      />
+    </div>
   );
 }

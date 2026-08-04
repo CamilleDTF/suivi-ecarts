@@ -48,18 +48,67 @@ L'application est disponible sur http://localhost:3000.
 
 ## Comptes
 
-Le seed ne contient aucun identifiant en dur : il lit son paramétrage dans
-l'environnement et échoue si l'un des trois manque.
+On se connecte avec son **prénom**, pas avec une adresse e-mail : le terrain n'a
+pas toujours d'adresse professionnelle sous la main. L'identifiant est insensible
+à la casse et aux espaces autour.
+
+Aucun identifiant n'est en dur dans le dépôt : les scripts lisent leur
+paramétrage dans l'environnement et échouent si une variable manque.
 
 ```bash
-SEED_ADMIN_EMAIL="nom@exemple.com" \
-SEED_ADMIN_NAME="Nom Prénom" \
+# Premier compte (administrateur)
+SEED_ADMIN_IDENTIFIANT="Prénom" \
+SEED_ADMIN_NAME="Prénom Nom" \
 SEED_ADMIN_PASSWORD="…" \
 npm run db:seed
+
+# Comptes suivants, ou réinitialisation d'un mot de passe oublié
+UTILISATEUR_IDENTIFIANT="Prénom" \
+UTILISATEUR_NOM="Prénom Nom" \
+UTILISATEUR_MOT_DE_PASSE="…" \
+npm run db:utilisateur
 ```
 
-Il n'y a pas encore d'écran de gestion des utilisateurs : les comptes suivants se
-créent en relançant le seed avec d'autres variables, ou directement en base.
+Le mot de passe passe par l'environnement et jamais par un argument de ligne de
+commande : les arguments sont visibles dans la liste des processus et restent
+dans l'historique du shell.
+
+Il n'y a pas encore d'écran de gestion des utilisateurs. Le rôle `ADMIN` existe
+en base mais n'ouvre aucun droit supplémentaire pour l'instant.
+
+## Sauvegardes
+
+Tout est dans une seule base PostgreSQL. Neon fait de la restauration à un
+instant T, mais sa fenêtre dépend du plan et ne protège pas d'un incident chez
+l'hébergeur lui-même : une copie vit donc **ailleurs**.
+
+`.github/workflows/sauvegarde.yml` exporte la base chaque lundi à 03:00 UTC et
+dépose le fichier en artefact GitHub, conservé un an. Le workflow se lance aussi
+à la demande depuis l'onglet Actions, avant une opération risquée.
+
+**Prérequis** : le secret `DATABASE_URL` doit exister dans le dépôt GitHub
+(Settings → Secrets and variables → Actions), avec l'URL de la base de
+production.
+
+```bash
+npm run db:sauvegarder      # écrit sauvegardes/sauvegarde-AAAA-MM-JJ.json
+
+# Restauration dans une base vide (nouvel hébergeur, par exemple)
+DATABASE_URL="<nouvelle base>" npm run db:migrate
+DATABASE_URL="<nouvelle base>" FICHIER=sauvegardes/sauvegarde-2026-08-04.json \
+  npm run db:restaurer
+```
+
+L'export est un JSON et non un `pg_dump` : `pg_dump` refuse de tourner quand sa
+version ne correspond pas à celle du serveur, ce qui casserait la sauvegarde
+automatique le jour où Neon met PostgreSQL à jour.
+
+Les empreintes de mots de passe sont **exclues** de l'export : une sauvegarde
+circule et se stocke ailleurs, elle n'a pas à emporter de quoi tenter des mots de
+passe hors ligne. Après une restauration, les comptes reviennent sans mot de
+passe utilisable — les réattribuer avec `npm run db:utilisateur`.
+
+`db:restaurer` refuse de tourner sur une base déjà peuplée, sauf `VIDER_AVANT=oui`.
 
 ## Scripts
 
@@ -69,6 +118,9 @@ créent en relançant le seed avec d'autres variables, ou directement en base.
 | `npm run build` | Applique les migrations puis construit |
 | `npm run db:migrate` | Applique les migrations seules |
 | `npm run db:seed` | Crée le compte d'administration |
+| `npm run db:utilisateur` | Crée un compte ou réinitialise son mot de passe |
+| `npm run db:sauvegarder` | Exporte toute la base dans un JSON daté |
+| `npm run db:restaurer` | Recharge une sauvegarde dans une base vide |
 | `npm run db:import` | Importe le classeur Excel converti en JSON |
 | `npm run db:recheck-statuts` | Recalcule les statuts des évènements SSE |
 
@@ -89,6 +141,8 @@ les deux restent ensemble.
    DATABASE_URL="<url de prod>" npm run db:migrate
    ```
 4. Créer le premier compte avec `npm run db:seed` et les variables `SEED_ADMIN_*`.
+5. Ajouter le secret GitHub `DATABASE_URL` pour que la sauvegarde hebdomadaire
+   tourne (voir « Sauvegardes »).
 
 ## Données d'import
 

@@ -85,8 +85,12 @@ enum StatutAction {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id String @id @default(cuid())
+  // On se connecte avec son prénom, pas avec son adresse : le terrain n'a pas
+  // toujours d'adresse professionnelle sous la main.
+  identifiant  String   @unique
+  // Conservé pour les comptes qui en ont un, mais ne sert plus à se connecter.
+  email        String?
   name         String
   passwordHash String
   role         Role     @default(UTILISATEUR)
@@ -111,6 +115,8 @@ model Dossier {
   statut        StatutDossierEcart @default(OUVERT)
   declarant     String
   chantier      String
+  // Photo du dossier, stockée en data URL comme la preuve des actions.
+  photo         String?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   modifiePar    String?

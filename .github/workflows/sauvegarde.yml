@@ -1,0 +1,45 @@
+name: Sauvegarde hebdomadaire
+
+# Une copie de la base hors de Neon, chaque lundi. Si Neon devient
+# indisponible ou perd les données, cette copie vit sur GitHub, chez un autre
+# hébergeur : c'est tout l'intérêt.
+on:
+  schedule:
+    # Lundi 03:00 UTC (05:00 en heure d'été française, 04:00 en hiver).
+    - cron: "0 3 * * 1"
+  # Permet aussi de lancer une sauvegarde à la demande depuis l'onglet Actions,
+  # avant une opération risquée par exemple.
+  workflow_dispatch:
+
+jobs:
+  sauvegarde:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Exporter la base
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npm run db:sauvegarder
+
+      - name: Nommer la sauvegarde
+        id: nom
+        run: echo "jour=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sauvegarde-${{ steps.nom.outputs.jour }}
+          path: sauvegardes/*.json
+          # Un an d'historique : de quoi revenir loin en arrière si une
+          # suppression passe inaperçue plusieurs mois.
+          retention-days: 365
+          # Le JSON contient les photos en base64 : il compresse très bien, et
+          # les artefacts sont facturés au volume stocké.
+          compression-level: 9

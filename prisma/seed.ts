@@ -10,13 +10,13 @@ const prisma = new PrismaClient({ adapter });
 // passe compromis, y compris dans un dépôt privé — il traîne ensuite dans
 // l'historique Git, les archives et les copies locales.
 async function main() {
-  const email = process.env.SEED_ADMIN_EMAIL;
+  const identifiant = process.env.SEED_ADMIN_IDENTIFIANT;
   const name = process.env.SEED_ADMIN_NAME;
   const password = process.env.SEED_ADMIN_PASSWORD;
 
-  if (!email || !name || !password) {
+  if (!identifiant || !name || !password) {
     throw new Error(
-      "Renseignez SEED_ADMIN_EMAIL, SEED_ADMIN_NAME et SEED_ADMIN_PASSWORD avant de lancer le seed.",
+      "Renseignez SEED_ADMIN_IDENTIFIANT, SEED_ADMIN_NAME et SEED_ADMIN_PASSWORD avant de lancer le seed.",
     );
   }
 
@@ -26,12 +26,12 @@ async function main() {
   // compte existant, sinon un redéploiement écraserait un mot de passe changé
   // depuis.
   await prisma.user.upsert({
-    where: { email },
+    where: { identifiant },
     update: {},
-    create: { email, name, passwordHash, role: "ADMIN" },
+    create: { identifiant, name, passwordHash, role: "ADMIN" },
   });
 
-  console.log(`Compte administrateur prêt : ${email}`);
+  console.log(`Compte administrateur prêt : ${identifiant}`);
 }
 
 main()

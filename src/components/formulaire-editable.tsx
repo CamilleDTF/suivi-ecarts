@@ -20,6 +20,29 @@ export function useTraitementEnCours() {
   return useContext(TraitementContext);
 }
 
+// Le pendant en lecture : permet à un bouton de submit de savoir qu'un champ
+// n'est pas prêt. FormulaireEditable garde son propre état (son bouton est en
+// dehors du Provider) ; ZoneTraitement sert aux formulaires de création.
+const OccupeContext = createContext(false);
+
+export function useOccupe() {
+  return useContext(OccupeContext);
+}
+
+/**
+ * Enveloppe un formulaire de création contenant un champ photo : relaie
+ * « conversion en cours » jusqu'au bouton de création, qui doit attendre.
+ * Sans ça, créer juste après avoir choisi une photo enregistre sans elle.
+ */
+export function ZoneTraitement({ children }: { children: ReactNode }) {
+  const [occupe, setOccupe] = useState(false);
+  return (
+    <TraitementContext.Provider value={setOccupe}>
+      <OccupeContext.Provider value={occupe}>{children}</OccupeContext.Provider>
+    </TraitementContext.Provider>
+  );
+}
+
 // Doit être un enfant du <form> pour lire useFormStatus. Détecte la fin de
 // soumission (pending: true -> false) de façon asynchrone, après le commit,
 // pour ne pas interférer avec la soumission native du formulaire.

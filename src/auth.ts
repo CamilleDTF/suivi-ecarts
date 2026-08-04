@@ -9,16 +9,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        email: { label: "Email", type: "email" },
+        identifiant: { label: "Identifiant", type: "text" },
         password: { label: "Mot de passe", type: "password" },
       },
       authorize: async (credentials) => {
-        const email = credentials?.email;
+        const identifiant = credentials?.identifiant;
         const password = credentials?.password;
-        if (typeof email !== "string" || typeof password !== "string") {
+        if (typeof identifiant !== "string" || typeof password !== "string") {
           return null;
         }
-        const user = await prisma.user.findUnique({ where: { email } });
+        // Insensible à la casse et aux espaces autour : personne ne doit rester
+        // à la porte parce qu'il a tapé "camille" ou « Camille » avec un espace.
+        const user = await prisma.user.findFirst({
+          where: { identifiant: { equals: identifiant.trim(), mode: "insensitive" } },
+        });
         if (!user) return null;
         const valid = await bcrypt.compare(password, user.passwordHash);
         if (!valid) return null;

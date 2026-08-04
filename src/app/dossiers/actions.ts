@@ -10,12 +10,14 @@ import { revalidatePath } from "next/cache";
 import { nomAuteur } from "@/lib/audit";
 import { lireStatutDossierEcart, dateObligatoire } from "@/lib/validation";
 import { supprimerDossierCascade } from "@/lib/suppression";
+import { texte } from "@/lib/formulaire";
 
 const dossierSchema = z.object({
   dateDetection: dateObligatoire,
   origine: z.enum(Object.values(Origine) as [string, ...string[]]),
   declarant: z.string().min(1, "Déclarant requis"),
   chantier: z.string().min(1, "Chantier requis"),
+  photo: z.string().nullable(),
 });
 
 export async function creerDossier(formData: FormData) {
@@ -27,6 +29,7 @@ export async function creerDossier(formData: FormData) {
     origine: formData.get("origine"),
     declarant: formData.get("declarant"),
     chantier: formData.get("chantier"),
+    photo: texte(formData.get("photo")),
   });
 
   const reference = await generateReference("Dossier", "D");
@@ -38,6 +41,7 @@ export async function creerDossier(formData: FormData) {
       origine: parsed.origine as Origine,
       declarant: parsed.declarant,
       chantier: parsed.chantier,
+      photo: parsed.photo,
     },
   });
 
@@ -54,6 +58,7 @@ export async function mettreAJourDossier(formData: FormData) {
     origine: formData.get("origine"),
     declarant: formData.get("declarant"),
     chantier: formData.get("chantier"),
+    photo: texte(formData.get("photo")),
   });
 
   await prisma.dossier.update({
@@ -63,6 +68,9 @@ export async function mettreAJourDossier(formData: FormData) {
       origine: parsed.origine as Origine,
       declarant: parsed.declarant,
       chantier: parsed.chantier,
+      // null et non undefined : Prisma ignore un champ undefined, si bien que
+      // « Retirer la photo » n'effacerait rien.
+      photo: parsed.photo,
       modifiePar: nomAuteur(session),
       modifieLe: new Date(),
     },

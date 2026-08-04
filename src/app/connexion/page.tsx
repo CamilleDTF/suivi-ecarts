@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 function ConnexionForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [email, setEmail] = useState("");
+  const [identifiant, setIdentifiant] = useState("");
   const [password, setPassword] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
@@ -17,13 +17,13 @@ function ConnexionForm() {
     setErreur(null);
     setEnCours(true);
     const result = await signIn("credentials", {
-      email,
+      identifiant,
       password,
       redirect: false,
     });
     setEnCours(false);
     if (result?.error) {
-      setErreur("Email ou mot de passe incorrect.");
+      setErreur("Identifiant ou mot de passe incorrect.");
       return;
     }
     router.push(searchParams.get("callbackUrl") ?? "/");
@@ -42,13 +42,15 @@ function ConnexionForm() {
         <p className="mb-6 text-sm text-slate-500">Connecte-toi pour continuer.</p>
 
         <label className="mb-1 block text-sm font-medium text-slate-700">
-          Email
+          Identifiant
         </label>
         <input
-          type="email"
+          type="text"
+          autoComplete="username"
+          placeholder="Ton prénom"
           required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={identifiant}
+          onChange={(e) => setIdentifiant(e.target.value)}
           className="mb-4 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
 

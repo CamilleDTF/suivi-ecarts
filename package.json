@@ -12,7 +12,10 @@
     "db:seed": "prisma db seed",
     "db:import": "tsx prisma/import-excel.ts",
     "db:recheck-statuts": "tsx prisma/recheck-statuts-fiches.ts",
-    "db:realigner-references": "tsx prisma/realigner-references.ts"
+    "db:realigner-references": "tsx prisma/realigner-references.ts",
+    "db:sauvegarder": "tsx prisma/export-donnees.ts",
+    "db:restaurer": "tsx prisma/restaurer-donnees.ts",
+    "db:utilisateur": "tsx prisma/creer-utilisateur.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
