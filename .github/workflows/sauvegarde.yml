@@ -15,9 +15,9 @@ jobs:
   sauvegarde:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -33,13 +33,15 @@ jobs:
         id: nom
         run: echo "jour=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: sauvegarde-${{ steps.nom.outputs.jour }}
           path: sauvegardes/*.json
-          # Un an d'historique : de quoi revenir loin en arrière si une
-          # suppression passe inaperçue plusieurs mois.
-          retention-days: 365
+          # 90 jours : c'est le plafond configuré sur le dépôt, une valeur
+          # supérieure est ramenée à ce plafond avec un avertissement. Pour
+          # garder plus longtemps, relever d'abord Settings -> Actions ->
+          # General -> Artifact and log retention.
+          retention-days: 90
           # Le JSON contient les photos en base64 : il compresse très bien, et
           # les artefacts sont facturés au volume stocké.
           compression-level: 9

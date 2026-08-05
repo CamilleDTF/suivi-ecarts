@@ -115,8 +115,11 @@ model Dossier {
   statut        StatutDossierEcart @default(OUVERT)
   declarant     String
   chantier      String
-  // Photo du dossier, stockée en data URL comme la preuve des actions.
-  photo         String?
+  // Enregistrement joint au dossier — photo ou PDF — stocké en data URL comme
+  // la preuve des actions. Le nom d'origine est conservé à côté : un PDF ne
+  // s'affiche pas en vignette, c'est son nom qui dit ce que c'est.
+  enregistrement    String?
+  enregistrementNom String?
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   modifiePar    String?

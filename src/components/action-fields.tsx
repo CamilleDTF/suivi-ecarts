@@ -3,7 +3,7 @@
 import { TYPE_ACTION_LABELS, RESPONSABLES } from "@/lib/labels";
 import { TypeAction } from "@/generated/prisma/enums";
 import { useEditMode } from "@/components/formulaire-editable";
-import { ChampPhoto } from "@/components/champ-photo";
+import { ChampFichier } from "@/components/champ-fichier";
 
 type ActionValues = {
   type: string;
@@ -92,7 +92,7 @@ export function ActionFields({ v }: { v: ActionValues }) {
           </div>
         </div>
 
-        <ChampPhoto
+        <ChampFichier
           name="preuve"
           label="Preuve"
           valeurInitiale={v.preuve}

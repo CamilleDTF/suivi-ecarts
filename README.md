@@ -83,8 +83,14 @@ instant T, mais sa fenêtre dépend du plan et ne protège pas d'un incident che
 l'hébergeur lui-même : une copie vit donc **ailleurs**.
 
 `.github/workflows/sauvegarde.yml` exporte la base chaque lundi à 03:00 UTC et
-dépose le fichier en artefact GitHub, conservé un an. Le workflow se lance aussi
-à la demande depuis l'onglet Actions, avant une opération risquée.
+dépose le fichier en artefact GitHub, conservé 90 jours. Le workflow se lance
+aussi à la demande depuis l'onglet Actions, avant une opération risquée.
+
+90 jours est le plafond configuré sur le dépôt : demander davantage est ramené à
+cette valeur avec un avertissement. Pour garder plus longtemps, relever d'abord
+Settings -> Actions -> General -> *Artifact and log retention*, puis
+`retention-days` dans le workflow. Au-delà, télécharger un artefact de temps en
+temps et le ranger ailleurs.
 
 **Prérequis** : le secret `DATABASE_URL` doit exister dans le dépôt GitHub
 (Settings → Secrets and variables → Actions), avec l'URL de la base de
@@ -102,6 +108,10 @@ DATABASE_URL="<nouvelle base>" FICHIER=sauvegardes/sauvegarde-2026-08-04.json \
 L'export est un JSON et non un `pg_dump` : `pg_dump` refuse de tourner quand sa
 version ne correspond pas à celle du serveur, ce qui casserait la sauvegarde
 automatique le jour où Neon met PostgreSQL à jour.
+
+Le JSON embarque les enregistrements joints aux dossiers (photos et PDF) en
+base64 : il grossit à mesure qu'on en dépose. Rien d'inquiétant à cette échelle,
+mais c'est ce qui pèsera le plus dans le fichier.
 
 Les empreintes de mots de passe sont **exclues** de l'export : une sauvegarde
 circule et se stocke ailleurs, elle n'a pas à emporter de quoi tenter des mots de

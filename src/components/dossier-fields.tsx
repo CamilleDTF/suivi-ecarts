@@ -3,14 +3,15 @@
 import { ORIGINE_LABELS } from "@/lib/labels";
 import { Origine } from "@/generated/prisma/enums";
 import { useEditMode } from "@/components/formulaire-editable";
-import { ChampPhoto } from "@/components/champ-photo";
+import { ChampFichier } from "@/components/champ-fichier";
 
 type DossierValues = {
   dateDetection: Date;
   origine: string;
   declarant: string;
   chantier: string;
-  photo?: string | null;
+  enregistrement?: string | null;
+  enregistrementNom?: string | null;
 };
 
 const inputCls =
@@ -51,13 +52,16 @@ export function DossierFields({ v }: { v: DossierValues }) {
       </fieldset>
 
       {/* Hors du fieldset : son `disabled:opacity-60` grise les champs en
-          lecture seule, ce qui délaverait aussi la photo — or la photo est du
+          lecture seule, ce qui délaverait aussi l'aperçu — or c'est du
           contenu, pas une commande de saisie. */}
-      <ChampPhoto
-        name="photo"
+      <ChampFichier
+        name="enregistrement"
+        nomFichierName="enregistrementNom"
         label="Enregistrement"
-        valeurInitiale={v.photo}
+        valeurInitiale={v.enregistrement}
+        nomFichierInitial={v.enregistrementNom}
         disabled={disabled}
+        accepteDocuments
         libelleAjouter="Ajouter un enregistrement"
         libelleRemplacer="Remplacer l'enregistrement"
         libelleRetirer="Retirer l'enregistrement"

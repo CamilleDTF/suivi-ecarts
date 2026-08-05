@@ -17,7 +17,8 @@ const dossierSchema = z.object({
   origine: z.enum(Object.values(Origine) as [string, ...string[]]),
   declarant: z.string().min(1, "Déclarant requis"),
   chantier: z.string().min(1, "Chantier requis"),
-  photo: z.string().nullable(),
+  enregistrement: z.string().nullable(),
+  enregistrementNom: z.string().nullable(),
 });
 
 export async function creerDossier(formData: FormData) {
@@ -29,7 +30,8 @@ export async function creerDossier(formData: FormData) {
     origine: formData.get("origine"),
     declarant: formData.get("declarant"),
     chantier: formData.get("chantier"),
-    photo: texte(formData.get("photo")),
+    enregistrement: texte(formData.get("enregistrement")),
+    enregistrementNom: texte(formData.get("enregistrementNom")),
   });
 
   const reference = await generateReference("Dossier", "D");
@@ -41,7 +43,8 @@ export async function creerDossier(formData: FormData) {
       origine: parsed.origine as Origine,
       declarant: parsed.declarant,
       chantier: parsed.chantier,
-      photo: parsed.photo,
+      enregistrement: parsed.enregistrement,
+      enregistrementNom: parsed.enregistrementNom,
     },
   });
 
@@ -58,7 +61,8 @@ export async function mettreAJourDossier(formData: FormData) {
     origine: formData.get("origine"),
     declarant: formData.get("declarant"),
     chantier: formData.get("chantier"),
-    photo: texte(formData.get("photo")),
+    enregistrement: texte(formData.get("enregistrement")),
+    enregistrementNom: texte(formData.get("enregistrementNom")),
   });
 
   await prisma.dossier.update({
@@ -69,8 +73,9 @@ export async function mettreAJourDossier(formData: FormData) {
       declarant: parsed.declarant,
       chantier: parsed.chantier,
       // null et non undefined : Prisma ignore un champ undefined, si bien que
-      // « Retirer la photo » n'effacerait rien.
-      photo: parsed.photo,
+      // « Retirer l'enregistrement » n'effacerait rien.
+      enregistrement: parsed.enregistrement,
+      enregistrementNom: parsed.enregistrementNom,
       modifiePar: nomAuteur(session),
       modifieLe: new Date(),
     },

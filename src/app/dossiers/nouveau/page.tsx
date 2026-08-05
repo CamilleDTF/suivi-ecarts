@@ -2,7 +2,7 @@ import { creerDossier } from "@/app/dossiers/actions";
 import { ORIGINE_LABELS } from "@/lib/labels";
 import { Origine } from "@/generated/prisma/enums";
 import { BoutonCreer } from "@/components/bouton-creer";
-import { ChampPhoto } from "@/components/champ-photo";
+import { ChampFichier } from "@/components/champ-fichier";
 import { ZoneTraitement } from "@/components/formulaire-editable";
 
 export default function NouveauDossierPage() {
@@ -61,9 +61,11 @@ export default function NouveauDossierPage() {
             />
           </div>
 
-          <ChampPhoto
-            name="photo"
+          <ChampFichier
+            name="enregistrement"
+            nomFichierName="enregistrementNom"
             label="Enregistrement"
+            accepteDocuments
             libelleAjouter="Ajouter un enregistrement"
             libelleRemplacer="Remplacer l'enregistrement"
             libelleRetirer="Retirer l'enregistrement"
