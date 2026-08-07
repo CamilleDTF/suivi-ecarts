@@ -11,6 +11,7 @@ const LIENS = [
   { href: "/remontees", label: "Remontées" },
   { href: "/plan-action", label: "Plan d'action" },
   { href: "/synthese", label: "Synthèse" },
+  { href: "/reunion", label: "Réunion QHSE" },
 ];
 
 export function NavLinks() {
