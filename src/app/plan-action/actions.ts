@@ -14,7 +14,7 @@ import { texte } from "@/lib/formulaire";
 
 const actionSchema = z
   .object({
-    ecartId: z.string().optional(),
+    ecartIds: z.array(z.string()).default([]),
     ficheSSEId: z.string().optional(),
     ecartAmianteId: z.string().optional(),
     remonteeId: z.string().optional(),
@@ -24,14 +24,17 @@ const actionSchema = z
     echeance: dateFacultative,
     realiseeLe: dateFacultative,
   })
-  // Exactement un parent, et pas "au moins un" : une action rattachée
-  // simultanément à plusieurs rendrait le calcul des statuts et les
-  // suppressions en cascade ambigus.
+  // Un seul TYPE de rattachement, mais autant d'écarts qu'on veut : une même
+  // correction couvre souvent plusieurs constats. Mélanger les types, en
+  // revanche, rendrait le calcul des statuts et les suppressions en cascade
+  // ambigus.
   .refine(
-    (v) => [v.ecartId, v.ficheSSEId, v.ecartAmianteId, v.remonteeId].filter(Boolean).length === 1,
+    (v) =>
+      [v.ecartIds.length > 0, !!v.ficheSSEId, !!v.ecartAmianteId, !!v.remonteeId].filter(Boolean)
+        .length === 1,
     {
       message:
-        "Une action doit être rattachée à un et un seul écart, évènement SSE, écart amiante ou remontée",
+        "Une action doit être rattachée soit à un ou plusieurs écarts, soit à un évènement SSE, soit à un écart amiante, soit à une remontée",
     },
   );
 
@@ -40,7 +43,7 @@ export async function creerAction(formData: FormData) {
   if (!session?.user) redirect("/connexion");
 
   const parsed = actionSchema.parse({
-    ecartId: formData.get("ecartId") || undefined,
+    ecartIds: formData.getAll("ecartIds").map(String).filter(Boolean),
     ficheSSEId: formData.get("ficheSSEId") || undefined,
     ecartAmianteId: formData.get("ecartAmianteId") || undefined,
     remonteeId: formData.get("remonteeId") || undefined,
@@ -56,7 +59,7 @@ export async function creerAction(formData: FormData) {
   const action = await prisma.action.create({
     data: {
       reference,
-      ecartId: parsed.ecartId,
+      ecarts: { connect: parsed.ecartIds.map((id) => ({ id })) },
       ficheSSEId: parsed.ficheSSEId,
       ecartAmianteId: parsed.ecartAmianteId,
       remonteeId: parsed.remonteeId,
@@ -70,11 +73,11 @@ export async function creerAction(formData: FormData) {
     },
   });
 
-  if (parsed.ecartId) revalidatePath(`/ecarts/${parsed.ecartId}`);
+  for (const id of parsed.ecartIds) revalidatePath(`/ecarts/${id}`);
   if (parsed.ficheSSEId) revalidatePath(`/fiches-sse/${parsed.ficheSSEId}`);
   if (parsed.ecartAmianteId) revalidatePath(`/ecart-amiante/${parsed.ecartAmianteId}`);
   if (parsed.remonteeId) revalidatePath(`/remontees/${parsed.remonteeId}`);
-  await recalculerStatutsParents(action);
+  await recalculerStatutsParents({ ...action, ecartIds: parsed.ecartIds });
   redirect(`/plan-action/${action.id}`);
 }
 
@@ -116,6 +119,7 @@ export async function mettreAJourAction(formData: FormData) {
 
   const action = await prisma.action.update({
     where: { id },
+    include: { ecarts: { select: { id: true } } },
     data: {
       type: parsed.type as TypeAction,
       action: parsed.action,
@@ -135,13 +139,13 @@ export async function mettreAJourAction(formData: FormData) {
 
   revalidatePath(`/plan-action/${id}`);
   revalidatePath("/plan-action");
-  if (action.ecartId) revalidatePath(`/ecarts/${action.ecartId}`);
+  for (const e of action.ecarts) revalidatePath(`/ecarts/${e.id}`);
   if (action.ficheSSEId) revalidatePath(`/fiches-sse/${action.ficheSSEId}`);
   if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
   if (action.remonteeId) revalidatePath(`/remontees/${action.remonteeId}`);
   // Le formulaire peut désormais faire passer l'action à "Réalisée" via la date
   // de réalisation : le statut de l'écart ou de l'évènement parent doit suivre.
-  await recalculerStatutsParents(action);
+  await recalculerStatutsParents({ ...action, ecartIds: action.ecarts.map((e) => e.id) });
 }
 
 export async function mettreAJourStatutAction(formData: FormData) {
@@ -151,19 +155,22 @@ export async function mettreAJourStatutAction(formData: FormData) {
   const id = String(formData.get("id"));
   const statut = lireStatutAction(formData.get("statut"));
 
-  const action = await prisma.action.update({ where: { id }, data: { statut } });
+  const action = await prisma.action.update({
+    where: { id },
+    data: { statut },
+    include: { ecarts: { select: { id: true } } },
+  });
   revalidatePath(`/plan-action/${id}`);
   revalidatePath("/plan-action");
-  if (action.ecartId) revalidatePath(`/ecarts/${action.ecartId}`);
+  for (const e of action.ecarts) revalidatePath(`/ecarts/${e.id}`);
   if (action.ficheSSEId) revalidatePath(`/fiches-sse/${action.ficheSSEId}`);
   if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
   if (action.remonteeId) revalidatePath(`/remontees/${action.remonteeId}`);
-  await recalculerStatutsParents(action);
+  await recalculerStatutsParents({ ...action, ecartIds: action.ecarts.map((e) => e.id) });
 }
 
-// Correction d'un rattachement erroné. Exactement un parent, comme à la
-// création : deux rattachements rendraient le calcul des statuts et les
-// suppressions en cascade ambigus.
+// Correction d'un rattachement erroné. Un seul type à la fois, comme à la
+// création — mais plusieurs écarts si c'est le type retenu.
 export async function changerRattachementAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) redirect("/connexion");
@@ -171,26 +178,35 @@ export async function changerRattachementAction(formData: FormData) {
   const id = String(formData.get("id"));
   const type = String(formData.get("typeRattachement") ?? "");
   const CHAMPS: Record<string, string> = {
-    ecart: "ecartId",
     evenement: "ficheSSEId",
     amiante: "ecartAmianteId",
     remontee: "remonteeId",
   };
+  const ecartIds = formData.getAll("ecartIds").map(String).filter(Boolean);
   const cible = texte(formData.get(CHAMPS[type] ?? ""));
 
   // Type choisi sans cible : on ne détache pas l'action par inadvertance.
   // "aucun" en revanche est un choix explicite.
-  if (type !== "aucun" && (!(type in CHAMPS) || !cible)) return;
+  if (type === "ecart" && ecartIds.length === 0) return;
+  if (type !== "aucun" && type !== "ecart" && (!(type in CHAMPS) || !cible)) return;
 
   const avant = await prisma.action.findUniqueOrThrow({
     where: { id },
-    select: { ecartId: true, ficheSSEId: true, ecartAmianteId: true, remonteeId: true },
+    select: {
+      ecarts: { select: { id: true } },
+      ficheSSEId: true,
+      ecartAmianteId: true,
+      remonteeId: true,
+    },
   });
 
   const action = await prisma.action.update({
     where: { id },
+    include: { ecarts: { select: { id: true } } },
     data: {
-      ecartId: type === "ecart" ? cible : null,
+      // `set` et non `connect` : il remplace la liste, donc il détache aussi
+      // les écarts retirés du choix.
+      ecarts: { set: type === "ecart" ? ecartIds.map((e) => ({ id: e })) : [] },
       ficheSSEId: type === "evenement" ? cible : null,
       ecartAmianteId: type === "amiante" ? cible : null,
       remonteeId: type === "remontee" ? cible : null,
@@ -199,17 +215,19 @@ export async function changerRattachementAction(formData: FormData) {
     },
   });
 
-  // L'ancien parent perd une action, le nouveau en gagne une : leurs statuts
-  // sont recalculés tous les deux.
-  await recalculerStatutsParents(avant);
-  await recalculerStatutsParents(action);
+  const ecartsAvant = avant.ecarts.map((e) => e.id);
+  const ecartsApres = action.ecarts.map((e) => e.id);
+
+  // Les anciens parents perdent une action, les nouveaux en gagnent une : tous
+  // voient leur statut recalculé.
+  await recalculerStatutsParents({ ...avant, ecartIds: ecartsAvant });
+  await recalculerStatutsParents({ ...action, ecartIds: ecartsApres });
 
   for (const chemin of [
-    avant.ecartId && `/ecarts/${avant.ecartId}`,
+    ...new Set([...ecartsAvant, ...ecartsApres]).values().map((e) => `/ecarts/${e}`),
     avant.ficheSSEId && `/fiches-sse/${avant.ficheSSEId}`,
     avant.ecartAmianteId && `/ecart-amiante/${avant.ecartAmianteId}`,
     avant.remonteeId && `/remontees/${avant.remonteeId}`,
-    action.ecartId && `/ecarts/${action.ecartId}`,
     action.ficheSSEId && `/fiches-sse/${action.ficheSSEId}`,
     action.ecartAmianteId && `/ecart-amiante/${action.ecartAmianteId}`,
     action.remonteeId && `/remontees/${action.remonteeId}`,
@@ -225,16 +243,23 @@ export async function supprimerAction(formData: FormData) {
   if (!session?.user) redirect("/connexion");
 
   const id = String(formData.get("id"));
+  // Les écarts sont lus avant la suppression : après, la table de liaison est
+  // déjà purgée et on ne saurait plus quels statuts recalculer.
+  const avant = await prisma.action.findUniqueOrThrow({
+    where: { id },
+    select: { ecarts: { select: { id: true } } },
+  });
+  const ecartIds = avant.ecarts.map((e) => e.id);
   const action = await prisma.action.delete({ where: { id } });
 
   revalidatePath("/plan-action");
-  if (action.ecartId) revalidatePath(`/ecarts/${action.ecartId}`);
+  for (const e of ecartIds) revalidatePath(`/ecarts/${e}`);
   if (action.ficheSSEId) revalidatePath(`/fiches-sse/${action.ficheSSEId}`);
   if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
   if (action.remonteeId) revalidatePath(`/remontees/${action.remonteeId}`);
-  await recalculerStatutsParents(action);
+  await recalculerStatutsParents({ ...action, ecartIds });
 
-  if (action.ecartId) redirect(`/ecarts/${action.ecartId}`);
+  if (ecartIds.length > 0) redirect(`/ecarts/${ecartIds[0]}`);
   if (action.ficheSSEId) redirect(`/fiches-sse/${action.ficheSSEId}`);
   if (action.ecartAmianteId) redirect(`/ecart-amiante/${action.ecartAmianteId}`);
   if (action.remonteeId) redirect(`/remontees/${action.remonteeId}`);

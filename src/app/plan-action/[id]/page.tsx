@@ -36,7 +36,7 @@ export default async function ActionDetailPage({
   const { id } = await params;
   const action = await prisma.action.findUnique({
     where: { id },
-    include: { ecart: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true, remontee: true },
+    include: { ecarts: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true, remontee: true },
   });
 
   if (!action) notFound();
@@ -61,8 +61,11 @@ export default async function ActionDetailPage({
     }),
   ]);
 
-  const retourHref = action.ecart
-    ? `/ecarts/${action.ecart.id}`
+  // Plusieurs écarts possibles : le retour va au premier, faute de mieux — le
+  // fil d'Ariane ne peut pointer que vers un seul endroit.
+  const premierEcart = action.ecarts[0];
+  const retourHref = premierEcart
+    ? `/ecarts/${premierEcart.id}`
     : action.ficheSSE
       ? `/fiches-sse/${action.ficheSSE.id}`
       : action.ecartAmiante
@@ -70,8 +73,10 @@ export default async function ActionDetailPage({
         : action.remontee
           ? `/remontees/${action.remontee.id}`
           : "/plan-action";
-  const retourLabel = action.ecart
-    ? "Retour à l'écart"
+  const retourLabel = premierEcart
+    ? action.ecarts.length > 1
+      ? "Retour aux écarts"
+      : "Retour à l'écart"
     : action.ficheSSE
       ? "Retour à l'évènement SSE"
       : action.ecartAmiante
@@ -87,11 +92,17 @@ export default async function ActionDetailPage({
             <h1 className="text-2xl font-semibold text-slate-900">{action.reference}</h1>
             <Badge label={STATUT_ACTION_LABELS[action.statut]} colorClass={STATUT_ACTION_COLORS[action.statut]} />
           </div>
-          {action.ecart ? (
-            <Link href={`/ecarts/${action.ecart.id}`} className="text-sm text-slate-500 hover:underline">
-              Écart {action.ecart.reference}
-              {action.ecart.dossier ? ` — ${action.ecart.dossier.chantier}` : ""}
-            </Link>
+          {action.ecarts.length > 0 ? (
+            // Tous les écarts couverts sont listés : n'en montrer qu'un
+            // laisserait croire à un rattachement unique.
+            <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-sm text-slate-500">
+              {action.ecarts.map((e) => (
+                <Link key={e.id} href={`/ecarts/${e.id}`} className="hover:underline">
+                  Écart {e.reference}
+                  {e.dossier ? ` — ${e.dossier.chantier}` : ""}
+                </Link>
+              ))}
+            </span>
           ) : action.ficheSSE ? (
             <Link href={`/fiches-sse/${action.ficheSSE.id}`} className="text-sm text-slate-500 hover:underline">
               Évènement SSE {action.ficheSSE.reference}
@@ -113,8 +124,10 @@ export default async function ActionDetailPage({
                 {
                   cle: "ecart",
                   libelle: "Écart",
-                  champ: "ecartId",
-                  valeurActuelle: action.ecartId,
+                  champ: "ecartIds",
+                  multiple: true,
+                  valeurActuelle: premierEcart?.id ?? null,
+                  valeursActuelles: action.ecarts.map((e) => e.id),
                   options: ecartsChoix.map((e) => ({
                     id: e.id,
                     libelle: libelleRattachement(e.reference, e.dossier?.chantier ?? null, e.description),

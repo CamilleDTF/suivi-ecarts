@@ -52,22 +52,25 @@ export default async function FicheSSEDetailPage({
   if (!fiche) notFound();
   const estBrouillon = fiche.statutFiche === "BROUILLON";
 
-  const rattachements: { ficheSSEId?: string; ecartId?: string; ecartAmianteId?: string }[] = [
-    { ficheSSEId: fiche.id },
-  ];
-  if (fiche.ecartId) rattachements.push({ ecartId: fiche.ecartId });
+  const rattachements: {
+    ficheSSEId?: string;
+    ecarts?: { some: { id: string } };
+    ecartAmianteId?: string;
+  }[] = [{ ficheSSEId: fiche.id }];
+  if (fiche.ecartId) rattachements.push({ ecarts: { some: { id: fiche.ecartId } } });
   if (fiche.ecartAmianteId) rattachements.push({ ecartAmianteId: fiche.ecartAmianteId });
 
   const actions = await prisma.action.findMany({
     where: { OR: rattachements },
     orderBy: { createdAt: "desc" },
+    include: { ecarts: { select: { id: true } } },
   });
 
   const ficheId = fiche.id;
   const actionsDirectes = actions.filter((a) => a.ficheSSEId === ficheId).length;
   function origineAction(a: (typeof actions)[number]) {
     if (a.ficheSSEId === ficheId) return "Évènement";
-    if (a.ecartId) return "Écart";
+    if (a.ecarts.length > 0) return "Écart";
     if (a.ecartAmianteId) return "Écart amiante";
     return "—";
   }

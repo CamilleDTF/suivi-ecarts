@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
+import { ChoixEcarts } from "@/components/choix-ecarts";
 
 export type Option = { id: string; libelle: string };
 
@@ -9,10 +10,14 @@ export type Option = { id: string; libelle: string };
 export type TypeRattachement = {
   cle: string;
   libelle: string;
-  /** Nom du champ envoyé au serveur (ecartId, ficheSSEId, ecartAmianteId). */
+  /** Nom du champ envoyé au serveur (ecartIds, ficheSSEId, ecartAmianteId…). */
   champ: string;
   options: Option[];
   valeurActuelle: string | null;
+  /** Le type accepte plusieurs cibles (les écarts). */
+  multiple?: boolean;
+  /** Cibles déjà rattachées, pour les types multiples. */
+  valeursActuelles?: string[];
 };
 
 function BoutonEnregistrer() {
@@ -92,7 +97,18 @@ export function ChangerRattachement({
         )}
       </div>
 
-      {actif && (
+      {actif && actif.multiple && (
+        <div className="mb-2">
+          <ChoixEcarts
+            key={actif.champ}
+            name={actif.champ}
+            options={actif.options}
+            valeurInitiale={actif.valeursActuelles ?? []}
+          />
+        </div>
+      )}
+
+      {actif && !actif.multiple && (
         <select
           name={actif.champ}
           defaultValue={actif.valeurActuelle ?? ""}

@@ -298,8 +298,11 @@ model EcartAmiante {
 model Action {
   id              String        @id @default(cuid())
   reference       String        @unique
-  ecart           Ecart?        @relation(fields: [ecartId], references: [id])
-  ecartId         String?
+  // Plusieurs écarts pour une seule action : une même correction couvre
+  // souvent plusieurs constats (même cause, même chantier), et la dupliquer
+  // obligerait à la clôturer plusieurs fois. Les trois autres rattachements
+  // restent uniques, et un seul type de rattachement à la fois.
+  ecarts          Ecart[]
   ficheSSE        FicheSSE?     @relation(fields: [ficheSSEId], references: [id])
   ficheSSEId      String?
   ecartAmiante    EcartAmiante? @relation(fields: [ecartAmianteId], references: [id])

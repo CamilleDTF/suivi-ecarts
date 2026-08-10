@@ -27,13 +27,17 @@ export async function GET(request: NextRequest) {
       responsable: responsable || undefined,
     },
     orderBy: { echeance: "asc" },
-    include: { ecart: true, ficheSSE: true, ecartAmiante: true },
+    include: { ecarts: true, ficheSSE: true, ecartAmiante: true, remontee: true },
   });
 
+  // Plusieurs écarts possibles : leurs références sont listées dans la même
+  // cellule, séparées par un espace, pour que la colonne reste exploitable en
+  // tri et en filtre dans le tableur.
   function rattacheA(a: (typeof actions)[number]): string {
-    if (a.ecart) return a.ecart.reference;
+    if (a.ecarts.length > 0) return a.ecarts.map((e) => e.reference).join(" ");
     if (a.ficheSSE) return a.ficheSSE.reference;
     if (a.ecartAmiante) return a.ecartAmiante.reference;
+    if (a.remontee) return a.remontee.reference;
     return "";
   }
 

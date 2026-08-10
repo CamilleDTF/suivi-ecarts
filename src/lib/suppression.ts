@@ -29,7 +29,15 @@ async function ecartAmianteDans(tx: TxClient, ecartAmianteId: string) {
 async function ecartDans(tx: TxClient, ecartId: string) {
   const fiches = await tx.ficheSSE.findMany({ where: { ecartId }, select: { id: true } });
   for (const f of fiches) await ficheSSEDans(tx, f.id);
-  await tx.action.deleteMany({ where: { ecartId } });
+  // Une action peut couvrir plusieurs écarts : seules celles qui ne tenaient
+  // qu'à celui-ci disparaissent. Les autres perdent ce rattachement — la table
+  // de liaison est purgée en cascade avec l'écart — et restent suivies au titre
+  // des écarts qu'elles couvrent encore.
+  const orphelines = await tx.action.findMany({
+    where: { ecarts: { every: { id: ecartId }, some: { id: ecartId } } },
+    select: { id: true },
+  });
+  await tx.action.deleteMany({ where: { id: { in: orphelines.map((a) => a.id) } } });
   // La contrainte remet ecartId à NULL, mais laisserait la remontée d'origine
   // marquée "Transformée en écart" alors qu'il n'y a plus d'écart : elle
   // redevient à traiter, puisque le sujet qu'elle signalait n'est plus suivi.
@@ -65,7 +73,13 @@ export async function supprimerDossierCascade(dossierId: string) {
 // avec eux, même si elles ne sont pas rattachées directement à l'écart.
 async function compterActions(ecartIds: string[], ecartAmianteIds: string[], ficheIds: string[]) {
   const conditions = [];
-  if (ecartIds.length > 0) conditions.push({ ecartId: { in: ecartIds } });
+  // Seules les actions dont TOUS les écarts partent avec la suppression sont
+  // comptées : une action partagée avec un écart conservé, elle, survit.
+  if (ecartIds.length > 0) {
+    conditions.push({
+      ecarts: { some: { id: { in: ecartIds } }, every: { id: { in: ecartIds } } },
+    });
+  }
   if (ecartAmianteIds.length > 0) conditions.push({ ecartAmianteId: { in: ecartAmianteIds } });
   if (ficheIds.length > 0) conditions.push({ ficheSSEId: { in: ficheIds } });
   if (conditions.length === 0) return 0;

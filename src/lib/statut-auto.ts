@@ -17,7 +17,7 @@ function statutSansAction(statutActuel: StatutDossierEcart): StatutDossierEcart 
 
 export async function recalculerStatutEcart(ecartId: string) {
   const [actions, ecart] = await Promise.all([
-    prisma.action.findMany({ where: { ecartId }, select: { statut: true } }),
+    prisma.action.findMany({ where: { ecarts: { some: { id: ecartId } } }, select: { statut: true } }),
     prisma.ecart.findUnique({ where: { id: ecartId }, select: { statut: true, dossierId: true } }),
   ]);
   if (!ecart) return;
@@ -80,13 +80,15 @@ export async function recalculerStatutFicheSSE(ficheSSEId: string) {
   if (fiche.ecartId) revalidatePath(`/ecarts/${fiche.ecartId}`);
 }
 
+// `ecartIds` au pluriel : une action peut couvrir plusieurs écarts, et chacun
+// doit voir son statut recalculé — y compris ceux qu'elle vient de quitter.
 export async function recalculerStatutsParents(parents: {
-  ecartId?: string | null;
+  ecartIds?: string[] | null;
   ficheSSEId?: string | null;
   ecartAmianteId?: string | null;
 }) {
   await Promise.all([
-    parents.ecartId ? recalculerStatutEcart(parents.ecartId) : Promise.resolve(),
+    ...(parents.ecartIds ?? []).map((id) => recalculerStatutEcart(id)),
     parents.ficheSSEId ? recalculerStatutFicheSSE(parents.ficheSSEId) : Promise.resolve(),
     parents.ecartAmianteId ? recalculerStatutEcartAmiante(parents.ecartAmianteId) : Promise.resolve(),
   ]);

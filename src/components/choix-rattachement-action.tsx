@@ -2,8 +2,16 @@
 
 import { useState } from "react";
 import type { Option } from "@/components/changer-rattachement";
+import { ChoixEcarts } from "@/components/choix-ecarts";
 
-type TypeRattachement = { cle: string; libelle: string; champ: string; options: Option[] };
+type TypeRattachement = {
+  cle: string;
+  libelle: string;
+  champ: string;
+  options: Option[];
+  /** Le type accepte plusieurs cibles (les écarts). */
+  multiple?: boolean;
+};
 
 const inputCls = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm";
 
@@ -18,7 +26,16 @@ const inputCls = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm";
  * Un seul rattachement à la fois : seul le champ du type retenu est présent
  * dans le formulaire, les autres ne sont pas rendus.
  */
-export function ChoixRattachementAction({ types, defaut }: { types: TypeRattachement[]; defaut?: string }) {
+export function ChoixRattachementAction({
+  types,
+  defaut,
+  preselection,
+}: {
+  types: TypeRattachement[];
+  defaut?: string;
+  /** Cibles déjà retenues, quand l'URL désigne un parent (« + Action » depuis un écart). */
+  preselection?: string[];
+}) {
   const [choisi, setChoisi] = useState(defaut ?? types[0].cle);
   const actif = types.find((t) => t.cle === choisi) ?? types[0];
 
@@ -40,18 +57,29 @@ export function ChoixRattachementAction({ types, defaut }: { types: TypeRattache
         ))}
       </div>
 
-      <select key={actif.champ} name={actif.champ} required defaultValue="" className={inputCls}>
-        <option value="" disabled>
-          Sélectionner {actif.libelle.toLowerCase()}
-        </option>
-        {actif.options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.libelle}
-          </option>
-        ))}
-      </select>
-      {actif.options.length === 0 && (
-        <p className="mt-1 text-xs text-slate-400">Aucun élément de ce type pour l&apos;instant.</p>
+      {actif.multiple ? (
+        <ChoixEcarts
+          key={actif.champ}
+          name={actif.champ}
+          options={actif.options}
+          valeurInitiale={defaut === actif.cle ? preselection : undefined}
+        />
+      ) : (
+        <>
+          <select key={actif.champ} name={actif.champ} required defaultValue="" className={inputCls}>
+            <option value="" disabled>
+              Sélectionner {actif.libelle.toLowerCase()}
+            </option>
+            {actif.options.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.libelle}
+              </option>
+            ))}
+          </select>
+          {actif.options.length === 0 && (
+            <p className="mt-1 text-xs text-slate-400">Aucun élément de ce type pour l&apos;instant.</p>
+          )}
+        </>
       )}
     </div>
   );

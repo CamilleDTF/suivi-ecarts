@@ -36,7 +36,7 @@ async function supprimerDonneesDeDemo() {
   await prisma.causeArbre.updateMany({ where: { ficheSSEId: { in: ficheIds } }, data: { parentId: null } });
   await prisma.causeArbre.deleteMany({ where: { ficheSSEId: { in: ficheIds } } });
   await prisma.action.deleteMany({
-    where: { OR: [{ ecartId: { in: ecartIds } }, { ficheSSEId: { in: ficheIds } }] },
+    where: { OR: [{ ecarts: { some: { id: { in: ecartIds } } } }, { ficheSSEId: { in: ficheIds } }] },
   });
   await prisma.ficheSSE.deleteMany({ where: { id: { in: ficheIds } } });
   await prisma.ecart.deleteMany({ where: { id: { in: ecartIds } } });
@@ -180,7 +180,7 @@ async function main() {
       data: {
         id: a.idExcel,
         reference: await generateReference("Action", "ACT"),
-        ecartId: a.ecartIdExcel,
+        ecarts: a.ecartIdExcel ? { connect: { id: a.ecartIdExcel } } : undefined,
         ficheSSEId: a.ficheSSEIdExcel,
         ecartAmianteId: a.ecartAmianteIdExcel,
         type: a.type as never,

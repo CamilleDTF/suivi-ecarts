@@ -50,9 +50,9 @@ export default async function PlanActionPage({
           { action: contient },
           { responsable: contient },
           { origine: contient },
-          { ecart: { reference: contient } },
-          { ecart: { description: contient } },
-          { ecart: { dossier: { chantier: contient } } },
+          { ecarts: { some: { reference: contient } } },
+          { ecarts: { some: { description: contient } } },
+          { ecarts: { some: { dossier: { chantier: contient } } } },
           { ficheSSE: { reference: contient } },
           { ecartAmiante: { reference: contient } },
           { ecartAmiante: { nomChantier: contient } },
@@ -67,7 +67,7 @@ export default async function PlanActionPage({
     prisma.action.findMany({
       where,
       orderBy: construireTri(tri, sens, COLONNES_TRI, { echeance: "asc" as const }, ["echeance"]),
-      include: { ecart: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true, remontee: true },
+      include: { ecarts: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true, remontee: true },
       skip: (page - 1) * taillePage,
       take: taillePage,
     }),
@@ -190,10 +190,17 @@ export default async function PlanActionPage({
                   </Link>
                 </td>
                 <td className="px-4 py-3">
-                  {a.ecart ? (
-                    <Link href={`/ecarts/${a.ecart.id}`} className="text-slate-600 hover:underline">
-                      {a.ecart.reference}
-                    </Link>
+                  {a.ecarts.length > 0 ? (
+                    // Plusieurs écarts : tous listés, chacun cliquable. En
+                    // afficher un seul laisserait croire à un rattachement
+                    // unique.
+                    <span className="flex flex-wrap gap-x-2 gap-y-0.5">
+                      {a.ecarts.map((e) => (
+                        <Link key={e.id} href={`/ecarts/${e.id}`} className="text-slate-600 hover:underline">
+                          {e.reference}
+                        </Link>
+                      ))}
+                    </span>
                   ) : a.ficheSSE ? (
                     <Link href={`/fiches-sse/${a.ficheSSE.id}`} className="text-slate-600 hover:underline">
                       {a.ficheSSE.reference}

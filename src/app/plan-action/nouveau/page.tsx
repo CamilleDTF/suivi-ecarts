@@ -88,11 +88,13 @@ export default async function NouvelleActionPage({
         ) : (
           <ChoixRattachementAction
             defaut={ecartId ? "ecart" : undefined}
+            preselection={ecartId ? [ecartId] : undefined}
             types={[
               {
                 cle: "ecart",
                 libelle: "Écart",
-                champ: "ecartId",
+                champ: "ecartIds",
+                multiple: true,
                 options: ecarts.map((e) => ({
                   id: e.id,
                   libelle: libelleRattachement(e.reference, e.dossier?.chantier ?? null, e.description),
