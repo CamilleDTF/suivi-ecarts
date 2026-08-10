@@ -12,7 +12,7 @@ import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonArchiver } from "@/components/bouton-archiver";
 import { archiver, desarchiver } from "@/app/archivage/actions";
 import { BoutonRetour } from "@/components/bouton-retour";
-import { BoutonExportPDF } from "@/components/bouton-export-pdf";
+import { IconFileText } from "@/components/icons";
 import { compterImpactSuppressionDossier } from "@/lib/suppression";
 
 // Le navigateur nomme le PDF d’après le titre du document : sans titre
@@ -58,7 +58,16 @@ export default async function DossierDetailPage({
           <p className="text-sm text-slate-500">{dossier.chantier}</p>
         </div>
         <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
-          <BoutonExportPDF />
+          {/* Mène au rapport complet — écarts, évènements, actions et
+              logigrammes — dont l'impression part toute seule. Imprimer cette
+              page-ci ne donnerait que l'entête et la liste des écarts. */}
+          <Link
+            href={`/dossiers/${dossier.id}/rapport?impression=1`}
+            className="flex items-center gap-1.5 whitespace-nowrap rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <IconFileText className="h-4 w-4" />
+            Exporter en PDF
+          </Link>
           <Link
             href={`/ecarts/nouveau?dossierId=${dossier.id}`}
             className="whitespace-nowrap rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
