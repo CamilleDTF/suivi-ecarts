@@ -63,11 +63,13 @@ export async function creerEcart(formData: FormData) {
     if (remonteeId) {
       const remontee = await tx.remonteeInfo.findUniqueOrThrow({
         where: { id: remonteeId },
-        select: { ecartId: true },
+        select: { statut: true },
       });
       // Le bouton disparaît une fois la remontée transformée, mais l'URL
-      // reste rejouable : c'est ici que la règle doit tenir.
-      if (remontee.ecartId) {
+      // reste rejouable : c'est ici que la règle doit tenir. Le test porte sur
+      // le statut : une remontée simplement rattachée à un écart existant peut
+      // encore justifier d'en ouvrir un.
+      if (remontee.statut === "TRANSFORMEE_EN_ECART") {
         throw new Error("Cette remontée a déjà été transformée en écart.");
       }
     }
@@ -109,7 +111,18 @@ export async function creerEcart(formData: FormData) {
     if (remonteeId) {
       await tx.remonteeInfo.update({
         where: { id: remonteeId },
-        data: { ecartId: cree.id, statut: "TRANSFORMEE_EN_ECART" },
+        // ficheSSEId remis à null : l'écart devient le rattachement de la
+        // remontée, et un seul type vaut à la fois. Sans ça, transformer une
+        // remontée déjà rattachée à un évènement la laissait liée aux deux.
+        // L'écart créé s'ajoute aux écarts rattachés (connect, pas set) et est
+        // en plus enregistré comme origine : c'est lui, et lui seul, qui est né
+        // de cette remontée.
+        data: {
+          ecarts: { connect: { id: cree.id } },
+          ecartOrigineId: cree.id,
+          ficheSSEId: null,
+          statut: "TRANSFORMEE_EN_ECART",
+        },
       });
     }
     return cree;

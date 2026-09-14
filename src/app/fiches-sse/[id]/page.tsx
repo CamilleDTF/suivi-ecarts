@@ -46,6 +46,7 @@ export default async function FicheSSEDetailPage({
       ecart: { include: { dossier: true } },
       ecartAmiante: true,
       causes: { orderBy: { createdAt: "asc" } },
+      remontees: { orderBy: { reference: "asc" }, select: { id: true, reference: true, objet: true } },
     },
   });
 
@@ -117,6 +118,17 @@ export default async function FicheSSEDetailPage({
           {!fiche.ecart && !fiche.ecartAmiante && (
             <p className="text-sm text-slate-400">Rattaché à aucun écart</p>
           )}
+          {/* Les remontées rattachées à cet évènement : elles sont souvent ce
+              qui l'a fait connaître, et se perdraient sans ce rappel. */}
+          {fiche.remontees.map((r) => (
+            <Link
+              key={r.id}
+              href={`/remontees/${r.id}`}
+              className="block text-sm text-purple-700 hover:underline"
+            >
+              Remontée rattachée {r.reference} — {r.objet}
+            </Link>
+          ))}
           <div data-no-print className="mt-1">
             <ChangerRattachement
               action={changerRattachementFicheSSE}

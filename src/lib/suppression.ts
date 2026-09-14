@@ -38,12 +38,15 @@ async function ecartDans(tx: TxClient, ecartId: string) {
     select: { id: true },
   });
   await tx.action.deleteMany({ where: { id: { in: orphelines.map((a) => a.id) } } });
-  // La contrainte remet ecartId à NULL, mais laisserait la remontée d'origine
-  // marquée "Transformée en écart" alors qu'il n'y a plus d'écart : elle
-  // redevient à traiter, puisque le sujet qu'elle signalait n'est plus suivi.
+  // La contrainte remet ecartOrigineId à NULL, mais laisserait la remontée
+  // d'origine marquée "Transformée en écart" alors qu'il n'y a plus d'écart :
+  // elle redevient à traiter, puisque le sujet qu'elle signalait n'est plus
+  // suivi. Les remontées seulement rattachées, elles, perdent le lien — la
+  // table de liaison part en cascade — mais gardent leur statut : « Traitée »
+  // reste vrai même si l'écart disparaît du registre.
   await tx.remonteeInfo.updateMany({
-    where: { ecartId },
-    data: { ecartId: null, statut: "A_TRAITER" },
+    where: { ecartOrigineId: ecartId },
+    data: { ecartOrigineId: null, statut: "A_TRAITER" },
   });
   await tx.ecart.delete({ where: { id: ecartId } });
 }

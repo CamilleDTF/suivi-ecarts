@@ -14,6 +14,7 @@ import {
   mettreAJourStatutRemontee,
   marquerRemonteeTraitee,
   supprimerRemontee,
+  changerRattachementRemontee,
 } from "@/app/remontees/actions";
 import { StatutRemontee } from "@/generated/prisma/enums";
 import { StatutSelectForm } from "@/components/statut-select-form";
@@ -24,6 +25,8 @@ import { BoutonArchiver } from "@/components/bouton-archiver";
 import { archiver, desarchiver } from "@/app/archivage/actions";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
+import { ChangerRattachement } from "@/components/changer-rattachement";
+import { libelleRattachement } from "@/lib/labels";
 
 // Le navigateur nomme le PDF d’après le titre du document : sans titre
 // propre à la fiche, tous les exports s’enregistreraient sous le même nom.
@@ -42,22 +45,34 @@ export default async function RemonteeDetailPage({
   const remontee = await prisma.remonteeInfo.findUnique({
     where: { id },
     include: {
-      ecart: { include: { dossier: true } },
+      ecarts: { orderBy: { reference: "asc" }, include: { dossier: true } },
+      ecartOrigine: { include: { dossier: true } },
+      ficheSSE: true,
       actions: { orderBy: { createdAt: "desc" } },
     },
   });
 
   if (!remontee) notFound();
 
-  const [dossiers, autresRemontees] = await Promise.all([
+  const [dossiers, autresRemontees, ecartsChoix, evenementsChoix] = await Promise.all([
     prisma.dossier.findMany({ distinct: ["chantier"], select: { chantier: true } }),
     prisma.remonteeInfo.findMany({ distinct: ["chantierService"], select: { chantierService: true } }),
+    prisma.ecart.findMany({
+      orderBy: { reference: "asc" },
+      select: { id: true, reference: true, description: true, dossier: { select: { chantier: true } } },
+    }),
+    prisma.ficheSSE.findMany({
+      orderBy: { reference: "asc" },
+      select: { id: true, reference: true, nomChantier: true, descriptionFactuelle: true },
+    }),
   ]);
   const chantiersConnus = [
     ...new Set([...dossiers.map((d) => d.chantier), ...autresRemontees.map((r) => r.chantierService)]),
   ].sort();
 
-  const dejaTransformee = !!remontee.ecart;
+  // Transformée = un écart est né de cette remontée. Un simple rattachement à
+  // un écart existant ne fige rien : c'est le statut qui fait foi.
+  const dejaTransformee = remontee.statut === "TRANSFORMEE_EN_ECART";
 
   return (
     <div className="mx-auto max-w-[100rem] px-6 py-8">
@@ -105,15 +120,77 @@ export default async function RemonteeDetailPage({
         si nécessaire.
       </p>
 
-      {dejaTransformee && (
-        <div className="mb-6 rounded-lg border border-purple-200 bg-purple-50 p-4 text-sm">
-          <p className="font-medium text-purple-900">Transformée en écart</p>
-          <Link href={`/ecarts/${remontee.ecart!.id}`} className="text-purple-800 hover:underline">
-            {remontee.ecart!.reference}
-            {remontee.ecart!.dossier ? ` — ${remontee.ecart!.dossier.chantier}` : ""}
+      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 text-sm">
+        <p className="mb-1 text-xs uppercase tracking-wide text-slate-500">
+          {dejaTransformee ? "Transformée en écart" : "Rattachée à"}
+        </p>
+        {remontee.ecarts.length > 0 ? (
+          <ul>
+            {remontee.ecarts.map((e) => (
+              <li key={e.id}>
+                <Link
+                  href={`/ecarts/${e.id}`}
+                  className={
+                    e.id === remontee.ecartOrigineId
+                      ? "font-medium text-purple-800 hover:underline"
+                      : "text-blue-700 hover:underline"
+                  }
+                >
+                  Écart {e.reference}
+                  {e.dossier ? ` — ${e.dossier.chantier}` : ""}
+                </Link>
+                {/* Parmi plusieurs écarts rattachés, celui qui est né de cette
+                    remontée doit rester identifiable. */}
+                {e.id === remontee.ecartOrigineId && (
+                  <span className="ml-2 text-xs text-purple-700">issu de cette remontée</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : remontee.ficheSSE ? (
+          <Link href={`/fiches-sse/${remontee.ficheSSE.id}`} className="text-blue-700 hover:underline">
+            Évènement SSE {remontee.ficheSSE.reference}
+            {remontee.ficheSSE.nomChantier ? ` — ${remontee.ficheSSE.nomChantier}` : ""}
           </Link>
-        </div>
-      )}
+        ) : (
+          <span className="text-slate-400">Aucun rattachement</span>
+        )}
+
+        {/* Une remontée transformée garde son rattachement : le détacher
+            laisserait un écart sans origine traçable. */}
+        {!dejaTransformee && (
+          <div data-no-print className="mt-2">
+            <ChangerRattachement
+              action={changerRattachementRemontee}
+              hiddenFields={{ id: remontee.id }}
+              types={[
+                {
+                  cle: "ecart",
+                  libelle: "Écart",
+                  champ: "ecartIds",
+                  multiple: true,
+                  valeurActuelle: remontee.ecarts[0]?.id ?? null,
+                  valeursActuelles: remontee.ecarts.map((e) => e.id),
+                  options: ecartsChoix.map((e) => ({
+                    id: e.id,
+                    libelle: libelleRattachement(e.reference, e.dossier?.chantier ?? null, e.description),
+                  })),
+                },
+                {
+                  cle: "evenement",
+                  libelle: "Évènement SSE",
+                  champ: "ficheSSEId",
+                  valeurActuelle: remontee.ficheSSEId,
+                  options: evenementsChoix.map((e) => ({
+                    id: e.id,
+                    libelle: libelleRattachement(e.reference, e.nomChantier, e.descriptionFactuelle),
+                  })),
+                },
+              ]}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Une fois l'écart créé, le statut décrit un fait acquis : on retire le
           sélecteur plutôt que de laisser proposer un choix qui sera refusé. */}

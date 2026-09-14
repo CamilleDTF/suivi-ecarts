@@ -56,6 +56,10 @@ export default async function RemonteesPage({
           { personneRemontant: { contains: q, mode: "insensitive" as const } },
           { personneSaisie: { contains: q, mode: "insensitive" as const } },
           { categorie: { contains: q, mode: "insensitive" as const } },
+          // Chercher la référence du rattachement ramène la remontée : c'est
+          // souvent par l'écart qu'on revient à ce qui l'a signalé.
+          { ecarts: { some: { reference: { contains: q, mode: "insensitive" as const } } } },
+          { ficheSSE: { reference: { contains: q, mode: "insensitive" as const } } },
           // Les natures sont stockées en tableau : on cherche d'abord les
           // options correspondant au texte saisi, puis on filtre dessus.
           ...(naturesTrouvees.length ? [{ natures: { hasSome: naturesTrouvees } }] : []),
@@ -68,7 +72,10 @@ export default async function RemonteesPage({
     prisma.remonteeInfo.findMany({
       where,
       orderBy: { dateRemontee: "desc" },
-      include: { ecart: { select: { id: true, reference: true } } },
+      include: {
+        ecarts: { orderBy: { reference: "asc" }, select: { id: true, reference: true } },
+        ficheSSE: { select: { id: true, reference: true } },
+      },
       skip: (page - 1) * taillePage,
       take: taillePage,
     }),
@@ -167,6 +174,7 @@ export default async function RemonteesPage({
               <th className="px-4 py-3 font-medium">Chantier / Service</th>
               <th className="px-4 py-3 font-medium">Objet</th>
               <th className="px-4 py-3 font-medium">Catégorie</th>
+              <th className="px-4 py-3 font-medium">Rattachée à</th>
               <th className="px-4 py-3 font-medium">Statut</th>
               <th className="px-4 py-3 font-medium">Suite</th>
             </tr>
@@ -184,23 +192,38 @@ export default async function RemonteesPage({
                 <td className="px-4 py-3 text-slate-700">{r.chantierService}</td>
                 <td className="max-w-xs truncate px-4 py-3 text-slate-700">{r.objet}</td>
                 <td className="px-4 py-3 text-slate-700">{r.categorie || "—"}</td>
+                <td className="whitespace-nowrap px-4 py-3">
+                  {r.ecarts.length > 0 ? (
+                    // Tous les écarts rattachés, chacun cliquable : n'en montrer
+                    // qu'un laisserait croire à un rattachement unique.
+                    <span className="flex flex-wrap gap-x-2 gap-y-0.5">
+                      {r.ecarts.map((e) => (
+                        <Link key={e.id} href={`/ecarts/${e.id}`} className="text-slate-600 hover:underline">
+                          {e.reference}
+                        </Link>
+                      ))}
+                    </span>
+                  ) : r.ficheSSE ? (
+                    <Link href={`/fiches-sse/${r.ficheSSE.id}`} className="text-slate-600 hover:underline">
+                      {r.ficheSSE.reference}
+                    </Link>
+                  ) : (
+                    <span className="text-slate-400">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <Badge label={STATUT_REMONTEE_LABELS[r.statut]} colorClass={STATUT_REMONTEE_COLORS[r.statut]} />
                 </td>
                 <td className="max-w-xs truncate px-4 py-3 text-slate-600">
-                  {r.ecart ? (
-                    <Link href={`/ecarts/${r.ecart.id}`} className="text-blue-700 hover:underline">
-                      {r.ecart.reference}
-                    </Link>
-                  ) : (
-                    r.suiteDonnee || "—"
-                  )}
+                  {/* L'écart a désormais sa propre colonne : « Suite » redit ce
+                      qu'elle annonce, la suite donnée. */}
+                  {r.suiteDonnee || "—"}
                 </td>
               </tr>
             ))}
             {remontees.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
                   {filtreActif
                     ? "Aucune remontée ne correspond à ce filtre."
                     : "Aucune remontée d'information pour l'instant."}

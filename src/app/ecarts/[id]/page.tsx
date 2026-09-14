@@ -47,7 +47,11 @@ export default async function EcartDetailPage({
     where: { id },
     include: {
       dossier: true,
-      remontee: { select: { id: true, reference: true, objet: true } },
+      remontees: {
+        orderBy: { reference: "asc" },
+        select: { id: true, reference: true, objet: true },
+      },
+      remonteesOrigine: { select: { id: true } },
       fichesSSE: { orderBy: { createdAt: "desc" } },
       actions: { orderBy: { createdAt: "desc" } },
     },
@@ -56,6 +60,9 @@ export default async function EcartDetailPage({
   if (!ecart) notFound();
 
   const impact = await compterImpactSuppressionEcart(ecart.id);
+  // Une remontée peut être rattachée à cet écart sans en être l'origine : le
+  // libellé distingue les deux, et le statut ne suffit plus à les départager.
+  const idsRemonteesOrigine = new Set(ecart.remonteesOrigine.map((r) => r.id));
 
   // Dossiers proposés pour corriger un rattachement erroné.
   const dossiersChoix = await prisma.dossier.findMany({
@@ -103,14 +110,19 @@ export default async function EcartDetailPage({
               ]}
             />
           </div>
-          {ecart.remontee && (
+          {/* Plusieurs remontées peuvent viser le même écart : celle qui lui a
+              donné naissance, et celles qu'on y rattache ensuite. Le libellé
+              distingue les deux cas. */}
+          {ecart.remontees.map((r) => (
             <Link
-              href={`/remontees/${ecart.remontee.id}`}
+              key={r.id}
+              href={`/remontees/${r.id}`}
               className="block text-sm text-purple-700 hover:underline"
             >
-              Issu de la remontée {ecart.remontee.reference} — {ecart.remontee.objet}
+              {idsRemonteesOrigine.has(r.id) ? "Issu de la remontée" : "Remontée rattachée"}{" "}
+              {r.reference} — {r.objet}
             </Link>
-          )}
+          ))}
         </div>
         <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
           <BoutonExportPDF />

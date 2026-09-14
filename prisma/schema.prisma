@@ -155,7 +155,8 @@ model Ecart {
   archiveLe DateTime?
   fichesSSE          FicheSSE[]
   actions            Action[]
-  remontee           RemonteeInfo?
+  remontees          RemonteeInfo[]     @relation("RemonteeEcarts")
+  remonteesOrigine   RemonteeInfo[]     @relation("RemonteeEcartOrigine")
 }
 
 // Remontée d'information : ce que le terrain ou le bureau fait remonter au
@@ -176,14 +177,28 @@ model RemonteeInfo {
   description       String?
   suiteDonnee       String?
   statut            StatutRemontee  @default(A_TRAITER)
-  ecart             Ecart?          @relation(fields: [ecartId], references: [id])
-  ecartId           String?         @unique
+  // Rattachement : les constats auxquels cette remontée se rapporte. Plusieurs
+  // écarts, car un même signalement en révèle souvent plus d'un ; ou un
+  // évènement SSE ; jamais les deux types à la fois.
+  ecarts            Ecart[]         @relation("RemonteeEcarts")
+  ficheSSE          FicheSSE?       @relation(fields: [ficheSSEId], references: [id])
+  ficheSSEId        String?
+  // L'écart né de cette remontée, posé par « Transformer en écart ». Distinct
+  // du rattachement : il désigne une filiation, pas un simple lien, et c'est
+  // lui qui rend l'origine d'un écart traçable. Le statut
+  // TRANSFORMEE_EN_ECART va toujours de pair avec lui.
+  ecartOrigine      Ecart?          @relation("RemonteeEcartOrigine", fields: [ecartOrigineId], references: [id])
+  ecartOrigineId    String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
   modifiePar        String?
   modifieLe         DateTime?
   archiveLe         DateTime?
   actions           Action[]
+
+  // La fiche d'un évènement liste ses remontées : sans index, cette lecture
+  // ferait un parcours complet de la table.
+  @@index([ficheSSEId])
 }
 
 model FicheSSE {
@@ -233,6 +248,7 @@ model FicheSSE {
   archiveLe DateTime?
   causes                       CauseArbre[]
   actions                      Action[]
+  remontees                    RemonteeInfo[]
 }
 
 // Arbre des causes d'une fiche SSE : hiérarchie de causes (auto-référencée),
