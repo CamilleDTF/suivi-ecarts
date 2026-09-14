@@ -47,12 +47,53 @@ export default async function RemonteeDetailPage({
     include: {
       ecarts: { orderBy: { reference: "asc" }, include: { dossier: true } },
       ecartOrigine: { include: { dossier: true } },
-      ficheSSE: true,
-      actions: { orderBy: { createdAt: "desc" } },
+      ficheSSE: { select: { id: true, reference: true, nomChantier: true, ecartId: true, ecartAmianteId: true } },
     },
   });
 
   if (!remontee) notFound();
+
+  // Le plan d'action d'une remontée reprend celui de ce à quoi elle est
+  // rattachée, comme un évènement reprend celui de son écart : le constat
+  // préexiste au signalement qu'on y raccroche, et ses actions valent pour lui.
+  // L'inverse n'est pas vrai — une action propre à la remontée ne devient pas
+  // celle de l'écart.
+  //
+  // La chaîne est suivie jusqu'au bout : une remontée rattachée à un évènement
+  // voit aussi les actions de l'écart de cet évènement, puisque l'évènement
+  // lui-même les affiche.
+  const idsEcartsHerites = [
+    ...remontee.ecarts.map((e) => e.id),
+    ...(remontee.ficheSSE?.ecartId ? [remontee.ficheSSE.ecartId] : []),
+  ];
+  const idsAmianteHerites = remontee.ficheSSE?.ecartAmianteId
+    ? [remontee.ficheSSE.ecartAmianteId]
+    : [];
+
+  const actions = await prisma.action.findMany({
+    where: {
+      OR: [
+        { remonteeId: remontee.id },
+        ...(remontee.ficheSSE ? [{ ficheSSEId: remontee.ficheSSE.id }] : []),
+        ...(idsEcartsHerites.length ? [{ ecarts: { some: { id: { in: idsEcartsHerites } } } }] : []),
+        ...(idsAmianteHerites.length ? [{ ecartAmianteId: { in: idsAmianteHerites } }] : []),
+      ],
+    },
+    orderBy: { createdAt: "desc" },
+    include: { ecarts: { select: { id: true } } },
+  });
+
+  // Seules les actions propres à la remontée disparaissent avec elle : celles
+  // héritées appartiennent à l'écart ou à l'évènement, qui restent.
+  const actionsPropres = actions.filter((a) => a.remonteeId === remontee.id).length;
+
+  function origineAction(a: (typeof actions)[number]) {
+    if (a.remonteeId === remontee!.id) return "Remontée";
+    if (a.ficheSSEId) return "Évènement";
+    if (a.ecarts.length > 0) return "Écart";
+    if (a.ecartAmianteId) return "Écart amiante";
+    return "—";
+  }
 
   const [dossiers, autresRemontees, ecartsChoix, evenementsChoix] = await Promise.all([
     prisma.dossier.findMany({ distinct: ["chantier"], select: { chantier: true } }),
@@ -109,7 +150,11 @@ export default async function RemonteeDetailPage({
             <BoutonSupprimer
               action={supprimerRemontee}
               hiddenFields={{ id: remontee.id }}
-              message="Supprimer cette remontée d'information ? Cette action est irréversible."
+              message={
+                actionsPropres > 0
+                  ? `Supprimer cette remontée supprimera aussi ses ${actionsPropres} action(s) propre(s). Les actions héritées de l'écart ou de l'évènement rattaché ne sont pas touchées. Cette action est irréversible. Continuer ?`
+                  : "Supprimer cette remontée d'information ? Cette action est irréversible."
+              }
             />
           )}
         </div>
@@ -225,13 +270,14 @@ export default async function RemonteeDetailPage({
 
       <div className="mt-8">
         <h2 className="mb-3 text-lg font-semibold text-slate-900">
-          Plan d&apos;action ({remontee.actions.length})
+          Plan d&apos;action ({actions.length})
         </h2>
         <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
               <tr>
                 <th className="px-4 py-3 font-medium">Référence</th>
+                <th className="px-4 py-3 font-medium">Origine</th>
                 <th className="px-4 py-3 font-medium">Type</th>
                 <th className="px-4 py-3 font-medium">Action</th>
                 <th className="px-4 py-3 font-medium">Responsable</th>
@@ -240,13 +286,14 @@ export default async function RemonteeDetailPage({
               </tr>
             </thead>
             <tbody>
-              {remontee.actions.map((a) => (
+              {actions.map((a) => (
                 <tr key={a.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
                   <td className="whitespace-nowrap px-4 py-3">
                     <Link href={`/plan-action/${a.id}`} className="font-medium text-blue-700 hover:underline">
                       {a.reference}
                     </Link>
                   </td>
+                  <td className="px-4 py-3 text-slate-500">{origineAction(a)}</td>
                   <td className="px-4 py-3 text-slate-700">{TYPE_ACTION_LABELS[a.type]}</td>
                   <td className="max-w-xs truncate px-4 py-3 text-slate-700">{a.action}</td>
                   <td className="px-4 py-3 text-slate-700">{a.responsable}</td>
@@ -258,9 +305,9 @@ export default async function RemonteeDetailPage({
                   </td>
                 </tr>
               ))}
-              {remontee.actions.length === 0 && (
+              {actions.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                  <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
                     Aucune action.
                   </td>
                 </tr>
