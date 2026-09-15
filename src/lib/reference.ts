@@ -24,3 +24,22 @@ export async function generateReference(
   const valeur = rows[0].valeur;
   return `${prefixe}-${annee}-${String(valeur).padStart(4, "0")}`;
 }
+
+/**
+ * Numéro du plan d'action du Document Unique : PA1, PA2…
+ *
+ * Contrairement aux autres références, il ne repart pas à zéro chaque année :
+ * le DU est un document continu, et ses fiches de risques renvoient à ces
+ * numéros. L'année 0 sert de ligne unique dans le compteur, qui reste partagé
+ * et garde la même garantie d'atomicité.
+ */
+export async function prochainNumeroActionDU(): Promise<number> {
+  const rows = await prisma.$queryRaw<{ valeur: number }[]>`
+    INSERT INTO "ReferenceCounter" ("entite", "annee", "valeur")
+    VALUES ('ActionDU', 0, 1)
+    ON CONFLICT ("entite", "annee")
+    DO UPDATE SET "valeur" = "ReferenceCounter"."valeur" + 1
+    RETURNING "valeur"
+  `;
+  return rows[0].valeur;
+}

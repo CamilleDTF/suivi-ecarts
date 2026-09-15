@@ -11,6 +11,7 @@ const CHEMINS: Record<EntiteArchivable, string> = {
   ficheSSE: "/fiches-sse",
   ecartAmiante: "/ecart-amiante",
   action: "/plan-action",
+  actionDU: "/plan-action-du",
   remontee: "/remontees",
 };
 
@@ -28,7 +29,7 @@ export async function archiver(formData: FormData) {
   const entite = lireEntite(formData.get("entite"));
   const id = String(formData.get("id"));
 
-  // @ts-expect-error — les six délégués partagent ce champ, mais leur union
+  // @ts-expect-error — les délégués partagent ce champ, mais leur union
   // n'expose pas de signature commune côté types.
   await ENTITES_ARCHIVABLES[entite].update({ where: { id }, data: { archiveLe: new Date() } });
 

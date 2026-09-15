@@ -341,3 +341,32 @@ model Action {
   modifieLe       DateTime?
   archiveLe DateTime?
 }
+
+// Plan d'action du Document Unique. Table autonome plutôt qu'un rattachement
+// de plus sur Action : ses colonnes sont celles du DU — risques concernés,
+// action permanente ou ponctuelle, preuve de réalisation — et n'ont presque
+// rien de commun avec celles d'une action corrective d'écart. Les mêler
+// obligerait à porter les deux jeux de colonnes dans une seule table, à moitié
+// vides des deux côtés.
+model ActionDU {
+  id String @id @default(cuid())
+  // PA1, PA2… : la numérotation du document lui-même, à laquelle les fiches de
+  // risques du DU renvoient. Stockée en entier pour que PA10 se classe après
+  // PA9 et non entre PA1 et PA2, comme le ferait un tri sur du texte.
+  numero            Int      @unique
+  action            String
+  // Texte libre : le DU écrit des plages ("E3 à E15", "F9 à F13") et des
+  // listes mêlées, qu'une sélection de risques cochés ne saurait pas rendre.
+  risquesConcernes  String?
+  typeAction        String?
+  // Une fonction (Direction, Encadrement…) et non une personne nommée : c'est
+  // ainsi que le DU désigne les responsables.
+  responsable       String?
+  // Plusieurs moyens de preuve par action, saisis un par ligne.
+  preuveRealisation String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  modifiePar        String?
+  modifieLe         DateTime?
+  archiveLe         DateTime?
+}

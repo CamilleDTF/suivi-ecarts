@@ -229,3 +229,21 @@ export function libelleRattachement(reference: string, contexte: string | null, 
     .filter(Boolean)
     .join(" — ");
 }
+
+// Plan d'action du Document Unique.
+export const TYPES_ACTION_DU = ["Action permanente", "Action ponctuelle"];
+
+// Des fonctions et non des personnes nommées : c'est ainsi que le DU désigne
+// les responsables d'une mesure de prévention.
+export const RESPONSABLES_DU = [
+  "Direction",
+  "Encadrement",
+  "Conducteur de travaux / Chef de chantier",
+  "Chef de chantier",
+  "Resp. QHSE",
+];
+
+/** PA1, PA2… — le numéro tel qu'il apparaît dans le Document Unique. */
+export function referenceActionDU(numero: number) {
+  return `PA${numero}`;
+}

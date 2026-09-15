@@ -10,6 +10,7 @@ const LIENS = [
   { href: "/ecart-amiante", label: "Écart amiante" },
   { href: "/remontees", label: "Remontées" },
   { href: "/plan-action", label: "Plan d'action" },
+  { href: "/plan-action-du", label: "Plan d'action DU" },
   { href: "/synthese", label: "Synthèse" },
   { href: "/reunion", label: "Réunion QHSE" },
 ];

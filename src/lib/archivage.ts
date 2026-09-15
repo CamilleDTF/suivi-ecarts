@@ -17,6 +17,7 @@ export const ENTITES_ARCHIVABLES = {
   ficheSSE: prisma.ficheSSE,
   ecartAmiante: prisma.ecartAmiante,
   action: prisma.action,
+  actionDU: prisma.actionDU,
   remontee: prisma.remonteeInfo,
 } as const;
 
