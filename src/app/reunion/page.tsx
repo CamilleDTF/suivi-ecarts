@@ -3,8 +3,20 @@ import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/badge";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { DateAutoSubmit } from "@/components/date-auto-submit";
+import { SelectAutoSubmit } from "@/components/select-auto-submit";
 import { filtreArchive } from "@/lib/archivage";
-import { StatutAction } from "@/generated/prisma/enums";
+import {
+  StatutAction,
+  StatutDossierEcart,
+  StatutFiche,
+  StatutRemontee,
+} from "@/generated/prisma/enums";
+import {
+  filtreStatutAction,
+  filtreStatutDossierEcart,
+  filtreStatutFiche,
+  filtreStatutRemontee,
+} from "@/lib/validation";
 import {
   STATUT_ACTION_COLORS,
   STATUT_ACTION_LABELS,
@@ -22,6 +34,18 @@ export const metadata = { title: "Réunion QHSE" };
 // close pendant la période — c'est justement ce qu'on annonce en réunion.
 const CLOSES: StatutAction[] = [StatutAction.REALISEE, StatutAction.ANNULEE];
 
+// Les deux valeurs de filtre qui ne désignent pas un état précis. Chacune garde
+// le même sens quel que soit l'écran : sans ça, « tous » voudrait dire une
+// chose en mode période et une autre en mode historique complet, et on ne
+// saurait plus lire l'URL.
+const TOUS = "tous";
+const NON_CLOTURES = "non-clotures";
+const ORDRE_DU_JOUR = "ordre-du-jour";
+
+// Le formulaire de filtre vit dans l'entête, mais les listes déroulantes d'état
+// sont posées dans l'entête de leur section. L'attribut `form` les y rattache.
+const FORM = "filtres-reunion";
+
 const jour = (valeur: string | undefined, fin: boolean) => {
   if (!valeur) return undefined;
   const d = new Date(`${valeur}T${fin ? "23:59:59.999" : "00:00:00.000"}Z`);
@@ -37,20 +61,35 @@ function periodeParDefaut() {
   return { du: debut.toISOString().slice(0, 10), au: maintenant.toISOString().slice(0, 10) };
 }
 
+function optionsEtat(
+  entetes: { value: string; label: string }[],
+  valeurs: string[],
+  libelles: Record<string, string>,
+) {
+  return [...entetes, ...valeurs.map((v) => ({ value: v, label: libelles[v] }))];
+}
+
 function Section({
   titre,
   compte,
+  filtre,
   children,
 }: {
   titre: string;
   compte: number;
+  filtre: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <section className="mb-8 break-inside-avoid">
-      <h2 className="mb-3 text-lg font-semibold text-slate-900">
-        {titre} <span className="font-normal text-slate-400">({compte})</span>
-      </h2>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold text-slate-900">
+          {titre} <span className="font-normal text-slate-400">({compte})</span>
+        </h2>
+        <div data-no-print className="shrink-0">
+          {filtre}
+        </div>
+      </div>
       <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">{children}</div>
     </section>
   );
@@ -61,6 +100,7 @@ const td = "px-4 py-3 align-top";
 // Une référence coupée en deux lignes et une pastille d'état repliée se lisent
 // mal, surtout projetées en réunion : ces deux colonnes restent d'un bloc.
 const tdCompact = "px-4 py-3 align-top whitespace-nowrap";
+const selectFiltre = "rounded-md border border-slate-300 bg-white px-2 py-1 text-xs text-slate-600";
 
 function Vide({ colonnes, texte }: { colonnes: number; texte: string }) {
   return (
@@ -75,30 +115,85 @@ function Vide({ colonnes, texte }: { colonnes: number; texte: string }) {
 export default async function ReunionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ du?: string; au?: string }>;
+  searchParams: Promise<{
+    du?: string;
+    au?: string;
+    tout?: string;
+    etatEvenement?: string;
+    etatAction?: string;
+    etatAmiante?: string;
+    etatEcart?: string;
+    etatRemontee?: string;
+  }>;
 }) {
   const params = await searchParams;
+
+  // « Tout l'historique » : plus aucune borne de date. Les défauts d'état
+  // basculent eux aussi sur « tous », sinon l'écran annoncerait tout en
+  // continuant de masquer les écarts clôturés et les actions soldées.
+  const tout = params.tout === "1";
+
   const defauts = periodeParDefaut();
   const du = params.du ?? defauts.du;
   const au = params.au ?? defauts.au;
-  const depuis = jour(du, false);
-  const jusqua = jour(au, true);
+  const depuis = tout ? undefined : jour(du, false);
+  const jusqua = tout ? undefined : jour(au, true);
   const periode = depuis || jusqua ? { gte: depuis, lte: jusqua } : undefined;
 
-  // Une action est à l'ordre du jour si elle est encore ouverte, ou si elle
-  // vient d'être close pendant la période : dans les deux cas il y a quelque
-  // chose à dire.
-  const actionsAOrdreDuJour = {
-    ...filtreArchive(undefined),
-    OR: [
-      { statut: { notIn: CLOSES } },
-      ...(periode ? [{ realiseeLe: periode }, { modifieLe: periode }] : []),
-    ],
-  };
+  const etatEvenement = params.etatEvenement ?? TOUS;
+  const etatAction = params.etatAction ?? (tout ? TOUS : ORDRE_DU_JOUR);
+  const etatAmiante = params.etatAmiante ?? (tout ? TOUS : NON_CLOTURES);
+  const etatEcart = params.etatEcart ?? (tout ? TOUS : NON_CLOTURES);
+  const etatRemontee = params.etatRemontee ?? TOUS;
+
+  /** Écarts et écarts amiante partagent le même jeu d'états. */
+  function whereEcart(choix: string) {
+    const exact = filtreStatutDossierEcart(choix);
+    if (exact) return { statut: exact };
+    if (choix === NON_CLOTURES) return { statut: { not: StatutDossierEcart.CLOTURE } };
+    return {};
+  }
+
+  /**
+   * « À l'ordre du jour » : ce qui est encore ouvert, plus ce qui vient d'être
+   * soldé pendant la période — dans les deux cas il y a quelque chose à dire.
+   * Sans période (historique complet), il ne reste que ce qui est ouvert, d'où
+   * le défaut sur « tous » dans ce mode.
+   */
+  function whereAction(choix: string) {
+    const exact = filtreStatutAction(choix);
+    if (exact) return { statut: exact };
+    if (choix === ORDRE_DU_JOUR) {
+      return {
+        OR: [
+          { statut: { notIn: CLOSES } },
+          ...(periode ? [{ realiseeLe: periode }, { modifieLe: periode }] : []),
+        ],
+      };
+    }
+    return {};
+  }
+
+  /**
+   * Même filtre, pour les actions listées dans la ligne d'un écart. La clause
+   * imbriquée ne peut pas porter le « ou close pendant la période » sans
+   * alourdir la requête pour un gain nul : dans cette colonne on veut ce qui
+   * reste à faire.
+   */
+  function whereActionImbriquee(choix: string) {
+    const exact = filtreStatutAction(choix);
+    if (exact) return { statut: exact };
+    if (choix === ORDRE_DU_JOUR) return { statut: { notIn: CLOSES } };
+    return {};
+  }
 
   const [evenements, actionsEvenements, ecarts, ecartsAmiante, remontees] = await Promise.all([
     prisma.ficheSSE.findMany({
-      where: { ...filtreArchive(undefined), ...(periode ? { dateHeure: periode } : {}) },
+      where: {
+        ...filtreArchive(undefined),
+        ...(periode ? { dateHeure: periode } : {}),
+        statutFiche: filtreStatutFiche(etatEvenement),
+      },
       orderBy: { dateHeure: "asc" },
       select: {
         id: true,
@@ -111,7 +206,7 @@ export default async function ReunionPage({
       },
     }),
     prisma.action.findMany({
-      where: { ...actionsAOrdreDuJour, ficheSSEId: { not: null } },
+      where: { ...filtreArchive(undefined), ...whereAction(etatAction), ficheSSEId: { not: null } },
       orderBy: [{ ficheSSE: { reference: "asc" } }, { reference: "asc" }],
       select: {
         id: true,
@@ -124,7 +219,7 @@ export default async function ReunionPage({
       },
     }),
     prisma.ecart.findMany({
-      where: { ...filtreArchive(undefined), statut: { not: "CLOTURE" } },
+      where: { ...filtreArchive(undefined), ...whereEcart(etatEcart) },
       orderBy: { reference: "asc" },
       select: {
         id: true,
@@ -133,14 +228,14 @@ export default async function ReunionPage({
         statut: true,
         dossier: { select: { chantier: true } },
         actions: {
-          where: { statut: { notIn: CLOSES } },
+          where: whereActionImbriquee(etatAction),
           orderBy: { reference: "asc" },
           select: { id: true, reference: true, action: true, responsable: true, statut: true },
         },
       },
     }),
     prisma.ecartAmiante.findMany({
-      where: { ...filtreArchive(undefined), statut: { not: "CLOTURE" } },
+      where: { ...filtreArchive(undefined), ...whereEcart(etatAmiante) },
       orderBy: { reference: "asc" },
       select: {
         id: true,
@@ -150,14 +245,18 @@ export default async function ReunionPage({
         typeEcart: true,
         statut: true,
         actions: {
-          where: { statut: { notIn: CLOSES } },
+          where: whereActionImbriquee(etatAction),
           orderBy: { reference: "asc" },
           select: { id: true, reference: true, action: true, responsable: true, statut: true },
         },
       },
     }),
     prisma.remonteeInfo.findMany({
-      where: { ...filtreArchive(undefined), ...(periode ? { dateRemontee: periode } : {}) },
+      where: {
+        ...filtreArchive(undefined),
+        ...(periode ? { dateRemontee: periode } : {}),
+        statut: filtreStatutRemontee(etatRemontee),
+      },
       orderBy: { dateRemontee: "asc" },
       select: {
         id: true,
@@ -171,20 +270,58 @@ export default async function ReunionPage({
     }),
   ]);
 
+  // Les liens de bascule repartent d'une URL nue : entrer dans l'historique
+  // complet remet les filtres d'état à « tous », en sortir les remet au réglage
+  // d'ordre du jour. Conserver les anciennes valeurs donnerait un « tout
+  // l'historique » qui continue de masquer la moitié du registre.
+  const filtresPosees =
+    !!params.etatEvenement ||
+    !!params.etatAction ||
+    !!params.etatAmiante ||
+    !!params.etatEcart ||
+    !!params.etatRemontee ||
+    !!params.du ||
+    !!params.au;
+
   return (
     <div className="mx-auto max-w-[100rem] px-6 py-8">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Réunion QHSE</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Période du {fr(depuis)} au {fr(jusqua)}
+            {tout ? "Tout l'historique, toutes dates" : `Période du ${fr(depuis)} au ${fr(jusqua)}`}
           </p>
         </div>
         <div data-no-print className="flex shrink-0 flex-wrap items-center gap-3">
-          <form method="get" className="flex flex-wrap items-center gap-3">
-            <DateAutoSubmit name="du" defaultValue={du} label="Du" />
-            <DateAutoSubmit name="au" defaultValue={au} label="au" />
+          <form method="get" id={FORM} className="flex flex-wrap items-center gap-3">
+            {/* En mode historique complet, les champs de date disparaissent au
+                lieu d'être affichés sans effet : un « du 1er au 16 » inerte à
+                côté de « toutes dates » ne peut que tromper. Le paramètre est
+                repris en champ caché pour que changer un filtre d'état ne
+                fasse pas retomber dans la période. */}
+            {tout ? (
+              <input type="hidden" name="tout" value="1" />
+            ) : (
+              <>
+                <DateAutoSubmit name="du" defaultValue={du} label="Du" />
+                <DateAutoSubmit name="au" defaultValue={au} label="au" />
+              </>
+            )}
           </form>
+          <Link
+            href={tout ? "/reunion" : "/reunion?tout=1"}
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            {tout ? "Revenir à une période" : "Tout l'historique"}
+          </Link>
+          {filtresPosees && (
+            <Link
+              href={tout ? "/reunion?tout=1" : "/reunion"}
+              className="text-sm text-slate-500 hover:underline"
+            >
+              Réinitialiser
+            </Link>
+          )}
           <BoutonExportPDF />
         </div>
       </div>
@@ -192,7 +329,23 @@ export default async function ReunionPage({
       {/* Les évènements, les remontées : ce qui s'est produit pendant la
           période. Les écarts et leurs actions : ce qui reste ouvert, quelle que
           soit la date — un écart de mars non soldé se represente en juillet. */}
-      <Section titre="Évènements SSE de la période" compte={evenements.length}>
+      <Section
+        titre={tout ? "Évènements SSE" : "Évènements SSE de la période"}
+        compte={evenements.length}
+        filtre={
+          <SelectAutoSubmit
+            name="etatEvenement"
+            form={FORM}
+            defaultValue={etatEvenement}
+            className={selectFiltre}
+            options={optionsEtat(
+              [{ value: TOUS, label: "Tous les états" }],
+              Object.values(StatutFiche),
+              STATUT_FICHE_LABELS,
+            )}
+          />
+        }
+      >
         <table className="w-full text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
@@ -224,12 +377,36 @@ export default async function ReunionPage({
                 </td>
               </tr>
             ))}
-            {evenements.length === 0 && <Vide colonnes={6} texte="Aucun évènement sur la période." />}
+            {evenements.length === 0 && (
+              <Vide colonnes={6} texte={tout ? "Aucun évènement." : "Aucun évènement sur la période."} />
+            )}
           </tbody>
         </table>
       </Section>
 
-      <Section titre="Suivi des évènements — actions" compte={actionsEvenements.length}>
+      <Section
+        titre="Suivi des évènements — actions"
+        compte={actionsEvenements.length}
+        filtre={
+          // Ce filtre commande aussi la colonne « Actions » des deux sections
+          // d'écarts : une action est une action, et deux réglages séparés pour
+          // la même notion se contrediraient à l'écran.
+          <SelectAutoSubmit
+            name="etatAction"
+            form={FORM}
+            defaultValue={etatAction}
+            className={selectFiltre}
+            options={optionsEtat(
+              [
+                { value: ORDRE_DU_JOUR, label: "À l'ordre du jour" },
+                { value: TOUS, label: "Tous les états" },
+              ],
+              Object.values(StatutAction),
+              STATUT_ACTION_LABELS,
+            )}
+          />
+        }
+      >
         <table className="w-full text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
@@ -276,14 +453,33 @@ export default async function ReunionPage({
         </table>
       </Section>
 
-      <Section titre="Suivi des écarts amiante" compte={ecartsAmiante.length}>
+      <Section
+        titre="Suivi des écarts amiante"
+        compte={ecartsAmiante.length}
+        filtre={
+          <SelectAutoSubmit
+            name="etatAmiante"
+            form={FORM}
+            defaultValue={etatAmiante}
+            className={selectFiltre}
+            options={optionsEtat(
+              [
+                { value: NON_CLOTURES, label: "Non clôturés" },
+                { value: TOUS, label: "Tous les états" },
+              ],
+              Object.values(StatutDossierEcart),
+              STATUT_DOSSIER_ECART_LABELS,
+            )}
+          />
+        }
+      >
         <table className="w-full text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
               <th className={th}>Référence</th>
               <th className={th}>Chantier</th>
               <th className={th}>Type / description</th>
-              <th className={th}>Actions en cours</th>
+              <th className={th}>Actions</th>
               <th className={th}>État</th>
             </tr>
           </thead>
@@ -310,19 +506,38 @@ export default async function ReunionPage({
                 </td>
               </tr>
             ))}
-            {ecartsAmiante.length === 0 && <Vide colonnes={5} texte="Aucun écart amiante ouvert." />}
+            {ecartsAmiante.length === 0 && <Vide colonnes={5} texte="Aucun écart amiante." />}
           </tbody>
         </table>
       </Section>
 
-      <Section titre="Suivi des écarts" compte={ecarts.length}>
+      <Section
+        titre="Suivi des écarts"
+        compte={ecarts.length}
+        filtre={
+          <SelectAutoSubmit
+            name="etatEcart"
+            form={FORM}
+            defaultValue={etatEcart}
+            className={selectFiltre}
+            options={optionsEtat(
+              [
+                { value: NON_CLOTURES, label: "Non clôturés" },
+                { value: TOUS, label: "Tous les états" },
+              ],
+              Object.values(StatutDossierEcart),
+              STATUT_DOSSIER_ECART_LABELS,
+            )}
+          />
+        }
+      >
         <table className="w-full text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
               <th className={th}>Référence</th>
               <th className={th}>Chantier</th>
               <th className={th}>Description</th>
-              <th className={th}>Actions en cours</th>
+              <th className={th}>Actions</th>
               <th className={th}>État</th>
             </tr>
           </thead>
@@ -347,12 +562,28 @@ export default async function ReunionPage({
                 </td>
               </tr>
             ))}
-            {ecarts.length === 0 && <Vide colonnes={5} texte="Aucun écart ouvert." />}
+            {ecarts.length === 0 && <Vide colonnes={5} texte="Aucun écart." />}
           </tbody>
         </table>
       </Section>
 
-      <Section titre="Remontées d'information de la période" compte={remontees.length}>
+      <Section
+        titre={tout ? "Remontées d'information" : "Remontées d'information de la période"}
+        compte={remontees.length}
+        filtre={
+          <SelectAutoSubmit
+            name="etatRemontee"
+            form={FORM}
+            defaultValue={etatRemontee}
+            className={selectFiltre}
+            options={optionsEtat(
+              [{ value: TOUS, label: "Tous les états" }],
+              Object.values(StatutRemontee),
+              STATUT_REMONTEE_LABELS,
+            )}
+          />
+        }
+      >
         <table className="w-full text-sm">
           <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
             <tr>
@@ -384,7 +615,9 @@ export default async function ReunionPage({
                 </td>
               </tr>
             ))}
-            {remontees.length === 0 && <Vide colonnes={6} texte="Aucune remontée sur la période." />}
+            {remontees.length === 0 && (
+              <Vide colonnes={6} texte={tout ? "Aucune remontée." : "Aucune remontée sur la période."} />
+            )}
           </tbody>
         </table>
       </Section>
@@ -397,7 +630,7 @@ function ListeActions({
 }: {
   actions: { id: string; reference: string; action: string; responsable: string; statut: StatutAction }[];
 }) {
-  if (actions.length === 0) return <span className="text-slate-400">Aucune action en cours</span>;
+  if (actions.length === 0) return <span className="text-slate-400">Aucune action</span>;
   return (
     <ul className="space-y-1">
       {actions.map((a) => (

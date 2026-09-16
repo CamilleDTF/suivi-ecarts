@@ -55,6 +55,12 @@ export function filtreStatutDossierEcart(v: string | undefined): StatutDossierEc
   return r.success ? (r.data as StatutDossierEcart) : undefined;
 }
 
+export function filtreStatutFiche(v: string | undefined): StatutFiche | undefined {
+  if (!v) return undefined;
+  const r = statutFicheSchema.safeParse(v);
+  return r.success ? (r.data as StatutFiche) : undefined;
+}
+
 /**
  * Date reçue d'un formulaire.
  *
