@@ -4,6 +4,8 @@ import { Badge } from "@/components/badge";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { DateAutoSubmit } from "@/components/date-auto-submit";
 import { SelectAutoSubmit } from "@/components/select-auto-submit";
+import { BlocBilan } from "@/components/bloc-bilan";
+import { ligneBilan } from "@/lib/bilan";
 import { filtreArchive } from "@/lib/archivage";
 import {
   StatutAction,
@@ -46,6 +48,10 @@ const ORDRE_DU_JOUR = "ordre-du-jour";
 // sont posées dans l'entête de leur section. L'attribut `form` les y rattache.
 const FORM = "filtres-reunion";
 
+// Mode bilan : une ligne par point, à la forme du support de réunion, au lieu
+// des tableaux. Mêmes données et mêmes filtres — seule la mise en forme change.
+const BILAN = "bilan";
+
 const jour = (valeur: string | undefined, fin: boolean) => {
   if (!valeur) return undefined;
   const d = new Date(`${valeur}T${fin ? "23:59:59.999" : "00:00:00.000"}Z`);
@@ -73,24 +79,34 @@ function Section({
   titre,
   compte,
   filtre,
+  bilan,
+  lignes,
+  vide,
   children,
 }: {
   titre: string;
   compte: number;
   filtre: React.ReactNode;
+  bilan: boolean;
+  /** Les mêmes données que le tableau, une ligne par point. */
+  lignes: string[];
+  vide: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="mb-8 break-inside-avoid">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold text-slate-900">
-          {titre} <span className="font-normal text-slate-400">({compte})</span>
+          {titre}{" "}
+          <span className="font-normal text-slate-400">({bilan ? lignes.length : compte})</span>
         </h2>
         <div data-no-print className="shrink-0">
           {filtre}
         </div>
       </div>
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">{children}</div>
+      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+        {bilan ? <BlocBilan lignes={lignes} vide={vide} /> : children}
+      </div>
     </section>
   );
 }
@@ -119,6 +135,7 @@ export default async function ReunionPage({
     du?: string;
     au?: string;
     tout?: string;
+    vue?: string;
     etatEvenement?: string;
     etatAction?: string;
     etatAmiante?: string;
@@ -127,6 +144,17 @@ export default async function ReunionPage({
   }>;
 }) {
   const params = await searchParams;
+  const bilan = params.vue === BILAN;
+
+  /** Lien vers le même écran, avec quelques paramètres changés. */
+  function lien(changements: Record<string, string | undefined>) {
+    const q = new URLSearchParams();
+    for (const [cle, valeur] of Object.entries({ ...params, ...changements })) {
+      if (valeur) q.set(cle, valeur);
+    }
+    const chaine = q.toString();
+    return chaine ? `/reunion?${chaine}` : "/reunion";
+  }
 
   // « Tout l'historique » : plus aucune borne de date. Les défauts d'état
   // basculent eux aussi sur « tous », sinon l'écran annoncerait tout en
@@ -270,6 +298,60 @@ export default async function ReunionPage({
     }),
   ]);
 
+  // Les lignes du bilan, à la forme du support de réunion. Une section porte
+  // autant de lignes que de points à annoncer : un écart qui traîne trois
+  // actions en fait trois, une par responsable — c'est ainsi qu'on les lit en
+  // séance. Un écart sans action garde la sienne, sans flèche, pour ne pas
+  // disparaître du bilan.
+  const lignesEvenements = evenements.map((e) =>
+    ligneBilan({
+      reference: e.reference,
+      contexte: e.nomChantier,
+      texte: e.descriptionFactuelle || e.typeEvenement,
+    }),
+  );
+  const lignesActions = actionsEvenements.map((a) =>
+    ligneBilan({
+      // La référence de l'évènement, pas celle de l'action : en réunion on
+      // annonce le fait, puis qui s'occupe de la suite.
+      reference: a.ficheSSE!.reference,
+      contexte: a.ficheSSE!.nomChantier,
+      texte: a.action,
+      responsable: a.responsable,
+    }),
+  );
+  const lignesDeco = <T extends { reference: string; description: string | null }>(
+    elements: (T & {
+      contexte: string | null;
+      actions: { action: string; responsable: string }[];
+    })[],
+  ) =>
+    elements.flatMap((e) =>
+      e.actions.length > 0
+        ? e.actions.map((a) =>
+            ligneBilan({
+              reference: e.reference,
+              contexte: e.contexte,
+              texte: a.action,
+              responsable: a.responsable,
+            }),
+          )
+        : [ligneBilan({ reference: e.reference, contexte: e.contexte, texte: e.description })],
+    );
+  const lignesAmiante = lignesDeco(
+    ecartsAmiante.map((e) => ({
+      ...e,
+      contexte: e.nomChantier,
+      description: [e.typeEcart, e.description].filter(Boolean).join(" — ") || null,
+    })),
+  );
+  const lignesEcarts = lignesDeco(
+    ecarts.map((e) => ({ ...e, contexte: e.dossier?.chantier ?? null })),
+  );
+  const lignesRemontees = remontees.map((r) =>
+    ligneBilan({ reference: r.reference, contexte: r.chantierService, texte: r.objet }),
+  );
+
   // Les liens de bascule repartent d'une URL nue : entrer dans l'historique
   // complet remet les filtres d'état à « tous », en sortir les remet au réglage
   // d'ordre du jour. Conserver les anciennes valeurs donnerait un « tout
@@ -307,16 +389,38 @@ export default async function ReunionPage({
                 <DateAutoSubmit name="au" defaultValue={au} label="au" />
               </>
             )}
+            {/* Le mode d'affichage survit à un changement de filtre : on ne
+                repart pas dans les tableaux parce qu'on a réglé un état. */}
+            {bilan && <input type="hidden" name="vue" value={BILAN} />}
           </form>
           <Link
-            href={tout ? "/reunion" : "/reunion?tout=1"}
+            href={lien({ vue: bilan ? undefined : BILAN })}
+            className={
+              bilan
+                ? "rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                : "rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            }
+          >
+            {bilan ? "Revenir aux tableaux" : "Mode bilan"}
+          </Link>
+          <Link
+            href={{
+              pathname: "/reunion",
+              // La bascule de période repart des filtres par défaut — c'est
+              // tout l'intérêt de « tout l'historique ». Le mode d'affichage,
+              // lui, n'a rien à voir avec les données et se conserve.
+              query: { ...(tout ? {} : { tout: "1" }), ...(bilan ? { vue: BILAN } : {}) },
+            }}
             className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             {tout ? "Revenir à une période" : "Tout l'historique"}
           </Link>
           {filtresPosees && (
             <Link
-              href={tout ? "/reunion?tout=1" : "/reunion"}
+              href={{
+                pathname: "/reunion",
+                query: { ...(tout ? { tout: "1" } : {}), ...(bilan ? { vue: BILAN } : {}) },
+              }}
               className="text-sm text-slate-500 hover:underline"
             >
               Réinitialiser
@@ -332,6 +436,9 @@ export default async function ReunionPage({
       <Section
         titre={tout ? "Évènements SSE" : "Évènements SSE de la période"}
         compte={evenements.length}
+        bilan={bilan}
+        lignes={lignesEvenements}
+        vide={tout ? "Aucun évènement." : "Aucun évènement sur la période."}
         filtre={
           <SelectAutoSubmit
             name="etatEvenement"
@@ -387,6 +494,9 @@ export default async function ReunionPage({
       <Section
         titre="Suivi des évènements — actions"
         compte={actionsEvenements.length}
+        bilan={bilan}
+        lignes={lignesActions}
+        vide="Aucune action d'évènement à suivre."
         filtre={
           // Ce filtre commande aussi la colonne « Actions » des deux sections
           // d'écarts : une action est une action, et deux réglages séparés pour
@@ -456,6 +566,9 @@ export default async function ReunionPage({
       <Section
         titre="Suivi des écarts amiante"
         compte={ecartsAmiante.length}
+        bilan={bilan}
+        lignes={lignesAmiante}
+        vide="Aucun écart amiante."
         filtre={
           <SelectAutoSubmit
             name="etatAmiante"
@@ -514,6 +627,9 @@ export default async function ReunionPage({
       <Section
         titre="Suivi des écarts"
         compte={ecarts.length}
+        bilan={bilan}
+        lignes={lignesEcarts}
+        vide="Aucun écart."
         filtre={
           <SelectAutoSubmit
             name="etatEcart"
@@ -570,6 +686,9 @@ export default async function ReunionPage({
       <Section
         titre={tout ? "Remontées d'information" : "Remontées d'information de la période"}
         compte={remontees.length}
+        bilan={bilan}
+        lignes={lignesRemontees}
+        vide={tout ? "Aucune remontée." : "Aucune remontée sur la période."}
         filtre={
           <SelectAutoSubmit
             name="etatRemontee"
