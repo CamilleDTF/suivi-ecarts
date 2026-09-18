@@ -44,6 +44,8 @@ enum StatutDossierEcart {
 enum OrigineRemontee {
   CHANTIER
   BUREAU
+  AUDIT_BLANC
+  AUDIT
 }
 
 enum StatutRemontee {

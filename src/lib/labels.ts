@@ -177,6 +177,8 @@ export const CAUSES_ECART_AMIANTE = [
 export const ORIGINE_REMONTEE_LABELS: Record<string, string> = {
   CHANTIER: "Chantier",
   BUREAU: "Bureau",
+  AUDIT_BLANC: "Audit blanc",
+  AUDIT: "Audit",
 };
 
 export const STATUT_REMONTEE_LABELS: Record<string, string> = {
