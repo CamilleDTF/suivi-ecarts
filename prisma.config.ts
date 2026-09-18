@@ -10,6 +10,9 @@ export default defineConfig({
     seed: "npx tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // URL directe, pas celle de l'app : le verrou posé par les migrations
+    // n'est pas compatible avec le pooler de connexions Neon (PgBouncer), et
+    // provoque un timeout P1002 sinon.
+    url: process.env["DIRECT_URL"],
   },
 });

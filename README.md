@@ -35,7 +35,7 @@ Prérequis : Node.js 20+, une base PostgreSQL accessible.
 
 ```bash
 npm install
-cp .env.example .env          # renseigner DATABASE_URL et AUTH_SECRET
+cp .env.example .env          # renseigner DATABASE_URL, DIRECT_URL et AUTH_SECRET
 
 npx prisma migrate deploy
 npx prisma generate
@@ -45,6 +45,14 @@ npm run dev
 ```
 
 L'application est disponible sur http://localhost:3000.
+
+`DATABASE_URL` est la connexion utilisée par l'application (poolée chez Neon,
+adaptée à beaucoup de connexions courtes). `DIRECT_URL` est une connexion
+directe, sans pooler, réservée aux commandes Prisma CLI (`migrate`,
+`generate`…) : le verrou posé pendant une migration (`pg_advisory_lock`)
+n'est pas compatible avec un pooler de connexions (PgBouncer) et échoue avec
+une erreur `P1002` sinon. Chez Neon, c'est la même URL que `DATABASE_URL`
+sans le suffixe `-pooler` dans le nom d'hôte.
 
 ## Comptes
 
@@ -144,11 +152,13 @@ les deux restent ensemble.
 ## Déploiement (Vercel)
 
 1. Pousser le dépôt sur GitHub, puis importer le projet dans Vercel.
-2. Renseigner `DATABASE_URL` et `AUTH_SECRET` (`npx auth secret` une fois).
+2. Renseigner `DATABASE_URL`, `DIRECT_URL` et `AUTH_SECRET` (`npx auth secret`
+   une fois). Sans `DIRECT_URL`, le build échoue au moment des migrations
+   avec une erreur `P1002` (voir « Développement local » ci-dessus).
 3. Les migrations s'appliquent automatiquement au build. Pour les passer à la
-   main depuis une machine dont `DATABASE_URL` pointe vers la production :
+   main depuis une machine dont `DIRECT_URL` pointe vers la production :
    ```bash
-   DATABASE_URL="<url de prod>" npm run db:migrate
+   DIRECT_URL="<url directe de prod>" npm run db:migrate
    ```
 4. Créer le premier compte avec `npm run db:seed` et les variables `SEED_ADMIN_*`.
 5. Ajouter le secret GitHub `DATABASE_URL` pour que la sauvegarde hebdomadaire
