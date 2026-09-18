@@ -259,3 +259,38 @@ export const RESPONSABLES_DU = [
 export function referenceActionDU(numero: number) {
   return `PA${numero}`;
 }
+
+// Retour d'expérience (REX).
+export const ORIGINE_REX_LABELS: Record<string, string> = {
+  REMONTEE: "Remontée d'information",
+  EVENEMENT_SSE: "Évènement SSE",
+  ECART_AMIANTE: "Écart amiante",
+  ECART_TERRAIN: "Écart terrain",
+};
+
+export const STATUT_REX_LABELS: Record<string, string> = {
+  REDIGE: "Rédigé",
+  DIFFUSE: "Diffusé",
+  EFFICACITE_VERIFIEE: "Efficacité vérifiée",
+};
+
+export const STATUT_REX_COLORS: Record<string, string> = {
+  REDIGE: "bg-slate-100 text-slate-700",
+  DIFFUSE: "bg-blue-100 text-blue-800",
+  EFFICACITE_VERIFIEE: "bg-green-100 text-green-800",
+};
+
+export const STATUT_LECTURE_REX_LABELS: Record<string, string> = {
+  EN_ATTENTE: "En attente",
+  LU: "Lu",
+};
+
+export const STATUT_LECTURE_REX_COLORS: Record<string, string> = {
+  EN_ATTENTE: "bg-amber-100 text-amber-800",
+  LU: "bg-green-100 text-green-800",
+};
+
+// Sous-type d'évènement SSE à l'origine d'un REX. Sous-ensemble de
+// TYPE_EVENEMENT_OPTIONS pertinent pour un REX (un REX naît d'un fait avéré,
+// pas d'une simple situation dangereuse).
+export const SOUS_TYPE_SSE_REX_OPTIONS = ["Presqu'accident", "Accident du travail"];

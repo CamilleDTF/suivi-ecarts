@@ -11,6 +11,7 @@ const LIENS = [
   { href: "/remontees", label: "Remontées" },
   { href: "/plan-action", label: "Plan d'action" },
   { href: "/plan-action-du", label: "Plan d'action DU" },
+  { href: "/rex", label: "REX" },
   { href: "/synthese", label: "Synthèse" },
   { href: "/reunion", label: "Réunion QHSE" },
 ];

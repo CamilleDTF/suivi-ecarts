@@ -86,8 +86,26 @@ enum StatutAction {
   ANNULEE
 }
 
+enum OrigineREX {
+  REMONTEE
+  EVENEMENT_SSE
+  ECART_AMIANTE
+  ECART_TERRAIN
+}
+
+enum StatutREX {
+  REDIGE
+  DIFFUSE
+  EFFICACITE_VERIFIEE
+}
+
+enum StatutLectureREX {
+  EN_ATTENTE
+  LU
+}
+
 model User {
-  id String @id @default(cuid())
+  id           String   @id @default(cuid())
   // On se connecte avec son prénom, pas avec son adresse : le terrain n'a pas
   // toujours d'adresse professionnelle sous la main.
   identifiant  String   @unique
@@ -110,55 +128,56 @@ model ReferenceCounter {
 }
 
 model Dossier {
-  id            String             @id @default(cuid())
-  reference     String             @unique
-  dateDetection DateTime
-  origine       Origine
-  statut        StatutDossierEcart @default(OUVERT)
-  declarant     String
-  chantier      String
+  id                String             @id @default(cuid())
+  reference         String             @unique
+  dateDetection     DateTime
+  origine           Origine
+  statut            StatutDossierEcart @default(OUVERT)
+  declarant         String
+  chantier          String
   // Enregistrement joint au dossier — photo ou PDF — stocké en data URL comme
   // la preuve des actions. Le nom d'origine est conservé à côté : un PDF ne
   // s'affiche pas en vignette, c'est son nom qui dit ce que c'est.
   enregistrement    String?
   enregistrementNom String?
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
-  modifiePar    String?
-  modifieLe     DateTime?
-  archiveLe DateTime?
-  ecarts        Ecart[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  modifiePar        String?
+  modifieLe         DateTime?
+  archiveLe         DateTime?
+  ecarts            Ecart[]
 }
 
 model Ecart {
-  id                 String             @id @default(cuid())
-  reference          String             @unique
-  dossier            Dossier?           @relation(fields: [dossierId], references: [id])
-  dossierId          String?
-  dateDetection      DateTime
-  origine            Origine
-  statut             StatutDossierEcart @default(OUVERT)
-  declarant          String
-  typeActivite       TypeActivite?
-  natures            String[]
-  domaines           String[]
-  gravite            String?
-  frequence          String?
-  criticite          String?
-  theme              String[]           @default([])
-  description        String?
-  mesureImmediate    String?
-  cause              String?
-  ficheSSECreee      Boolean            @default(false)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  modifiePar         String?
-  modifieLe          DateTime?
-  archiveLe DateTime?
-  fichesSSE          FicheSSE[]
-  actions            Action[]
-  remontees          RemonteeInfo[]     @relation("RemonteeEcarts")
-  remonteesOrigine   RemonteeInfo[]     @relation("RemonteeEcartOrigine")
+  id               String             @id @default(cuid())
+  reference        String             @unique
+  dossier          Dossier?           @relation(fields: [dossierId], references: [id])
+  dossierId        String?
+  dateDetection    DateTime
+  origine          Origine
+  statut           StatutDossierEcart @default(OUVERT)
+  declarant        String
+  typeActivite     TypeActivite?
+  natures          String[]
+  domaines         String[]
+  gravite          String?
+  frequence        String?
+  criticite        String?
+  theme            String[]           @default([])
+  description      String?
+  mesureImmediate  String?
+  cause            String?
+  ficheSSECreee    Boolean            @default(false)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  modifiePar       String?
+  modifieLe        DateTime?
+  archiveLe        DateTime?
+  fichesSSE        FicheSSE[]
+  actions          Action[]
+  remontees        RemonteeInfo[]     @relation("RemonteeEcarts")
+  remonteesOrigine RemonteeInfo[]     @relation("RemonteeEcartOrigine")
+  rex              Rex[]
 }
 
 // Remontée d'information : ce que le terrain ou le bureau fait remonter au
@@ -197,6 +216,7 @@ model RemonteeInfo {
   modifieLe         DateTime?
   archiveLe         DateTime?
   actions           Action[]
+  rex               Rex[]
 
   // La fiche d'un évènement liste ses remontées : sans index, cette lecture
   // ferait un parcours complet de la table.
@@ -204,15 +224,15 @@ model RemonteeInfo {
 }
 
 model FicheSSE {
-  id                           String        @id @default(cuid())
-  reference                    String        @unique
-  ecart                        Ecart?        @relation(fields: [ecartId], references: [id])
+  id                           String         @id @default(cuid())
+  reference                    String         @unique
+  ecart                        Ecart?         @relation(fields: [ecartId], references: [id])
   ecartId                      String?
-  ecartAmiante                 EcartAmiante? @relation(fields: [ecartAmianteId], references: [id])
+  ecartAmiante                 EcartAmiante?  @relation(fields: [ecartAmianteId], references: [id])
   ecartAmianteId               String?
   typeEvenement                String?
   numeroInterne                String?
-  statutFiche                  StatutFiche   @default(BROUILLON)
+  statutFiche                  StatutFiche    @default(BROUILLON)
   emetteur                     String?
   nomChantier                  String?
   dateHeure                    DateTime?
@@ -227,7 +247,7 @@ model FicheSSE {
   criticite                    String?
   typeAnalyse                  String?
   toutesActionsCloturees       Boolean?
-  miseAJourNecessaire          String[]      @default([])
+  miseAJourNecessaire          String[]       @default([])
   procedureLaquelle            String?
   referenceDUERP               String?
   miseAJourAutrePrecision      String?
@@ -240,17 +260,18 @@ model FicheSSE {
   validationDate               DateTime?
   mesuresImmediatesPrises      String?
   dateEnvoi                    DateTime?
-  domaine                      String[]      @default([])
-  theme                        String[]      @default([])
+  domaine                      String[]       @default([])
+  theme                        String[]       @default([])
   referencePreuve              String?
-  createdAt                    DateTime      @default(now())
-  updatedAt                    DateTime      @updatedAt
+  createdAt                    DateTime       @default(now())
+  updatedAt                    DateTime       @updatedAt
   modifiePar                   String?
   modifieLe                    DateTime?
-  archiveLe DateTime?
+  archiveLe                    DateTime?
   causes                       CauseArbre[]
   actions                      Action[]
   remontees                    RemonteeInfo[]
+  rex                          Rex[]
 }
 
 // Arbre des causes d'une fiche SSE : hiérarchie de causes (auto-référencée),
@@ -271,8 +292,8 @@ model CauseArbre {
 // (EcartAmiante_1 n'était pas rattachée à Dossier/Ecart, seulement, en option,
 // à une Fiche SSE quand un événement SSE en découlait).
 model EcartAmiante {
-  id                             String     @id @default(cuid())
-  reference                      String     @unique
+  id                             String             @id @default(cuid())
+  reference                      String             @unique
   date                           DateTime
   nomChantier                    String
   numeroChantier                 String
@@ -299,14 +320,15 @@ model EcartAmiante {
   resultatObtenuNouvelleAnalyse  String?
   statut                         StatutDossierEcart @default(OUVERT)
   dateCloture                    DateTime?
-  evenementSSE                   Boolean    @default(false)
-  createdAt                      DateTime   @default(now())
-  updatedAt                      DateTime   @updatedAt
+  evenementSSE                   Boolean            @default(false)
+  createdAt                      DateTime           @default(now())
+  updatedAt                      DateTime           @updatedAt
   modifiePar                     String?
   modifieLe                      DateTime?
-  archiveLe DateTime?
+  archiveLe                      DateTime?
   fichesSSE                      FicheSSE[]
   actions                        Action[]
+  rex                            Rex[]
 }
 
 // Une action est le plus souvent rattachée à un Écart, mais l'app d'origine
@@ -314,34 +336,105 @@ model EcartAmiante {
 // amiante sans Écart associé (cas fréquent en pratique) — d'où les trois
 // rattachements optionnels plutôt qu'un seul ecartId obligatoire.
 model Action {
-  id              String        @id @default(cuid())
-  reference       String        @unique
+  id             String        @id @default(cuid())
+  reference      String        @unique
   // Plusieurs écarts pour une seule action : une même correction couvre
   // souvent plusieurs constats (même cause, même chantier), et la dupliquer
   // obligerait à la clôturer plusieurs fois. Les trois autres rattachements
   // restent uniques, et un seul type de rattachement à la fois.
-  ecarts          Ecart[]
-  ficheSSE        FicheSSE?     @relation(fields: [ficheSSEId], references: [id])
-  ficheSSEId      String?
-  ecartAmiante    EcartAmiante? @relation(fields: [ecartAmianteId], references: [id])
-  ecartAmianteId  String?
-  remontee        RemonteeInfo? @relation(fields: [remonteeId], references: [id])
-  remonteeId      String?
-  type            TypeAction
-  action          String
-  responsable     String
-  echeance        DateTime?
-  statut          StatutAction  @default(A_FAIRE)
-  realiseeLe      DateTime?
-  preuve          String?
-  verifiePar      String?
-  verifieLe       DateTime?
-  origine         String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  modifiePar      String?
-  modifieLe       DateTime?
-  archiveLe DateTime?
+  ecarts         Ecart[]
+  ficheSSE       FicheSSE?     @relation(fields: [ficheSSEId], references: [id])
+  ficheSSEId     String?
+  ecartAmiante   EcartAmiante? @relation(fields: [ecartAmianteId], references: [id])
+  ecartAmianteId String?
+  remontee       RemonteeInfo? @relation(fields: [remonteeId], references: [id])
+  remonteeId     String?
+  type           TypeAction
+  action         String
+  responsable    String
+  echeance       DateTime?
+  statut         StatutAction  @default(A_FAIRE)
+  realiseeLe     DateTime?
+  preuve         String?
+  verifiePar     String?
+  verifieLe      DateTime?
+  origine        String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  modifiePar     String?
+  modifieLe      DateTime?
+  archiveLe      DateTime?
+}
+
+// Retour d'expérience MASE : capitalise un enseignement transverse, distinct du plan
+// d'action existant qui reste scopé à un écart précis. Rattachement polymorphe repris
+// tel quel du modèle Action (ecarts[] + ficheSSEId + ecartAmianteId + remonteeId) :
+// c'est la seule forme qui couvre les 4 origines possibles sans dupliquer une table de
+// jonction par origine. `origine` est déduit du rattachement choisi à la création,
+// jamais saisi indépendamment, pour ne jamais pouvoir contredire le rattachement réel.
+model Rex {
+  id                         String         @id @default(cuid())
+  reference                  String         @unique
+  titre                      String
+  origine                    OrigineREX
+  // Rempli seulement si origine = EVENEMENT_SSE. Texte libre (comme typeEvenement sur
+  // FicheSSE), pas un enum : ce genre de taxonomie évolue, un enum Postgres impose une
+  // migration à chaque ajout de valeur (vécu cette session avec les catégories de
+  // RemonteeInfo).
+  sousTypeSSE                String?
+  causeRacine                String?
+  enseignementsTires         String?
+  statut                     StatutREX      @default(REDIGE)
+  dateDiffusion              DateTime?
+  dateVerificationEfficacite DateTime?
+  canalDiffusion             String?
+  ecarts                     Ecart[]
+  ficheSSE                   FicheSSE?      @relation(fields: [ficheSSEId], references: [id])
+  ficheSSEId                 String?
+  ecartAmiante               EcartAmiante?  @relation(fields: [ecartAmianteId], references: [id])
+  ecartAmianteId             String?
+  remontee                   RemonteeInfo?  @relation(fields: [remonteeId], references: [id])
+  remonteeId                 String?
+  actionsPreventives         ActionRex[]
+  diffusions                 RexDiffusion[]
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
+  modifiePar                 String?
+  modifieLe                  DateTime?
+  archiveLe                  DateTime?
+}
+
+// Actions préventives du REX : table à part du plan d'action existant (portée
+// transverse, pas scopée à un écart précis) — toujours de nature préventive par
+// construction, donc pas de champ `type`.
+model ActionRex {
+  id          String       @id @default(cuid())
+  rex         Rex          @relation(fields: [rexId], references: [id])
+  rexId       String
+  action      String
+  responsable String
+  echeance    DateTime?
+  statut      StatutAction @default(A_FAIRE)
+  realiseeLe  DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  archiveLe   DateTime?
+
+  @@index([rexId])
+}
+
+// Preuve de diffusion nominative, pas un compteur global : une ligne par destinataire.
+model RexDiffusion {
+  id            String           @id @default(cuid())
+  rex           Rex              @relation(fields: [rexId], references: [id])
+  rexId         String
+  destinataire  String
+  chantier      String?
+  statutLecture StatutLectureREX @default(EN_ATTENTE)
+  dateLecture   DateTime?
+  createdAt     DateTime         @default(now())
+
+  @@index([rexId])
 }
 
 // Plan d'action du Document Unique. Table autonome plutôt qu'un rattachement
@@ -351,11 +444,11 @@ model Action {
 // obligerait à porter les deux jeux de colonnes dans une seule table, à moitié
 // vides des deux côtés.
 model ActionDU {
-  id String @id @default(cuid())
+  id                String    @id @default(cuid())
   // PA1, PA2… : la numérotation du document lui-même, à laquelle les fiches de
   // risques du DU renvoient. Stockée en entier pour que PA10 se classe après
   // PA9 et non entre PA1 et PA2, comme le ferait un tri sur du texte.
-  numero            Int      @unique
+  numero            Int       @unique
   action            String
   // Texte libre : le DU écrit des plages ("E3 à E15", "F9 à F13") et des
   // listes mêlées, qu'une sélection de risques cochés ne saurait pas rendre.
@@ -366,8 +459,8 @@ model ActionDU {
   responsable       String?
   // Plusieurs moyens de preuve par action, saisis un par ligne.
   preuveRealisation String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
   modifiePar        String?
   modifieLe         DateTime?
   archiveLe         DateTime?

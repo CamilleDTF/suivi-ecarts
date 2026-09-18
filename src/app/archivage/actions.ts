@@ -13,6 +13,7 @@ const CHEMINS: Record<EntiteArchivable, string> = {
   action: "/plan-action",
   actionDU: "/plan-action-du",
   remontee: "/remontees",
+  rex: "/rex",
 };
 
 function lireEntite(valeur: FormDataEntryValue | null): EntiteArchivable {

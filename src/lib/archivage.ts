@@ -19,6 +19,7 @@ export const ENTITES_ARCHIVABLES = {
   action: prisma.action,
   actionDU: prisma.actionDU,
   remontee: prisma.remonteeInfo,
+  rex: prisma.rex,
 } as const;
 
 export type EntiteArchivable = keyof typeof ENTITES_ARCHIVABLES;

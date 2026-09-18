@@ -161,6 +161,19 @@ export default async function SynthesePage() {
     select: { domaine: true, theme: true, typeEvenement: true, dateHeure: true },
   });
 
+  const [rexTotal, rexParStatut, diffusionsParStatut] = await Promise.all([
+    prisma.rex.count(),
+    prisma.rex.groupBy({ by: ["statut"], _count: { _all: true } }),
+    prisma.rexDiffusion.groupBy({ by: ["statutLecture"], _count: { _all: true } }),
+  ]);
+  const rexStatutCounts = Object.fromEntries(rexParStatut.map((r) => [r.statut, r._count._all]));
+  const rexDiffuses = (rexStatutCounts.DIFFUSE ?? 0) + (rexStatutCounts.EFFICACITE_VERIFIEE ?? 0);
+  const tauxDiffusion = rexTotal > 0 ? Math.round((rexDiffuses / rexTotal) * 100) : 0;
+  const tauxEfficacite = rexTotal > 0 ? Math.round(((rexStatutCounts.EFFICACITE_VERIFIEE ?? 0) / rexTotal) * 100) : 0;
+  const diffusionsTotal = diffusionsParStatut.reduce((s, d) => s + d._count._all, 0);
+  const diffusionsLues = diffusionsParStatut.find((d) => d.statutLecture === "LU")?._count._all ?? 0;
+  const tauxAccusesLecture = diffusionsTotal > 0 ? Math.round((diffusionsLues / diffusionsTotal) * 100) : 0;
+
   const [dossiersRecents, ecartsRecents, fichesRecentes, ecartAmianteRecents] = await Promise.all([
     prisma.dossier.findMany({ orderBy: { createdAt: "desc" }, take: 5, select: { id: true, reference: true, createdAt: true } }),
     prisma.ecart.findMany({ orderBy: { createdAt: "desc" }, take: 5, select: { id: true, reference: true, createdAt: true } }),
@@ -329,6 +342,33 @@ export default async function SynthesePage() {
           }))}
         />
       </div>
+
+      {rexTotal > 0 && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold text-slate-900">Retour d&apos;expérience (REX)</h2>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <StatTile label="REX émis" value={rexTotal} icon={<IconFileText className="h-5 w-5" />} couleur="bleu" />
+            <StatTile
+              label="Taux de diffusion"
+              value={`${tauxDiffusion}%`}
+              icon={<IconFileText className="h-5 w-5" />}
+              couleur="violet"
+            />
+            <StatTile
+              label="Accusés de lecture"
+              value={`${tauxAccusesLecture}%`}
+              icon={<IconFileText className="h-5 w-5" />}
+              couleur="orange"
+            />
+            <StatTile
+              label="Efficacité vérifiée"
+              value={`${tauxEfficacite}%`}
+              icon={<IconFileText className="h-5 w-5" />}
+              couleur="vert"
+            />
+          </div>
+        </div>
+      )}
 
       <div className="mb-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <GraphiqueBarres
