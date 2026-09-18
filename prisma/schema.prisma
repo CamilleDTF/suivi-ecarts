@@ -173,7 +173,7 @@ model RemonteeInfo {
   personneSaisie    String?
   objet             String
   natures           String[]        @default([])
-  categorie         String?
+  categories        String[]        @default([])
   description       String?
   suiteDonnee       String?
   statut            StatutRemontee  @default(A_TRAITER)

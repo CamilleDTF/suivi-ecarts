@@ -18,7 +18,7 @@ type RemonteeValues = {
   personneSaisie?: string | null;
   objet?: string | null;
   natures?: string[] | null;
-  categorie?: string | null;
+  categories?: string[] | null;
   description?: string | null;
   suiteDonnee?: string | null;
 };
@@ -47,7 +47,7 @@ export function RemonteeFields({
 }) {
   const disabled = !useEditMode();
   const personnes = avecValeurExistante(RESPONSABLES, v.personneRemontant);
-  const categories = avecValeurExistante(CATEGORIES_REMONTEE, v.categorie);
+  const categories = avecValeursExistantes(CATEGORIES_REMONTEE, v.categories);
   const natures = avecValeursExistantes(NATURES_REMONTEE, v.natures);
 
   return (
@@ -132,17 +132,17 @@ export function RemonteeFields({
         </div>
       </fieldset>
 
-      <div>
-        <label className={labelCls}>Catégorie</label>
-        <select name="categorie" defaultValue={v.categorie ?? ""} className={inputCls}>
-          <option value="">—</option>
+      <fieldset>
+        <legend className={labelCls}>Catégorie</legend>
+        <div className="flex flex-wrap gap-x-4 gap-y-2">
           {categories.map((c) => (
-            <option key={c} value={c}>
+            <label key={c} className="flex items-center gap-2 text-sm text-slate-700">
+              <input type="checkbox" name="categories" value={c} defaultChecked={(v.categories ?? []).includes(c)} />
               {c}
-            </option>
+            </label>
           ))}
-        </select>
-      </div>
+        </div>
+      </fieldset>
 
       <div>
         <label className={labelCls}>Description</label>

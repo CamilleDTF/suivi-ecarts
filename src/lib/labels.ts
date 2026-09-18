@@ -193,16 +193,26 @@ export const STATUT_REMONTEE_COLORS: Record<string, string> = {
   TRANSFORMEE_EN_ECART: "bg-purple-100 text-purple-800",
 };
 
+// Catégories d'une remontée d'information : plusieurs possibles par remontée.
+// Volontairement plus précises qu'une simple liste "Sécurité / Santé /
+// Environnement" — une répétition sur "Confinement / Décontamination" pointe
+// vers un sujet de REX concret, là où "Sécurité" ne dirait rien.
 export const CATEGORIES_REMONTEE = [
-  "Organisation",
-  "Personnel",
-  "Matériel",
-  "Sécurité",
-  "Santé",
+  "EPI / Protection individuelle",
+  "Balisage / Signalisation",
+  "Confinement / Décontamination",
+  "Matériel / Équipement",
+  "Circulation / Risque routier",
+  "Travaux en hauteur",
+  "Gestion des déchets",
+  "Produit chimique",
+  "Propreté / Rangement de zone",
+  "Organisation / Coordination chantier",
+  "Compétence / Formation",
+  "Comportement / Non-respect de consigne",
   "Environnement",
-  "Documentaire",
-  "Client",
-  "Fournisseur",
+  "Documentaire / Procédure",
+  "Relation client / Fournisseur",
   "Autre",
 ];
 

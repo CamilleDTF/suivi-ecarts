@@ -6,6 +6,7 @@ import { DonutChart } from "@/components/donut-chart";
 import { ActiviteRecente, type ActiviteItem } from "@/components/activite-recente";
 import { IconFolder, IconAlertTriangle, IconFileText } from "@/components/icons";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
+import { compterOccurrences } from "@/lib/statistiques";
 
 // Le navigateur nomme le PDF d'après le titre du document : la date évite que
 // deux exports pris à des moments différents portent le même nom.
@@ -53,17 +54,6 @@ function repartirParMois(dates: (Date | null | undefined)[]) {
     if (i !== undefined) compte[i]++;
   }
   return mois.map((m, i) => ({ label: m.label, valeur: compte[i] }));
-}
-
-function compterOccurrences(valeurs: (string | null | undefined)[]): { label: string; valeur: number }[] {
-  const counts: Record<string, number> = {};
-  for (const v of valeurs) {
-    if (!v) continue;
-    counts[v] = (counts[v] ?? 0) + 1;
-  }
-  return Object.entries(counts)
-    .map(([label, valeur]) => ({ label, valeur }))
-    .sort((a, b) => b.valeur - a.valeur);
 }
 
 // Les types d'évènement composés ("Situation dangereuse & comportement à
@@ -144,7 +134,7 @@ export default async function SynthesePage() {
       select: { responsable: true },
     }),
     prisma.remonteeInfo.groupBy({ by: ["statut"], _count: { _all: true } }),
-    prisma.remonteeInfo.findMany({ select: { categorie: true } }),
+    prisma.remonteeInfo.findMany({ select: { categories: true } }),
     prisma.remonteeInfo.count(),
     prisma.ecart.findMany({ select: { dateDetection: true } }),
     prisma.remonteeInfo.findMany({ select: { dateRemontee: true } }),
@@ -163,7 +153,7 @@ export default async function SynthesePage() {
     ? [...topResponsables, { label: "Autres", valeur: resteResponsables }]
     : topResponsables;
 
-  const categorieRepartition = compterOccurrences(remonteesCategories.map((r) => r.categorie));
+  const categorieRepartition = compterOccurrences(remonteesCategories.flatMap((r) => r.categories));
   const ecartsParMois = repartirParMois(ecartsDates.map((e) => e.dateDetection));
   const remonteesParMois = repartirParMois(remonteesDates.map((r) => r.dateRemontee));
 
