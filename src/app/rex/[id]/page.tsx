@@ -6,19 +6,18 @@ import {
   ORIGINE_REX_LABELS,
   STATUT_REX_COLORS,
   STATUT_REX_LABELS,
-  STATUT_LECTURE_REX_COLORS,
-  STATUT_LECTURE_REX_LABELS,
+  NATURE_REX_LABELS,
+  NATURE_REX_COLORS,
   STATUT_ACTION_LABELS,
   RESPONSABLES,
 } from "@/lib/labels";
 import {
   mettreAJourRex,
   changerStatutRex,
+  publierRex,
   supprimerRex,
   creerActionRex,
   mettreAJourStatutActionRex,
-  ajouterDestinataireDiffusion,
-  marquerDiffusionLue,
 } from "@/app/rex/actions";
 import { StatutREX, StatutAction } from "@/generated/prisma/enums";
 import { StatutSelectForm } from "@/components/statut-select-form";
@@ -46,7 +45,6 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
       ecartAmiante: { select: { id: true, reference: true, nomChantier: true } },
       remontee: { select: { id: true, reference: true, objet: true } },
       actionsPreventives: { orderBy: { createdAt: "desc" } },
-      diffusions: { orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -58,13 +56,26 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
 
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <div className="mb-1 flex items-center gap-3">
+          <div className="mb-1 flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-semibold text-slate-900">{rex.reference}</h1>
+            {rex.brouillon && <Badge label="Brouillon" colorClass="bg-slate-200 text-slate-700" />}
             <Badge label={STATUT_REX_LABELS[rex.statut]} colorClass={STATUT_REX_COLORS[rex.statut]} />
+            <Badge label={NATURE_REX_LABELS[rex.nature]} colorClass={NATURE_REX_COLORS[rex.nature]} />
           </div>
           <p className="text-sm text-slate-500">{rex.titre}</p>
         </div>
         <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
+          {rex.brouillon && (
+            <form action={publierRex}>
+              <input type="hidden" name="id" value={rex.id} />
+              <button
+                type="submit"
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Publier le REX
+              </button>
+            </form>
+          )}
           <BoutonExportPDF />
           <BoutonArchiver
             action={rex.archiveLe ? desarchiver : archiver}
@@ -75,7 +86,7 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
           <BoutonSupprimer
             action={supprimerRex}
             hiddenFields={{ id: rex.id }}
-            message={`Supprimer ce REX supprimera aussi ${rex.actionsPreventives.length} action(s) préventive(s) et ${rex.diffusions.length} diffusion(s). Les écarts, évènements ou remontées rattachés ne sont pas touchés. Cette action est irréversible. Continuer ?`}
+            message={`Supprimer ce REX supprimera aussi ${rex.actionsPreventives.length} action(s) préventive(s). Les écarts, évènements ou remontées rattachés ne sont pas touchés. Cette action est irréversible. Continuer ?`}
           />
         </div>
       </div>
@@ -109,25 +120,67 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
             Remontée {rex.remontee.reference} — {rex.remontee.objet}
           </Link>
         ) : (
-          <span className="text-slate-400">Aucun rattachement</span>
+          <span className="text-slate-400">Aucun rattachement — REX spontané / bonne pratique</span>
         )}
       </div>
 
-      <div data-no-print className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
-        <StatutSelectForm
-          action={changerStatutRex}
-          hiddenName="id"
-          hiddenValue={rex.id}
-          selectName="statut"
-          defaultValue={rex.statut}
-          options={Object.values(StatutREX).map((s) => ({ value: s, label: STATUT_REX_LABELS[s] }))}
-        />
-        <p className="mt-2 text-xs text-slate-400">
-          {rex.dateDiffusion && `Diffusé le ${rex.dateDiffusion.toLocaleDateString("fr-FR")}`}
-          {rex.dateDiffusion && rex.dateVerificationEfficacite && " · "}
-          {rex.dateVerificationEfficacite &&
-            `Efficacité vérifiée le ${rex.dateVerificationEfficacite.toLocaleDateString("fr-FR")}`}
-        </p>
+      {rex.brouillon ? (
+        <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+          Ce REX est encore en brouillon : il n&apos;a pas été diffusé et n&apos;est pas compté dans les
+          indicateurs du tableau de bord. Cliquez sur « Publier le REX » quand il est prêt.
+        </div>
+      ) : (
+        <div data-no-print className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
+          <StatutSelectForm
+            action={changerStatutRex}
+            hiddenName="id"
+            hiddenValue={rex.id}
+            selectName="statut"
+            defaultValue={rex.statut}
+            options={Object.values(StatutREX).map((s) => ({ value: s, label: STATUT_REX_LABELS[s] }))}
+          />
+          <p className="mt-2 text-xs text-slate-400">
+            {rex.dateDiffusion && `Diffusé le ${rex.dateDiffusion.toLocaleDateString("fr-FR")}`}
+            {rex.dateDiffusion && rex.dateVerificationEfficacite && " · "}
+            {rex.dateVerificationEfficacite &&
+              `Efficacité vérifiée le ${rex.dateVerificationEfficacite.toLocaleDateString("fr-FR")}`}
+            {!rex.dateDiffusion && rex.dateDiffusionPlanifiee &&
+              `Diffusion planifiée le ${rex.dateDiffusionPlanifiee.toLocaleDateString("fr-FR")}`}
+          </p>
+        </div>
+      )}
+
+      <div className="mb-6 flex flex-wrap gap-4 rounded-lg border border-slate-200 bg-white p-4 text-sm">
+        <div className="min-w-[180px]">
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">Thèmes</p>
+          <div className="flex flex-wrap gap-1.5">
+            {rex.themes.length > 0
+              ? rex.themes.map((t) => (
+                  <span key={t} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">{t}</span>
+                ))
+              : <span className="text-slate-400">—</span>}
+          </div>
+        </div>
+        <div className="min-w-[180px]">
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">Destinataires</p>
+          <div className="flex flex-wrap gap-1.5">
+            {rex.destinatairesRoles.length > 0
+              ? rex.destinatairesRoles.map((d) => (
+                  <span key={d} className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs text-blue-700">{d}</span>
+                ))
+              : <span className="text-slate-400">—</span>}
+          </div>
+        </div>
+        <div className="min-w-[180px]">
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">Canaux de diffusion</p>
+          <div className="flex flex-wrap gap-1.5">
+            {rex.canaux.length > 0
+              ? rex.canaux.map((c) => (
+                  <span key={c} className="rounded-full bg-slate-50 px-2.5 py-0.5 text-xs text-slate-600">{c}</span>
+                ))
+              : <span className="text-slate-400">—</span>}
+          </div>
+        </div>
       </div>
 
       <div className="mb-8">
@@ -141,7 +194,7 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
         </FormulaireEditable>
       </div>
 
-      <div className="mb-8">
+      <div>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">
           Actions préventives ({rex.actionsPreventives.length})
         </h2>
@@ -208,87 +261,6 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
             ))}
           </select>
           <input type="date" name="echeance" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-          <button
-            type="submit"
-            className="whitespace-nowrap rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Ajouter
-          </button>
-        </form>
-      </div>
-
-      <div>
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">
-          Diffusion ({rex.diffusions.length})
-        </h2>
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Destinataire</th>
-                <th className="px-4 py-3 font-medium">Chantier</th>
-                <th className="px-4 py-3 font-medium">Statut de lecture</th>
-                <th className="px-4 py-3 font-medium">Lu le</th>
-                <th data-no-print className="px-4 py-3 font-medium" />
-              </tr>
-            </thead>
-            <tbody>
-              {rex.diffusions.map((d) => (
-                <tr key={d.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                  <td className="px-4 py-3 text-slate-700">{d.destinataire}</td>
-                  <td className="px-4 py-3 text-slate-700">{d.chantier || "—"}</td>
-                  <td className="px-4 py-3">
-                    <Badge
-                      label={STATUT_LECTURE_REX_LABELS[d.statutLecture]}
-                      colorClass={STATUT_LECTURE_REX_COLORS[d.statutLecture]}
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">
-                    {d.dateLecture ? d.dateLecture.toLocaleDateString("fr-FR") : "—"}
-                  </td>
-                  <td data-no-print className="px-4 py-3 text-right">
-                    {d.statutLecture === "EN_ATTENTE" && (
-                      <form action={marquerDiffusionLue}>
-                        <input type="hidden" name="id" value={d.id} />
-                        <input type="hidden" name="rexId" value={rex.id} />
-                        <button
-                          type="submit"
-                          className="whitespace-nowrap rounded-md border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                        >
-                          Marquer lu
-                        </button>
-                      </form>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {rex.diffusions.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
-                    Aucun destinataire pour l&apos;instant.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        <form
-          action={ajouterDestinataireDiffusion}
-          data-no-print
-          className="mt-3 grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-[1fr_1fr_auto]"
-        >
-          <input type="hidden" name="rexId" value={rex.id} />
-          <input
-            name="destinataire"
-            required
-            placeholder="Destinataire (nom)"
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <input
-            name="chantier"
-            placeholder="Chantier (optionnel)"
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
           <button
             type="submit"
             className="whitespace-nowrap rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"

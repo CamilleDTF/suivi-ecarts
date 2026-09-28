@@ -266,6 +266,7 @@ export const ORIGINE_REX_LABELS: Record<string, string> = {
   EVENEMENT_SSE: "Évènement SSE",
   ECART_AMIANTE: "Écart amiante",
   ECART_TERRAIN: "Écart terrain",
+  SPONTANE: "REX spontané / bonne pratique",
 };
 
 export const STATUT_REX_LABELS: Record<string, string> = {
@@ -280,17 +281,74 @@ export const STATUT_REX_COLORS: Record<string, string> = {
   EFFICACITE_VERIFIEE: "bg-green-100 text-green-800",
 };
 
-export const STATUT_LECTURE_REX_LABELS: Record<string, string> = {
-  EN_ATTENTE: "En attente",
-  LU: "Lu",
-};
-
-export const STATUT_LECTURE_REX_COLORS: Record<string, string> = {
-  EN_ATTENTE: "bg-amber-100 text-amber-800",
-  LU: "bg-green-100 text-green-800",
-};
-
 // Sous-type d'évènement SSE à l'origine d'un REX. Sous-ensemble de
 // TYPE_EVENEMENT_OPTIONS pertinent pour un REX (un REX naît d'un fait avéré,
 // pas d'une simple situation dangereuse).
 export const SOUS_TYPE_SSE_REX_OPTIONS = ["Presqu'accident", "Accident du travail"];
+
+// Ce que le REX tire de sa source (nature), distinct de l'origine (d'où il
+// vient) — un écart terrain peut aussi bien donner une bonne pratique à
+// généraliser qu'une pratique à proscrire.
+export const NATURE_REX_LABELS: Record<string, string> = {
+  BONNE_PRATIQUE: "Bonne pratique à généraliser",
+  PRATIQUE_A_EVITER: "Pratique à éviter",
+  EVOLUTION_METHODE: "Évolution méthode / doc",
+  ACTION_A_METTRE_EN_OEUVRE: "Action à mettre en œuvre",
+};
+
+export const NATURE_REX_DESCRIPTIONS: Record<string, string> = {
+  BONNE_PRATIQUE: "Une solution efficace pouvant être reproduite sur d'autres chantiers.",
+  PRATIQUE_A_EVITER: "Un évènement ou une pratique à ne pas reproduire.",
+  EVOLUTION_METHODE: "Une évolution de méthode, d'outils ou de documentation.",
+  ACTION_A_METTRE_EN_OEUVRE: "Une action corrective ou préventive à engager.",
+};
+
+export const NATURE_REX_COLORS: Record<string, string> = {
+  BONNE_PRATIQUE: "bg-green-100 text-green-800",
+  PRATIQUE_A_EVITER: "bg-red-100 text-red-800",
+  EVOLUTION_METHODE: "bg-amber-100 text-amber-800",
+  ACTION_A_METTRE_EN_OEUVRE: "bg-purple-100 text-purple-800",
+};
+
+// Facteurs communs observés entre plusieurs éléments source (mode "éléments
+// récurrents" du parcours de création). Suggestions, pas un enum : cf.
+// avecValeursExistantes.
+export const POINTS_COMMUNS_REX_OPTIONS = [
+  "Organisation",
+  "Préparation chantier",
+  "Contrôle avant démarrage",
+  "Balisage",
+  "Communication",
+  "Matériel / équipements",
+  "Conditions environnementales",
+];
+
+export const THEMES_REX_OPTIONS = [
+  "Sécurité sur chantier",
+  "Balisage / signalisation",
+  "Organisation",
+  "Méthode de travail",
+  "Préparation chantier",
+  "Compétences / formation",
+  "Communication",
+  "Amiante",
+  "Environnement",
+];
+
+export const DESTINATAIRES_ROLES_REX_OPTIONS = [
+  "Chefs de chantier",
+  "Conducteurs de travaux",
+  "Encadrement chantier",
+  "Tout le personnel",
+  "QHSE",
+  "Personnel concerné uniquement",
+];
+
+export const CANAUX_DIFFUSION_REX_OPTIONS = [
+  "Causerie",
+  "Journée SSE",
+  "Affichage",
+  "Reporting interne (WhatsApp)",
+  "Mise à jour documentaire",
+  "Formation / accueil",
+];

@@ -1,11 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { creerRex } from "@/app/rex/actions";
-import { RexFields } from "@/components/rex-fields";
-import { ChoixRattachementAction } from "@/components/choix-rattachement-action";
+import { RexWizard } from "@/components/rex-wizard";
 import { libelleRattachement } from "@/lib/labels";
-import { AvertissementNonEnregistre } from "@/components/avertissement-non-enregistre";
-import { BoutonRetour } from "@/components/bouton-retour";
-import { BoutonCreer } from "@/components/bouton-creer";
 
 export default async function NouveauRexPage({
   searchParams,
@@ -19,21 +14,35 @@ export default async function NouveauRexPage({
 }) {
   const { ecartId, ficheSSEId, ecartAmianteId, remonteeId } = await searchParams;
 
-  const fiche = ficheSSEId ? await prisma.ficheSSE.findUnique({ where: { id: ficheSSEId } }) : null;
-  const ecartAmiante = !fiche && ecartAmianteId
-    ? await prisma.ecartAmiante.findUnique({ where: { id: ecartAmianteId } })
-    : null;
-  const remontee = !fiche && !ecartAmiante && remonteeId
-    ? await prisma.remonteeInfo.findUnique({ where: { id: remonteeId } })
+  const [fiche, ecartAmiante, remontee] = await Promise.all([
+    ficheSSEId ? prisma.ficheSSE.findUnique({ where: { id: ficheSSEId } }) : null,
+    ecartAmianteId ? prisma.ecartAmiante.findUnique({ where: { id: ecartAmianteId } }) : null,
+    remonteeId ? prisma.remonteeInfo.findUnique({ where: { id: remonteeId } }) : null,
+  ]);
+  const ecartImpose = !fiche && !ecartAmiante && !remontee && ecartId
+    ? await prisma.ecart.findUnique({ where: { id: ecartId }, include: { dossier: true } })
     : null;
 
-  const parentImpose = fiche || ecartAmiante || remontee;
+  const parentImpose = fiche
+    ? { type: "evenement" as const, id: fiche.id, libelle: `Évènement ${fiche.reference}${fiche.nomChantier ? ` — ${fiche.nomChantier}` : ""}` }
+    : ecartAmiante
+      ? { type: "amiante" as const, id: ecartAmiante.id, libelle: `Écart amiante ${ecartAmiante.reference} — ${ecartAmiante.nomChantier}` }
+      : remontee
+        ? { type: "remontee" as const, id: remontee.id, libelle: `Remontée ${remontee.reference} — ${remontee.objet}` }
+        : ecartImpose
+          ? {
+              type: "ecart" as const,
+              id: ecartImpose.id,
+              libelle: `Écart ${ecartImpose.reference}${ecartImpose.dossier?.chantier ? ` — ${ecartImpose.dossier.chantier}` : ""}`,
+            }
+          : null;
+
   const [ecarts, evenements, amiantes, remontees] = parentImpose
     ? [[], [], [], []]
     : await Promise.all([
         prisma.ecart.findMany({
-          orderBy: { reference: "asc" },
-          select: { id: true, reference: true, description: true, dossier: { select: { chantier: true } } },
+          orderBy: { dateDetection: "desc" },
+          select: { id: true, reference: true, description: true, dateDetection: true, dossier: { select: { chantier: true } } },
         }),
         prisma.ficheSSE.findMany({
           orderBy: { reference: "asc" },
@@ -50,89 +59,36 @@ export default async function NouveauRexPage({
       ]);
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-8">
-      <BoutonRetour href="/rex" label="Retour aux REX" />
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Nouveau retour d&apos;expérience</h1>
-
-      <form action={creerRex} className="space-y-6 rounded-lg border border-slate-200 bg-white p-6">
-        <AvertissementNonEnregistre />
-
-        {fiche ? (
-          <div>
-            <input type="hidden" name="ficheSSEId" value={fiche.id} />
-            <label className="mb-1 block text-sm font-medium text-slate-700">Rattaché à</label>
-            <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-              Évènement {fiche.reference}
-            </p>
-          </div>
-        ) : ecartAmiante ? (
-          <div>
-            <input type="hidden" name="ecartAmianteId" value={ecartAmiante.id} />
-            <label className="mb-1 block text-sm font-medium text-slate-700">Rattaché à</label>
-            <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-              Écart amiante {ecartAmiante.reference}
-            </p>
-          </div>
-        ) : remontee ? (
-          <div>
-            <input type="hidden" name="remonteeId" value={remontee.id} />
-            <label className="mb-1 block text-sm font-medium text-slate-700">Rattaché à</label>
-            <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-              Remontée {remontee.reference} — {remontee.objet}
-            </p>
-          </div>
-        ) : (
-          <ChoixRattachementAction
-            defaut={ecartId ? "ecart" : undefined}
-            preselection={ecartId ? [ecartId] : undefined}
-            types={[
-              {
-                cle: "ecart",
-                libelle: "Écart",
-                champ: "ecartIds",
-                multiple: true,
-                options: ecarts.map((e) => ({
-                  id: e.id,
-                  libelle: libelleRattachement(e.reference, e.dossier?.chantier ?? null, e.description),
-                })),
-              },
-              {
-                cle: "evenement",
-                libelle: "Évènement SSE",
-                champ: "ficheSSEId",
-                options: evenements.map((e) => ({
-                  id: e.id,
-                  libelle: libelleRattachement(e.reference, e.nomChantier, e.descriptionFactuelle),
-                })),
-              },
-              {
-                cle: "amiante",
-                libelle: "Écart amiante",
-                champ: "ecartAmianteId",
-                options: amiantes.map((e) => ({
-                  id: e.id,
-                  libelle: libelleRattachement(e.reference, e.nomChantier, e.description),
-                })),
-              },
-              {
-                cle: "remontee",
-                libelle: "Remontée",
-                champ: "remonteeId",
-                options: remontees.map((r) => ({
-                  id: r.id,
-                  libelle: libelleRattachement(r.reference, r.chantierService, r.objet),
-                })),
-              },
-            ]}
-          />
-        )}
-
-        <RexFields />
-
-        <div className="flex justify-end gap-3 pt-2">
-          <BoutonCreer>Créer le REX</BoutonCreer>
-        </div>
-      </form>
-    </div>
+    <RexWizard
+      parentImpose={parentImpose}
+      ecarts={ecarts.map((e) => ({
+        id: e.id,
+        reference: e.reference,
+        libelle: e.description?.trim().replace(/\s+/g, " ")?.slice(0, 90) ?? "—",
+        date: e.dateDetection.toISOString(),
+        chantier: e.dossier?.chantier ?? null,
+      }))}
+      evenements={evenements.map((e) => ({
+        id: e.id,
+        reference: e.reference,
+        libelle: libelleRattachement(e.reference, e.nomChantier, e.descriptionFactuelle),
+        date: null,
+        chantier: e.nomChantier ?? null,
+      }))}
+      amiantes={amiantes.map((e) => ({
+        id: e.id,
+        reference: e.reference,
+        libelle: libelleRattachement(e.reference, e.nomChantier, e.description),
+        date: null,
+        chantier: e.nomChantier ?? null,
+      }))}
+      remontees={remontees.map((r) => ({
+        id: r.id,
+        reference: r.reference,
+        libelle: libelleRattachement(r.reference, r.chantierService, r.objet),
+        date: null,
+        chantier: r.chantierService ?? null,
+      }))}
+    />
   );
 }

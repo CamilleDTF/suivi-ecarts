@@ -91,6 +91,9 @@ enum OrigineREX {
   EVENEMENT_SSE
   ECART_AMIANTE
   ECART_TERRAIN
+  // REX spontané ou bonne pratique : aucun écart, évènement ou remontée
+  // source, capitalisé hors de toute non-conformité constatée.
+  SPONTANE
 }
 
 enum StatutREX {
@@ -99,9 +102,12 @@ enum StatutREX {
   EFFICACITE_VERIFIEE
 }
 
-enum StatutLectureREX {
-  EN_ATTENTE
-  LU
+// Ce que le REX tire de sa source, distinct de l'origine (d'où il vient).
+enum NatureREX {
+  BONNE_PRATIQUE
+  PRATIQUE_A_EVITER
+  EVOLUTION_METHODE
+  ACTION_A_METTRE_EN_OEUVRE
 }
 
 model User {
@@ -368,13 +374,15 @@ model Action {
 
 // Retour d'expérience MASE : capitalise un enseignement transverse, distinct du plan
 // d'action existant qui reste scopé à un écart précis. Rattachement polymorphe repris
-// tel quel du modèle Action (ecarts[] + ficheSSEId + ecartAmianteId + remonteeId) :
-// c'est la seule forme qui couvre les 4 origines possibles sans dupliquer une table de
-// jonction par origine. `origine` est déduit du rattachement choisi à la création,
-// jamais saisi indépendamment, pour ne jamais pouvoir contredire le rattachement réel.
+// tel quel du modèle Action (ecarts[] + ficheSSEId + ecartAmianteId + remonteeId), plus
+// le cas "aucun rattachement" (origine SPONTANE) pour un REX spontané / bonne pratique.
+// `origine` est déduite du rattachement choisi à la création, jamais saisie
+// indépendamment, pour ne jamais pouvoir contredire le rattachement réel. La diffusion
+// se fait par groupes de rôles + canaux (destinatairesRoles / canaux), pas nominative :
+// pas de preuve de lecture individuelle, seulement la preuve qu'elle a été programmée.
 model Rex {
-  id                         String         @id @default(cuid())
-  reference                  String         @unique
+  id                         String        @id @default(cuid())
+  reference                  String        @unique
   titre                      String
   origine                    OrigineREX
   // Rempli seulement si origine = EVENEMENT_SSE. Texte libre (comme typeEvenement sur
@@ -382,23 +390,38 @@ model Rex {
   // migration à chaque ajout de valeur (vécu cette session avec les catégories de
   // RemonteeInfo).
   sousTypeSSE                String?
+  nature                     NatureREX
+  // "Facteurs communs identifiés" (mode plusieurs éléments récurrents) ou
+  // "Cause racine" (mode élément unique) : même champ, intitulé différent
+  // selon le mode choisi à la création.
   causeRacine                String?
+  // Coché parmi une liste suggérée (mode plusieurs éléments récurrents
+  // uniquement) : cf. RemonteeInfo.categories pour le choix texte libre + suggestions
+  // plutôt qu'un enum.
+  pointsCommuns              String[]      @default([])
   enseignementsTires         String?
-  statut                     StatutREX      @default(REDIGE)
+  raisonDiffusion            String?
+  themes                     String[]      @default([])
+  destinatairesRoles         String[]      @default([])
+  canaux                     String[]      @default([])
+  noteInterne                String?
+  // Un REX en brouillon n'a pas encore été publié : il n'est pas compté dans
+  // les indicateurs de diffusion tant qu'il reste à cet état.
+  brouillon                  Boolean       @default(false)
+  statut                     StatutREX     @default(REDIGE)
   dateDiffusion              DateTime?
+  dateDiffusionPlanifiee     DateTime?
   dateVerificationEfficacite DateTime?
-  canalDiffusion             String?
   ecarts                     Ecart[]
-  ficheSSE                   FicheSSE?      @relation(fields: [ficheSSEId], references: [id])
+  ficheSSE                   FicheSSE?     @relation(fields: [ficheSSEId], references: [id])
   ficheSSEId                 String?
-  ecartAmiante               EcartAmiante?  @relation(fields: [ecartAmianteId], references: [id])
+  ecartAmiante               EcartAmiante? @relation(fields: [ecartAmianteId], references: [id])
   ecartAmianteId             String?
-  remontee                   RemonteeInfo?  @relation(fields: [remonteeId], references: [id])
+  remontee                   RemonteeInfo? @relation(fields: [remonteeId], references: [id])
   remonteeId                 String?
   actionsPreventives         ActionRex[]
-  diffusions                 RexDiffusion[]
-  createdAt                  DateTime       @default(now())
-  updatedAt                  DateTime       @updatedAt
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
   modifiePar                 String?
   modifieLe                  DateTime?
   archiveLe                  DateTime?
@@ -419,20 +442,6 @@ model ActionRex {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   archiveLe   DateTime?
-
-  @@index([rexId])
-}
-
-// Preuve de diffusion nominative, pas un compteur global : une ligne par destinataire.
-model RexDiffusion {
-  id            String           @id @default(cuid())
-  rex           Rex              @relation(fields: [rexId], references: [id])
-  rexId         String
-  destinataire  String
-  chantier      String?
-  statutLecture StatutLectureREX @default(EN_ATTENTE)
-  dateLecture   DateTime?
-  createdAt     DateTime         @default(now())
 
   @@index([rexId])
 }
