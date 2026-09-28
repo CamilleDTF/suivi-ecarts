@@ -40,7 +40,8 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
   const rex = await prisma.rex.findUnique({
     where: { id },
     include: {
-      ecarts: { orderBy: { reference: "asc" }, include: { dossier: true } },
+      // Chantier seulement, jamais `enregistrement` (photo/PDF en data URL).
+      ecarts: { orderBy: { reference: "asc" }, include: { dossier: { select: { chantier: true } } } },
       ficheSSE: { select: { id: true, reference: true, nomChantier: true } },
       ecartAmiante: { select: { id: true, reference: true, nomChantier: true } },
       remontee: { select: { id: true, reference: true, objet: true } },

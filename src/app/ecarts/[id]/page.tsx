@@ -47,7 +47,9 @@ export default async function EcartDetailPage({
   const ecart = await prisma.ecart.findUnique({
     where: { id },
     include: {
-      dossier: true,
+      // id/reference/chantier seulement, jamais `enregistrement` (photo/PDF en
+      // data URL) : cette page ne fait que lier vers /dossiers/[id].
+      dossier: { select: { id: true, reference: true, chantier: true } },
       remontees: {
         orderBy: { reference: "asc" },
         select: { id: true, reference: true, objet: true },

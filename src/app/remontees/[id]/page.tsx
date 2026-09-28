@@ -45,8 +45,12 @@ export default async function RemonteeDetailPage({
   const remontee = await prisma.remonteeInfo.findUnique({
     where: { id },
     include: {
-      ecarts: { orderBy: { reference: "asc" }, include: { dossier: true } },
-      ecartOrigine: { include: { dossier: true } },
+      // Chantier seulement, jamais `enregistrement` (photo/PDF en data URL) —
+      // le seul champ affiché ici est le nom du chantier.
+      ecarts: { orderBy: { reference: "asc" }, include: { dossier: { select: { chantier: true } } } },
+      // `ecartOrigine` lui-même n'est jamais affiché : seul `ecartOrigineId`
+      // (déjà un scalaire de RemonteeInfo) sert à repérer l'écart d'origine
+      // dans la liste `ecarts` ci-dessus.
       ficheSSE: { select: { id: true, reference: true, nomChantier: true, ecartId: true, ecartAmianteId: true } },
     },
   });

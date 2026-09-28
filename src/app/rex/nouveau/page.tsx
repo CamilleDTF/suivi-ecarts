@@ -20,7 +20,10 @@ export default async function NouveauRexPage({
     remonteeId ? prisma.remonteeInfo.findUnique({ where: { id: remonteeId } }) : null,
   ]);
   const ecartImpose = !fiche && !ecartAmiante && !remontee && ecartId
-    ? await prisma.ecart.findUnique({ where: { id: ecartId }, include: { dossier: true } })
+    ? await prisma.ecart.findUnique({
+        where: { id: ecartId },
+        select: { id: true, reference: true, dossier: { select: { chantier: true } } },
+      })
     : null;
 
   const parentImpose = fiche

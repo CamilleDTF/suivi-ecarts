@@ -117,7 +117,20 @@ export default async function FichesSSEPage({
     prisma.ficheSSE.findMany({
       where,
       orderBy: construireTri(tri, sens, COLONNES_TRI, { createdAt: "desc" as const }, COLONNES_NULLABLES),
-      include: { ecart: { include: { dossier: true } }, ecartAmiante: true },
+      // `select` explicite : la liste n'affiche jamais le dossier de l'écart
+      // rattaché, qui embarquerait sinon sa pièce jointe (`enregistrement`) en
+      // entier pour chaque évènement.
+      select: {
+        id: true,
+        reference: true,
+        dateHeure: true,
+        typeEvenement: true,
+        nomChantier: true,
+        emetteur: true,
+        statutFiche: true,
+        ecart: { select: { id: true, reference: true } },
+        ecartAmiante: { select: { id: true, reference: true } },
+      },
       skip: (page - 1) * taillePage,
       take: taillePage,
     }),

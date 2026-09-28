@@ -67,7 +67,23 @@ export default async function PlanActionPage({
     prisma.action.findMany({
       where,
       orderBy: construireTri(tri, sens, COLONNES_TRI, { echeance: "asc" as const }, ["echeance"]),
-      include: { ecarts: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true, remontee: true },
+      // `select` explicite : la liste n'affiche que la référence de chaque
+      // rattachement, jamais `preuve` (photo/PDF en data URL) ni le dossier de
+      // l'écart lié — les deux seraient sinon retéléchargés en entier pour
+      // chaque action, à chaque page.
+      select: {
+        id: true,
+        reference: true,
+        type: true,
+        action: true,
+        responsable: true,
+        echeance: true,
+        statut: true,
+        ecarts: { select: { id: true, reference: true } },
+        ficheSSE: { select: { id: true, reference: true } },
+        ecartAmiante: { select: { id: true, reference: true } },
+        remontee: { select: { id: true, reference: true } },
+      },
       skip: (page - 1) * taillePage,
       take: taillePage,
     }),

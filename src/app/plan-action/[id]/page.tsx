@@ -36,7 +36,13 @@ export default async function ActionDetailPage({
   const { id } = await params;
   const action = await prisma.action.findUnique({
     where: { id },
-    include: { ecarts: { include: { dossier: true } }, ficheSSE: true, ecartAmiante: true, remontee: true },
+    // Chantier seulement, jamais `enregistrement` (photo/PDF en data URL).
+    include: {
+      ecarts: { include: { dossier: { select: { chantier: true } } } },
+      ficheSSE: true,
+      ecartAmiante: true,
+      remontee: true,
+    },
   });
 
   if (!action) notFound();

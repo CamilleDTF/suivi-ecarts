@@ -43,7 +43,8 @@ export default async function FicheSSEDetailPage({
   const fiche = await prisma.ficheSSE.findUnique({
     where: { id },
     include: {
-      ecart: { include: { dossier: true } },
+      // Chantier seulement, jamais `enregistrement` (photo/PDF en data URL).
+      ecart: { include: { dossier: { select: { chantier: true } } } },
       ecartAmiante: true,
       causes: { orderBy: { createdAt: "asc" } },
       remontees: { orderBy: { reference: "asc" }, select: { id: true, reference: true, objet: true } },

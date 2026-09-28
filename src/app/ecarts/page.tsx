@@ -76,7 +76,19 @@ export default async function EcartsPage({
       orderBy: construireTri(tri, sens, COLONNES_TRI, { createdAt: "desc" as const }, ["description"]),
       // Le décompte des évènements plutôt que le drapeau ficheSSECreee : ce
       // dernier reste à true si l'évènement est ensuite détaché ou supprimé.
-      include: { dossier: true, _count: { select: { fichesSSE: true } } },
+      // `select` explicite : la liste n'affiche jamais `enregistrement`
+      // (photo/PDF en data URL) du dossier, qui serait sinon retéléchargé en
+      // entier pour chaque écart, à chaque page — c'est la page la plus
+      // consultée de toute l'appli.
+      select: {
+        id: true,
+        reference: true,
+        description: true,
+        statut: true,
+        dateDetection: true,
+        dossier: { select: { id: true, reference: true } },
+        _count: { select: { fichesSSE: true } },
+      },
       skip: (page - 1) * taillePage,
       take: taillePage,
     }),

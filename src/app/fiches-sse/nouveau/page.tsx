@@ -13,7 +13,19 @@ export default async function NouvelleFicheSSEPage({
 }) {
   const { ecartId } = await searchParams;
   const ecart = ecartId
-    ? await prisma.ecart.findUnique({ where: { id: ecartId }, include: { dossier: true } })
+    ? await prisma.ecart.findUnique({
+        where: { id: ecartId },
+        select: {
+          reference: true,
+          gravite: true,
+          frequence: true,
+          domaines: true,
+          theme: true,
+          description: true,
+          mesureImmediate: true,
+          dossier: { select: { chantier: true } },
+        },
+      })
     : null;
 
   // La cotation de l'écart est reprise telle quelle : c'est le même fait, coté

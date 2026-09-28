@@ -57,7 +57,19 @@ export default async function DossiersPage({
     prisma.dossier.findMany({
       where,
       orderBy: construireTri(tri, sens, COLONNES_TRI, { createdAt: "desc" as const }),
-      include: { _count: { select: { ecarts: true } } },
+      // `select` explicite plutôt que `include` : `enregistrement` (photo/PDF en
+      // data URL) ne doit jamais être retéléchargé pour toute une liste, alors
+      // qu'aucune ligne ne l'affiche.
+      select: {
+        id: true,
+        reference: true,
+        chantier: true,
+        declarant: true,
+        origine: true,
+        statut: true,
+        dateDetection: true,
+        _count: { select: { ecarts: true } },
+      },
       skip: (page - 1) * taillePage,
       take: taillePage,
     }),
