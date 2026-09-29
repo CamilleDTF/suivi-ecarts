@@ -9,6 +9,7 @@ import { auth } from "@/auth";
 import { OrigineREX, NatureREX, StatutREX, StatutAction } from "@/generated/prisma/enums";
 import { nomAuteur } from "@/lib/audit";
 import { dateFacultative } from "@/lib/validation";
+import { NATURES_REX_REQUERANT_ACTION } from "@/lib/labels";
 
 // Parcours de création du REX : trois façons d'y arriver, qui ne demandent
 // pas les mêmes champs. "unique" reprend le rattachement polymorphe classique
@@ -37,6 +38,20 @@ const rexWizardSchema = z
     dateDiffusionPlanifiee: dateFacultative,
     actionResponsable: z.string().optional(),
     actionEcheance: dateFacultative,
+
+    // Actions préventives exigées par la nature du REX (cf.
+    // NATURES_REX_REQUERANT_ACTION) : distinctes de actionResponsable /
+    // actionEcheance ci-dessus, qui ne concernent que la modalité "créer une
+    // action associée" (diffuser le REX lui-même).
+    actionsPreventives: z
+      .array(
+        z.object({
+          action: z.string().min(1),
+          responsable: z.string().min(1),
+          echeance: z.string().optional(),
+        }),
+      )
+      .default([]),
 
     noteInterne: z.string().optional(),
     publier: z.boolean(),
@@ -75,6 +90,15 @@ const rexWizardSchema = z
   .refine((v) => v.modaliteDiffusion !== "action" || !!v.actionResponsable, {
     message: "Responsable de l'action de diffusion requis",
     path: ["actionResponsable"],
+  })
+  // Une nature "à corriger" (pratique à éviter, évolution méthode/doc, action
+  // à mettre en œuvre) sans aucune action préventive ne serait qu'une
+  // étiquette décorative : on exige donc au moins une action pour ces trois
+  // natures. "Bonne pratique à généraliser" reste de la pure capitalisation,
+  // sans action requise.
+  .refine((v) => !NATURES_REX_REQUERANT_ACTION.includes(v.nature) || v.actionsPreventives.length > 0, {
+    message: "Au moins une action préventive requise pour cette nature de REX",
+    path: ["actionsPreventives"],
   });
 
 export type RexWizardInput = z.infer<typeof rexWizardSchema>;
@@ -137,6 +161,20 @@ export async function creerRex(input: RexWizardInput) {
       remonteeId: parsed.remonteeId,
     },
   });
+
+  // Actions préventives exigées par la nature du REX (cf. le refine plus
+  // haut) : indépendantes du statut brouillon/publié, puisqu'elles décrivent
+  // ce qu'il y a à corriger, pas la diffusion elle-même.
+  if (parsed.actionsPreventives.length > 0) {
+    await prisma.actionRex.createMany({
+      data: parsed.actionsPreventives.map((a) => ({
+        rexId: rex.id,
+        action: a.action,
+        responsable: a.responsable,
+        echeance: a.echeance ? new Date(a.echeance) : undefined,
+      })),
+    });
+  }
 
   // "Créer une action associée" : la diffusion elle-même devient une action
   // préventive du REX, suivie comme les autres actions préventives.

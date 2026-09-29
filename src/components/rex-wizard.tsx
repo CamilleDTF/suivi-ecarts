@@ -30,6 +30,7 @@ import {
   POINTS_COMMUNS_REX_OPTIONS,
   SOUS_TYPE_SSE_REX_OPTIONS,
   RESPONSABLES,
+  NATURES_REX_REQUERANT_ACTION,
 } from "@/lib/labels";
 
 type Mode = "unique" | "recurrents" | "spontane";
@@ -142,6 +143,16 @@ export function RexWizard({
   const [actionResponsable, setActionResponsable] = useState("");
   const [actionEcheance, setActionEcheance] = useState("");
 
+  // Actions préventives exigées par la nature du REX (pratique à éviter,
+  // évolution méthode/doc, action à mettre en œuvre) — distinctes de
+  // actionResponsable/actionEcheance ci-dessus, qui ne concernent que la
+  // modalité "créer une action associée" pour la diffusion elle-même.
+  type ActionPreventiveDraft = { action: string; responsable: string; echeance: string };
+  const [actionsPreventives, setActionsPreventives] = useState<ActionPreventiveDraft[]>([]);
+  const [nouvelleAction, setNouvelleAction] = useState("");
+  const [nouvelleActionResponsable, setNouvelleActionResponsable] = useState("");
+  const [nouvelleActionEcheance, setNouvelleActionEcheance] = useState("");
+
   // Étape 4 — validation.
   const [noteInterne, setNoteInterne] = useState("");
 
@@ -166,13 +177,30 @@ export function RexWizard({
     enseignementPrincipal.trim().length > 0 &&
     (mode !== "recurrents" || (raisonDiffusion.trim().length > 0 && pointsCommuns.length > 0));
 
+  const natureRequiertAction = !!nature && NATURES_REX_REQUERANT_ACTION.includes(nature);
+
   const step3Ok =
     !!nature &&
     themes.length > 0 &&
     destinatairesRoles.length > 0 &&
     canaux.length > 0 &&
     (modalite !== "planifiee" || !!dateDiffusionPlanifiee) &&
-    (modalite !== "action" || !!actionResponsable);
+    (modalite !== "action" || !!actionResponsable) &&
+    (!natureRequiertAction || actionsPreventives.length > 0);
+
+  function ajouterActionPreventive() {
+    if (!nouvelleAction.trim() || !nouvelleActionResponsable) return;
+    setActionsPreventives([
+      ...actionsPreventives,
+      { action: nouvelleAction.trim(), responsable: nouvelleActionResponsable, echeance: nouvelleActionEcheance },
+    ]);
+    setNouvelleAction("");
+    setNouvelleActionResponsable("");
+    setNouvelleActionEcheance("");
+  }
+  function retirerActionPreventive(index: number) {
+    setActionsPreventives(actionsPreventives.filter((_, i) => i !== index));
+  }
 
   const checklist = [
     {
@@ -186,6 +214,9 @@ export function RexWizard({
     { label: "Nature du REX choisie", ok: !!nature },
     { label: "Destinataires définis", ok: destinatairesRoles.length > 0 },
     { label: "Canaux de diffusion définis", ok: canaux.length > 0 },
+    ...(natureRequiertAction
+      ? [{ label: "Au moins une action préventive requise pour cette nature", ok: actionsPreventives.length > 0 }]
+      : []),
   ];
   const toutOk = checklist.every((c) => c.ok) && sourcesOk && step2Ok && step3Ok;
 
@@ -218,6 +249,7 @@ export function RexWizard({
           dateDiffusionPlanifiee: dateDiffusionPlanifiee || undefined,
           actionResponsable: actionResponsable || undefined,
           actionEcheance: actionEcheance || undefined,
+          actionsPreventives,
           noteInterne: noteInterne || undefined,
           publier,
         });
@@ -663,6 +695,75 @@ export function RexWizard({
                 })}
               </div>
             </fieldset>
+
+            {natureRequiertAction && (
+              <fieldset className="mb-5 rounded-lg border border-amber-200 bg-amber-50/60 p-4">
+                <legend className="mb-1 px-1 text-sm font-medium text-amber-900">Actions préventives *</legend>
+                <p className="mb-3 text-xs text-amber-800/80">
+                  Cette nature de REX décrit quelque chose à corriger ou à mettre en place : au moins une action
+                  préventive est requise avant de pouvoir valider.
+                </p>
+
+                {actionsPreventives.length > 0 && (
+                  <ul className="mb-3 space-y-2">
+                    {actionsPreventives.map((a, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start justify-between gap-3 rounded-md border border-amber-200 bg-white px-3 py-2 text-sm"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-slate-700">{a.action}</p>
+                          <p className="text-xs text-slate-500">
+                            {a.responsable}
+                            {a.echeance && ` · échéance ${new Date(a.echeance).toLocaleDateString("fr-FR")}`}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => retirerActionPreventive(i)}
+                          className="shrink-0 text-xs font-medium text-red-600 hover:underline"
+                        >
+                          Retirer
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[2fr_1fr_1fr_auto]">
+                  <input
+                    value={nouvelleAction}
+                    onChange={(e) => setNouvelleAction(e.target.value)}
+                    placeholder="Action préventive à mener"
+                    className={inputCls}
+                  />
+                  <select
+                    value={nouvelleActionResponsable}
+                    onChange={(e) => setNouvelleActionResponsable(e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="">Responsable</option>
+                    {RESPONSABLES.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={nouvelleActionEcheance}
+                    onChange={(e) => setNouvelleActionEcheance(e.target.value)}
+                    className={inputCls}
+                  />
+                  <button
+                    type="button"
+                    onClick={ajouterActionPreventive}
+                    disabled={!nouvelleAction.trim() || !nouvelleActionResponsable}
+                    className="whitespace-nowrap rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Ajouter
+                  </button>
+                </div>
+              </fieldset>
+            )}
 
             <fieldset className="mb-5">
               <legend className="mb-2 text-sm font-medium text-slate-700">Thèmes concernés *</legend>

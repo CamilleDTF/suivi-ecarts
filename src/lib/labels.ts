@@ -310,6 +310,17 @@ export const NATURE_REX_COLORS: Record<string, string> = {
   ACTION_A_METTRE_EN_OEUVRE: "bg-purple-100 text-purple-800",
 };
 
+// Ces trois natures décrivent quelque chose à corriger ou à mettre en place —
+// contrairement à "bonne pratique à généraliser", qui est de la pure
+// capitalisation. La création d'un REX de l'une de ces natures exige donc au
+// moins une action préventive, pour que la nature ait un vrai effet plutôt
+// que d'être une simple étiquette décorative.
+export const NATURES_REX_REQUERANT_ACTION = [
+  "PRATIQUE_A_EVITER",
+  "EVOLUTION_METHODE",
+  "ACTION_A_METTRE_EN_OEUVRE",
+];
+
 // Facteurs communs observés entre plusieurs éléments source (mode "éléments
 // récurrents" du parcours de création). Suggestions, pas un enum : cf.
 // avecValeursExistantes.
