@@ -680,7 +680,17 @@ export function RexWizard({
                     <button
                       type="button"
                       key={valeur}
-                      onClick={() => setNature(valeur as NatureREX)}
+                      onClick={() => {
+                        const val = valeur as NatureREX;
+                        setNature(val);
+                        // "Créer une action associée" ne se distingue plus de
+                        // l'action préventive désormais exigée par cette
+                        // nature : on retombe sur une modalité valide plutôt
+                        // que de laisser une carte masquée mais sélectionnée.
+                        if (NATURES_REX_REQUERANT_ACTION.includes(val) && modalite === "action") {
+                          setModalite("immediate");
+                        }
+                      }}
                       className={`rounded-lg border p-4 text-left transition ${
                         nature === valeur ? "border-blue-500 ring-1 ring-blue-500" : "border-slate-200 hover:border-slate-300"
                       }`}
@@ -805,7 +815,7 @@ export function RexWizard({
 
             <fieldset>
               <legend className="mb-2 text-sm font-medium text-slate-700">Modalités de diffusion</legend>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div className={`grid grid-cols-1 gap-3 ${natureRequiertAction ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
                 <ModaliteCard
                   actif={modalite === "immediate"}
                   icone={<IconSend className="h-4 w-4" />}
@@ -820,13 +830,18 @@ export function RexWizard({
                   description="Choisissez une date de diffusion."
                   onClick={() => setModalite("planifiee")}
                 />
-                <ModaliteCard
-                  actif={modalite === "action"}
-                  icone={<IconLink className="h-4 w-4" />}
-                  titre="Créer une action associée"
-                  description="Ce REX sera lié à une action dans le plan d'actions."
-                  onClick={() => setModalite("action")}
-                />
+                {/* Redondant quand la nature exige déjà une action préventive
+                    (ci-dessus) : pas besoin d'une seconde action distincte
+                    pour la seule diffusion. */}
+                {!natureRequiertAction && (
+                  <ModaliteCard
+                    actif={modalite === "action"}
+                    icone={<IconLink className="h-4 w-4" />}
+                    titre="Créer une action associée"
+                    description="Ce REX sera lié à une action dans le plan d'actions."
+                    onClick={() => setModalite("action")}
+                  />
+                )}
               </div>
 
               {modalite === "planifiee" && (
