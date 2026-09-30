@@ -293,24 +293,21 @@ export const NATURE_REX_LABELS: Record<string, string> = {
   BONNE_PRATIQUE: "Bonne pratique à généraliser",
   PRATIQUE_A_EVITER: "Pratique à éviter",
   EVOLUTION_METHODE: "Évolution méthode / doc",
-  ACTION_A_METTRE_EN_OEUVRE: "Action à mettre en œuvre",
 };
 
 export const NATURE_REX_DESCRIPTIONS: Record<string, string> = {
   BONNE_PRATIQUE: "Une solution efficace pouvant être reproduite sur d'autres chantiers.",
   PRATIQUE_A_EVITER: "Un évènement ou une pratique à ne pas reproduire.",
   EVOLUTION_METHODE: "Une évolution de méthode, d'outils ou de documentation.",
-  ACTION_A_METTRE_EN_OEUVRE: "Une action corrective ou préventive à engager.",
 };
 
 export const NATURE_REX_COLORS: Record<string, string> = {
   BONNE_PRATIQUE: "bg-green-100 text-green-800",
   PRATIQUE_A_EVITER: "bg-red-100 text-red-800",
   EVOLUTION_METHODE: "bg-amber-100 text-amber-800",
-  ACTION_A_METTRE_EN_OEUVRE: "bg-purple-100 text-purple-800",
 };
 
-// Ces trois natures décrivent quelque chose à corriger ou à mettre en place —
+// Ces deux natures décrivent quelque chose à corriger ou à mettre en place —
 // contrairement à "bonne pratique à généraliser", qui est de la pure
 // capitalisation. La création d'un REX de l'une de ces natures exige donc au
 // moins une action préventive, pour que la nature ait un vrai effet plutôt
@@ -318,7 +315,6 @@ export const NATURE_REX_COLORS: Record<string, string> = {
 export const NATURES_REX_REQUERANT_ACTION = [
   "PRATIQUE_A_EVITER",
   "EVOLUTION_METHODE",
-  "ACTION_A_METTRE_EN_OEUVRE",
 ];
 
 // Ces deux natures se décrivent elles-mêmes (la bonne pratique, la pratique

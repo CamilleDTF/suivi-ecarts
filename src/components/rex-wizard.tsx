@@ -13,7 +13,6 @@ import {
   IconThumbsUp,
   IconBan,
   IconSettings,
-  IconClipboard,
   IconSend,
   IconClock,
   IconLink,
@@ -56,14 +55,12 @@ const NATURE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   BONNE_PRATIQUE: IconThumbsUp,
   PRATIQUE_A_EVITER: IconBan,
   EVOLUTION_METHODE: IconSettings,
-  ACTION_A_METTRE_EN_OEUVRE: IconClipboard,
 };
 
 const NATURE_ICON_BG: Record<string, string> = {
   BONNE_PRATIQUE: "bg-green-100 text-green-700",
   PRATIQUE_A_EVITER: "bg-red-100 text-red-700",
   EVOLUTION_METHODE: "bg-amber-100 text-amber-700",
-  ACTION_A_METTRE_EN_OEUVRE: "bg-purple-100 text-purple-700",
 };
 
 const inputCls = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm";
@@ -148,9 +145,9 @@ export function RexWizard({
   const [actionEcheance, setActionEcheance] = useState("");
 
   // Actions préventives exigées par la nature du REX (pratique à éviter,
-  // évolution méthode/doc, action à mettre en œuvre) — distinctes de
-  // actionResponsable/actionEcheance ci-dessus, qui ne concernent que la
-  // modalité "créer une action associée" pour la diffusion elle-même.
+  // évolution méthode/doc) — distinctes de actionResponsable/actionEcheance
+  // ci-dessus, qui ne concernent que la modalité "créer une action associée"
+  // pour la diffusion elle-même.
   type ActionPreventiveDraft = { action: string; responsable: string; echeance: string };
   const [actionsPreventives, setActionsPreventives] = useState<ActionPreventiveDraft[]>([]);
   const [nouvelleAction, setNouvelleAction] = useState("");
@@ -205,7 +202,6 @@ export function RexWizard({
 
   // Le vocabulaire et les champs demandés dépendent de ce que la nature
   // décrit réellement : une évolution méthode/doc cite le document concerné,
-  // une action à mettre en œuvre est une action au sens classique, et
   // "pratique à éviter" ne demande ici que la mesure pour l'éviter (la
   // pratique elle-même est traitée séparément ci-dessus).
   const configActionPreventive =
@@ -217,21 +213,13 @@ export function RexWizard({
           placeholderPrincipal: "Ex : Former les chefs de chantier au contrôle du nombre d'opérateurs autorisés",
           avecRefDoc: false,
         }
-      : nature === "EVOLUTION_METHODE"
-        ? {
-            titre: "Évolution méthode / documentaire",
-            aide: "Décrivez l'évolution à apporter et précisez le document ou la méthode concernée.",
-            labelPrincipal: "Évolution proposée",
-            placeholderPrincipal: "Ex : Ajouter un contrôle de réception par niveau avant utilisation",
-            avecRefDoc: true,
-          }
-        : {
-            titre: "Actions préventives",
-            aide: "Cette nature de REX décrit une action à mettre en œuvre : au moins une action est requise avant de pouvoir valider.",
-            labelPrincipal: "Action préventive à mener",
-            placeholderPrincipal: "Nouvelle action préventive",
-            avecRefDoc: false,
-          };
+      : {
+          titre: "Évolution méthode / documentaire",
+          aide: "Décrivez l'évolution à apporter et précisez le document ou la méthode concernée.",
+          labelPrincipal: "Évolution proposée",
+          placeholderPrincipal: "Ex : Ajouter un contrôle de réception par niveau avant utilisation",
+          avecRefDoc: true,
+        };
 
   const step3Ok =
     !!nature &&

@@ -103,11 +103,13 @@ enum StatutREX {
 }
 
 // Ce que le REX tire de sa source, distinct de l'origine (d'où il vient).
+// Pas de nature "Action à mettre en œuvre" distincte : dans la pratique, une
+// telle action se confond toujours avec une évolution de méthode ou de
+// document (EVOLUTION_METHODE), ce qui en faisait une nature redondante.
 enum NatureREX {
   BONNE_PRATIQUE
   PRATIQUE_A_EVITER
   EVOLUTION_METHODE
-  ACTION_A_METTRE_EN_OEUVRE
 }
 
 model User {
