@@ -8,6 +8,8 @@ import {
   TYPE_ACTION_LABELS,
   STATUT_ACTION_COLORS,
   STATUT_ACTION_LABELS,
+  STATUT_REX_COLORS,
+  STATUT_REX_LABELS,
   libelleRattachement,
 } from "@/lib/labels";
 import {
@@ -48,6 +50,7 @@ export default async function FicheSSEDetailPage({
       ecartAmiante: true,
       causes: { orderBy: { createdAt: "asc" } },
       remontees: { orderBy: { reference: "asc" }, select: { id: true, reference: true, objet: true } },
+      rex: { orderBy: { createdAt: "desc" }, select: { id: true, reference: true, titre: true, statut: true } },
     },
   });
 
@@ -167,6 +170,14 @@ export default async function FicheSSEDetailPage({
           >
             + Action
           </Link>
+          {fiche.rex.length === 0 && (
+            <Link
+              href={`/rex/nouveau?ficheSSEId=${fiche.id}`}
+              className="whitespace-nowrap rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              + REX
+            </Link>
+          )}
           {estBrouillon && (
             <form action={finaliserFicheSSE}>
               <input type="hidden" name="id" value={fiche.id} />
@@ -252,6 +263,31 @@ export default async function FicheSSEDetailPage({
             </tbody>
           </table>
         </div>
+      </div>
+
+      <div className="mt-8">
+        <h2 className="mb-3 text-lg font-semibold text-slate-900">Retour d&apos;expérience</h2>
+        {fiche.rex.length === 0 ? (
+          <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-400">
+            Aucun REX pour cet évènement.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {fiche.rex.map((r) => (
+              <Link
+                key={r.id}
+                href={`/rex/${r.id}`}
+                className="flex min-w-[220px] items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 hover:bg-slate-50"
+              >
+                <div>
+                  <p className="text-sm font-medium text-blue-700">{r.reference}</p>
+                  <p className="text-xs text-slate-500">{r.titre}</p>
+                </div>
+                <Badge label={STATUT_REX_LABELS[r.statut]} colorClass={STATUT_REX_COLORS[r.statut]} />
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

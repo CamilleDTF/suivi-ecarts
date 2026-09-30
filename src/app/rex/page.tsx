@@ -91,12 +91,20 @@ export default async function RexPage({
             Enseignements capitalisés à partir des écarts, évènements SSE, écarts amiante et remontées.
           </p>
         </div>
-        <Link
-          href="/rex/nouveau"
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          + Nouveau REX
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/rex/actions-preventives"
+            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Actions préventives
+          </Link>
+          <Link
+            href="/rex/nouveau"
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            + Nouveau REX
+          </Link>
+        </div>
       </div>
 
       <div className="mb-6 mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
