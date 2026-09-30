@@ -77,6 +77,12 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
               </button>
             </form>
           )}
+          <Link
+            href={`/rex/${rex.id}/diffusion`}
+            className="whitespace-nowrap flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            Fiche de diffusion
+          </Link>
           <BoutonExportPDF />
           <BoutonArchiver
             action={rex.archiveLe ? desarchiver : archiver}
