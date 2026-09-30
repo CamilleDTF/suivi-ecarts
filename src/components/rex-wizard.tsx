@@ -1015,8 +1015,34 @@ export function RexWizard({
                 ))}
               </div>
               {natureRequiertDescription && pratiqueDescription && (
-                <p className="text-sm text-slate-600">{pratiqueDescription}</p>
+                <p className="mb-2 text-sm text-slate-600">{pratiqueDescription}</p>
               )}
+              {natureRequiertAction && actionsPreventives.length > 0 && (
+                <ul className="mb-2 space-y-1">
+                  {actionsPreventives.map((a, i) => (
+                    <li key={i} className="text-sm text-slate-600">
+                      • {a.action} — {a.responsable}
+                      {a.echeance && ` (éch. ${new Date(a.echeance).toLocaleDateString("fr-FR")})`}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="mb-2 flex flex-wrap gap-1.5">
+                {destinatairesRoles.map((d) => (
+                  <span key={d} className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs text-blue-700">{d}</span>
+                ))}
+                {canaux.map((c) => (
+                  <span key={c} className="rounded-full bg-slate-50 px-2.5 py-0.5 text-xs text-slate-600">{c}</span>
+                ))}
+              </div>
+              <p className="text-xs text-slate-500">
+                {modalite === "immediate" && "Diffusion immédiate à l'enregistrement."}
+                {modalite === "planifiee" &&
+                  (dateDiffusionPlanifiee
+                    ? `Diffusion planifiée le ${new Date(dateDiffusionPlanifiee).toLocaleDateString("fr-FR")}.`
+                    : "Diffusion planifiée.")}
+                {modalite === "action" && `Diffusion liée à une action associée${actionResponsable ? ` (${actionResponsable})` : ""}.`}
+              </p>
             </RecapCard>
 
             <div className="rounded-xl border border-slate-200 bg-white p-6">
