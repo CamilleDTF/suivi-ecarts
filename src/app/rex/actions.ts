@@ -9,7 +9,7 @@ import { auth } from "@/auth";
 import { OrigineREX, NatureREX, StatutREX, StatutAction } from "@/generated/prisma/enums";
 import { nomAuteur } from "@/lib/audit";
 import { dateFacultative } from "@/lib/validation";
-import { NATURES_REX_REQUERANT_ACTION } from "@/lib/labels";
+import { NATURES_REX_REQUERANT_ACTION, NATURES_REX_REQUERANT_DESCRIPTION } from "@/lib/labels";
 
 // Parcours de création du REX : trois façons d'y arriver, qui ne demandent
 // pas les mêmes champs. "unique" reprend le rattachement polymorphe classique
@@ -31,6 +31,10 @@ const rexWizardSchema = z
     causeRacine: z.string().optional(),
 
     nature: z.enum(Object.values(NatureREX) as [string, ...string[]]),
+    // La bonne pratique elle-même (BONNE_PRATIQUE) ou la pratique observée
+    // (PRATIQUE_A_EVITER) : indépendant de actionsPreventives ci-dessous, qui
+    // pour PRATIQUE_A_EVITER porte la mesure pour l'éviter, pas la pratique.
+    pratiqueDescription: z.string().optional(),
     themes: z.array(z.string()).min(1, "Au moins un thème requis"),
     destinatairesRoles: z.array(z.string()).min(1, "Au moins un destinataire requis"),
     canaux: z.array(z.string()).min(1, "Au moins un canal de diffusion requis"),
@@ -99,6 +103,12 @@ const rexWizardSchema = z
   .refine((v) => !NATURES_REX_REQUERANT_ACTION.includes(v.nature) || v.actionsPreventives.length > 0, {
     message: "Au moins une action préventive requise pour cette nature de REX",
     path: ["actionsPreventives"],
+  })
+  // "Bonne pratique à généraliser" et "Pratique à éviter" se décrivent
+  // elles-mêmes : sans ce texte, la nature resterait une étiquette vide.
+  .refine((v) => !NATURES_REX_REQUERANT_DESCRIPTION.includes(v.nature) || !!v.pratiqueDescription?.trim(), {
+    message: "Description de la pratique requise pour cette nature de REX",
+    path: ["pratiqueDescription"],
   });
 
 export type RexWizardInput = z.infer<typeof rexWizardSchema>;
@@ -140,6 +150,7 @@ export async function creerRex(input: RexWizardInput) {
       origine,
       sousTypeSSE: origine === "EVENEMENT_SSE" ? parsed.sousTypeSSE : undefined,
       nature: parsed.nature as NatureREX,
+      pratiqueDescription: parsed.pratiqueDescription,
       causeRacine: parsed.causeRacine,
       pointsCommuns: parsed.mode === "recurrents" ? parsed.pointsCommuns : [],
       enseignementsTires: parsed.enseignementsTires,
@@ -199,6 +210,7 @@ const rexEditSchema = z.object({
   titre: z.string().min(1, "Titre requis"),
   sousTypeSSE: z.string().optional(),
   nature: z.enum(Object.values(NatureREX) as [string, ...string[]]),
+  pratiqueDescription: z.string().optional(),
   causeRacine: z.string().optional(),
   enseignementsTires: z.string().optional(),
   raisonDiffusion: z.string().optional(),
@@ -218,6 +230,7 @@ export async function mettreAJourRex(formData: FormData) {
     titre: formData.get("titre"),
     sousTypeSSE: formData.get("sousTypeSSE") || undefined,
     nature: formData.get("nature"),
+    pratiqueDescription: formData.get("pratiqueDescription") || undefined,
     causeRacine: formData.get("causeRacine") || undefined,
     enseignementsTires: formData.get("enseignementsTires") || undefined,
     raisonDiffusion: formData.get("raisonDiffusion") || undefined,
@@ -234,6 +247,7 @@ export async function mettreAJourRex(formData: FormData) {
       titre: parsed.titre,
       sousTypeSSE: parsed.sousTypeSSE ?? null,
       nature: parsed.nature as NatureREX,
+      pratiqueDescription: parsed.pratiqueDescription ?? null,
       causeRacine: parsed.causeRacine ?? null,
       enseignementsTires: parsed.enseignementsTires ?? null,
       raisonDiffusion: parsed.raisonDiffusion ?? null,

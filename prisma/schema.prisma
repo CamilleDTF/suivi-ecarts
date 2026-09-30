@@ -391,6 +391,11 @@ model Rex {
   // RemonteeInfo).
   sousTypeSSE                String?
   nature                     NatureREX
+  // Description propre à la nature : la bonne pratique elle-même (nature
+  // BONNE_PRATIQUE) ou la pratique observée à ne pas reproduire (nature
+  // PRATIQUE_A_EVITER). Sans rapport avec `causeRacine`/`enseignementsTires`
+  // ci-dessous, qui existent indépendamment de la nature choisie.
+  pratiqueDescription        String?
   // "Facteurs communs identifiés" (mode plusieurs éléments récurrents) ou
   // "Cause racine" (mode élément unique) : même champ, intitulé différent
   // selon le mode choisi à la création.

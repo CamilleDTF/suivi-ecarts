@@ -15,6 +15,7 @@ type RexValues = {
   titre?: string | null;
   sousTypeSSE?: string | null;
   nature?: string | null;
+  pratiqueDescription?: string | null;
   causeRacine?: string | null;
   pointsCommuns?: string[] | null;
   enseignementsTires?: string | null;
@@ -57,6 +58,14 @@ export function RexFields({ v = {} }: { v?: RexValues }) {
             <option key={valeur} value={valeur}>{libelle}</option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <label className={labelCls}>Bonne pratique / pratique observée</label>
+        <textarea name="pratiqueDescription" defaultValue={v.pratiqueDescription ?? ""} rows={2} className={inputCls} />
+        <p className="mt-1 text-xs text-slate-400">
+          La bonne pratique à généraliser, ou la pratique observée à ne pas reproduire selon la nature choisie.
+        </p>
       </div>
 
       <div>

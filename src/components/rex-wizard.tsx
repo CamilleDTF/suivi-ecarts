@@ -31,6 +31,7 @@ import {
   SOUS_TYPE_SSE_REX_OPTIONS,
   RESPONSABLES,
   NATURES_REX_REQUERANT_ACTION,
+  NATURES_REX_REQUERANT_DESCRIPTION,
 } from "@/lib/labels";
 
 type Mode = "unique" | "recurrents" | "spontane";
@@ -135,6 +136,9 @@ export function RexWizard({
 
   // Étape 3 — type et diffusion.
   const [nature, setNature] = useState<NatureREX | "">("");
+  // La bonne pratique elle-même (BONNE_PRATIQUE) ou la pratique observée
+  // (PRATIQUE_A_EVITER) — indépendant de l'action éventuellement requise.
+  const [pratiqueDescription, setPratiqueDescription] = useState("");
   const [themes, setThemes] = useState<string[]>([]);
   const [destinatairesRoles, setDestinatairesRoles] = useState<string[]>([]);
   const [canaux, setCanaux] = useState<string[]>([]);
@@ -181,18 +185,36 @@ export function RexWizard({
     (mode !== "recurrents" || (raisonDiffusion.trim().length > 0 && pointsCommuns.length > 0));
 
   const natureRequiertAction = !!nature && NATURES_REX_REQUERANT_ACTION.includes(nature);
+  const natureRequiertDescription = !!nature && NATURES_REX_REQUERANT_DESCRIPTION.includes(nature);
+
+  // La bonne pratique elle-même, ou la pratique observée : indépendant de
+  // l'action ci-dessous, qui pour "pratique à éviter" porte la mesure pour
+  // l'éviter, pas la pratique elle-même.
+  const configPratique =
+    nature === "BONNE_PRATIQUE"
+      ? {
+          label: "Bonne pratique",
+          aide: "Décrivez la bonne pratique à généraliser, pour qu'elle soit reproductible ailleurs.",
+          placeholder: "Ex : Réception contradictoire de chaque niveau d'échafaudage avant utilisation",
+        }
+      : {
+          label: "Pratique observée",
+          aide: "Décrivez la pratique observée, pour qu'elle soit reconnue et non reproduite.",
+          placeholder: "Ex : Manipulation des plaques amiante par une seule personne",
+        };
 
   // Le vocabulaire et les champs demandés dépendent de ce que la nature
-  // décrit réellement : une pratique à éviter se décrit, une évolution
-  // méthode/doc cite le document concerné, une action à mettre en œuvre est
-  // une action au sens classique.
+  // décrit réellement : une évolution méthode/doc cite le document concerné,
+  // une action à mettre en œuvre est une action au sens classique, et
+  // "pratique à éviter" ne demande ici que la mesure pour l'éviter (la
+  // pratique elle-même est traitée séparément ci-dessus).
   const configActionPreventive =
     nature === "PRATIQUE_A_EVITER"
       ? {
-          titre: "Pratique à éviter",
-          aide: "Décrivez précisément la pratique observée, pour qu'elle soit reconnue et non reproduite.",
-          labelPrincipal: "Pratique à éviter",
-          placeholderPrincipal: "Ex : Manipulation des plaques amiante par une seule personne",
+          titre: "Comment l'éviter",
+          aide: "Décrivez la mesure à mettre en place pour éviter que cette pratique se reproduise.",
+          labelPrincipal: "Mesure préventive",
+          placeholderPrincipal: "Ex : Former les chefs de chantier au contrôle du nombre d'opérateurs autorisés",
           avecRefDoc: false,
         }
       : nature === "EVOLUTION_METHODE"
@@ -218,7 +240,8 @@ export function RexWizard({
     canaux.length > 0 &&
     (modalite !== "planifiee" || !!dateDiffusionPlanifiee) &&
     (modalite !== "action" || !!actionResponsable) &&
-    (!natureRequiertAction || actionsPreventives.length > 0);
+    (!natureRequiertAction || actionsPreventives.length > 0) &&
+    (!natureRequiertDescription || pratiqueDescription.trim().length > 0);
 
   function ajouterActionPreventive() {
     if (!nouvelleAction.trim() || !nouvelleActionResponsable) return;
@@ -254,6 +277,9 @@ export function RexWizard({
     ...(natureRequiertAction
       ? [{ label: "Au moins une action préventive requise pour cette nature", ok: actionsPreventives.length > 0 }]
       : []),
+    ...(natureRequiertDescription
+      ? [{ label: configPratique.label + " renseignée", ok: pratiqueDescription.trim().length > 0 }]
+      : []),
   ];
   const toutOk = checklist.every((c) => c.ok) && sourcesOk && step2Ok && step3Ok;
 
@@ -279,6 +305,7 @@ export function RexWizard({
           pointsCommuns,
           causeRacine: causeRacine || undefined,
           nature: nature as NatureREX,
+          pratiqueDescription: pratiqueDescription || undefined,
           themes,
           destinatairesRoles,
           canaux,
@@ -743,6 +770,20 @@ export function RexWizard({
               </div>
             </fieldset>
 
+            {natureRequiertDescription && (
+              <fieldset className="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <legend className="mb-1 px-1 text-sm font-medium text-slate-800">{configPratique.label} *</legend>
+                <p className="mb-3 text-xs text-slate-500">{configPratique.aide}</p>
+                <textarea
+                  value={pratiqueDescription}
+                  onChange={(e) => setPratiqueDescription(e.target.value)}
+                  rows={2}
+                  placeholder={configPratique.placeholder}
+                  className={inputCls}
+                />
+              </fieldset>
+            )}
+
             {natureRequiertAction && (
               <fieldset className="mb-5 rounded-lg border border-amber-200 bg-amber-50/60 p-4">
                 <legend className="mb-1 px-1 text-sm font-medium text-amber-900">{configActionPreventive.titre} *</legend>
@@ -963,7 +1004,7 @@ export function RexWizard({
             </RecapCard>
 
             <RecapCard titre="Type de REX et diffusion" onModifier={() => allerA(2)}>
-              <div className="flex flex-wrap gap-2">
+              <div className="mb-2 flex flex-wrap gap-2">
                 {nature && (
                   <span className={`rounded-full px-3 py-1 text-xs font-medium ${NATURE_REX_COLORS[nature]}`}>
                     {NATURE_REX_LABELS[nature]}
@@ -973,6 +1014,9 @@ export function RexWizard({
                   <span key={t} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">{t}</span>
                 ))}
               </div>
+              {natureRequiertDescription && pratiqueDescription && (
+                <p className="text-sm text-slate-600">{pratiqueDescription}</p>
+              )}
             </RecapCard>
 
             <div className="rounded-xl border border-slate-200 bg-white p-6">

@@ -321,6 +321,12 @@ export const NATURES_REX_REQUERANT_ACTION = [
   "ACTION_A_METTRE_EN_OEUVRE",
 ];
 
+// Ces deux natures se décrivent elles-mêmes (la bonne pratique, la pratique
+// observée) indépendamment de l'action éventuellement requise ci-dessus :
+// "comment l'éviter" (l'action) n'a de sens qu'une fois "la pratique" (quoi)
+// posée séparément.
+export const NATURES_REX_REQUERANT_DESCRIPTION = ["BONNE_PRATIQUE", "PRATIQUE_A_EVITER"];
+
 // Facteurs communs observés entre plusieurs éléments source (mode "éléments
 // récurrents" du parcours de création). Suggestions, pas un enum : cf.
 // avecValeursExistantes.
