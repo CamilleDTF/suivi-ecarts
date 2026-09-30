@@ -152,6 +152,9 @@ export function RexWizard({
   const [nouvelleAction, setNouvelleAction] = useState("");
   const [nouvelleActionResponsable, setNouvelleActionResponsable] = useState("");
   const [nouvelleActionEcheance, setNouvelleActionEcheance] = useState("");
+  // Seulement pour la nature "Évolution méthode / doc" : le document ou la
+  // méthode concernée par l'évolution décrite.
+  const [nouvelleActionRefDoc, setNouvelleActionRefDoc] = useState("");
 
   // Étape 4 — validation.
   const [noteInterne, setNoteInterne] = useState("");
@@ -179,6 +182,35 @@ export function RexWizard({
 
   const natureRequiertAction = !!nature && NATURES_REX_REQUERANT_ACTION.includes(nature);
 
+  // Le vocabulaire et les champs demandés dépendent de ce que la nature
+  // décrit réellement : une pratique à éviter se décrit, une évolution
+  // méthode/doc cite le document concerné, une action à mettre en œuvre est
+  // une action au sens classique.
+  const configActionPreventive =
+    nature === "PRATIQUE_A_EVITER"
+      ? {
+          titre: "Pratique à éviter",
+          aide: "Décrivez précisément la pratique observée, pour qu'elle soit reconnue et non reproduite.",
+          labelPrincipal: "Pratique à éviter",
+          placeholderPrincipal: "Ex : Manipulation des plaques amiante par une seule personne",
+          avecRefDoc: false,
+        }
+      : nature === "EVOLUTION_METHODE"
+        ? {
+            titre: "Évolution méthode / documentaire",
+            aide: "Décrivez l'évolution à apporter et précisez le document ou la méthode concernée.",
+            labelPrincipal: "Évolution proposée",
+            placeholderPrincipal: "Ex : Ajouter un contrôle de réception par niveau avant utilisation",
+            avecRefDoc: true,
+          }
+        : {
+            titre: "Actions préventives",
+            aide: "Cette nature de REX décrit une action à mettre en œuvre : au moins une action est requise avant de pouvoir valider.",
+            labelPrincipal: "Action préventive à mener",
+            placeholderPrincipal: "Nouvelle action préventive",
+            avecRefDoc: false,
+          };
+
   const step3Ok =
     !!nature &&
     themes.length > 0 &&
@@ -190,13 +222,18 @@ export function RexWizard({
 
   function ajouterActionPreventive() {
     if (!nouvelleAction.trim() || !nouvelleActionResponsable) return;
+    if (configActionPreventive.avecRefDoc && !nouvelleActionRefDoc.trim()) return;
+    const texte = configActionPreventive.avecRefDoc
+      ? `${nouvelleAction.trim()} — Réf. document / méthode : ${nouvelleActionRefDoc.trim()}`
+      : nouvelleAction.trim();
     setActionsPreventives([
       ...actionsPreventives,
-      { action: nouvelleAction.trim(), responsable: nouvelleActionResponsable, echeance: nouvelleActionEcheance },
+      { action: texte, responsable: nouvelleActionResponsable, echeance: nouvelleActionEcheance },
     ]);
     setNouvelleAction("");
     setNouvelleActionResponsable("");
     setNouvelleActionEcheance("");
+    setNouvelleActionRefDoc("");
   }
   function retirerActionPreventive(index: number) {
     setActionsPreventives(actionsPreventives.filter((_, i) => i !== index));
@@ -708,11 +745,8 @@ export function RexWizard({
 
             {natureRequiertAction && (
               <fieldset className="mb-5 rounded-lg border border-amber-200 bg-amber-50/60 p-4">
-                <legend className="mb-1 px-1 text-sm font-medium text-amber-900">Actions préventives *</legend>
-                <p className="mb-3 text-xs text-amber-800/80">
-                  Cette nature de REX décrit quelque chose à corriger ou à mettre en place : au moins une action
-                  préventive est requise avant de pouvoir valider.
-                </p>
+                <legend className="mb-1 px-1 text-sm font-medium text-amber-900">{configActionPreventive.titre} *</legend>
+                <p className="mb-3 text-xs text-amber-800/80">{configActionPreventive.aide}</p>
 
                 {actionsPreventives.length > 0 && (
                   <ul className="mb-3 space-y-2">
@@ -740,37 +774,51 @@ export function RexWizard({
                   </ul>
                 )}
 
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-[2fr_1fr_1fr_auto]">
+                <div className="space-y-2">
                   <input
                     value={nouvelleAction}
                     onChange={(e) => setNouvelleAction(e.target.value)}
-                    placeholder="Action préventive à mener"
+                    placeholder={configActionPreventive.placeholderPrincipal}
                     className={inputCls}
                   />
-                  <select
-                    value={nouvelleActionResponsable}
-                    onChange={(e) => setNouvelleActionResponsable(e.target.value)}
-                    className={inputCls}
-                  >
-                    <option value="">Responsable</option>
-                    {RESPONSABLES.map((r) => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="date"
-                    value={nouvelleActionEcheance}
-                    onChange={(e) => setNouvelleActionEcheance(e.target.value)}
-                    className={inputCls}
-                  />
-                  <button
-                    type="button"
-                    onClick={ajouterActionPreventive}
-                    disabled={!nouvelleAction.trim() || !nouvelleActionResponsable}
-                    className="whitespace-nowrap rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Ajouter
-                  </button>
+                  {configActionPreventive.avecRefDoc && (
+                    <input
+                      value={nouvelleActionRefDoc}
+                      onChange={(e) => setNouvelleActionRefDoc(e.target.value)}
+                      placeholder="Document ou méthode concerné (ex : PRA chantier amiante v3)"
+                      className={inputCls}
+                    />
+                  )}
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                    <select
+                      value={nouvelleActionResponsable}
+                      onChange={(e) => setNouvelleActionResponsable(e.target.value)}
+                      className={inputCls}
+                    >
+                      <option value="">Responsable</option>
+                      {RESPONSABLES.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="date"
+                      value={nouvelleActionEcheance}
+                      onChange={(e) => setNouvelleActionEcheance(e.target.value)}
+                      className={inputCls}
+                    />
+                    <button
+                      type="button"
+                      onClick={ajouterActionPreventive}
+                      disabled={
+                        !nouvelleAction.trim() ||
+                        !nouvelleActionResponsable ||
+                        (configActionPreventive.avecRefDoc && !nouvelleActionRefDoc.trim())
+                      }
+                      className="whitespace-nowrap rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      Ajouter
+                    </button>
+                  </div>
                 </div>
               </fieldset>
             )}
