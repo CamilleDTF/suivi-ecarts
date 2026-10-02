@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       responsable: responsable || undefined,
     },
     orderBy: { echeance: "asc" },
-    include: { ecarts: true, ficheSSE: true, ecartAmiante: true, remontee: true },
+    include: { ecarts: true, ficheSSE: true, ecartAmiante: true, remontee: true, rex: true },
   });
 
   // Plusieurs écarts possibles : leurs références sont listées dans la même
@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
     if (a.ficheSSE) return a.ficheSSE.reference;
     if (a.ecartAmiante) return a.ecartAmiante.reference;
     if (a.remontee) return a.remontee.reference;
+    if (a.rex) return a.rex.reference;
     return "";
   }
 

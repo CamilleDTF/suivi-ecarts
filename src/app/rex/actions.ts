@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { generateReference } from "@/lib/reference";
 import { auth } from "@/auth";
-import { OrigineREX, NatureREX, StatutREX, StatutAction } from "@/generated/prisma/enums";
+import { OrigineREX, NatureREX, StatutREX } from "@/generated/prisma/enums";
 import { nomAuteur } from "@/lib/audit";
 import { dateFacultative } from "@/lib/validation";
 import { NATURES_REX_REQUERANT_ACTION, NATURES_REX_REQUERANT_DESCRIPTION } from "@/lib/labels";
@@ -175,33 +175,39 @@ export async function creerRex(input: RexWizardInput) {
 
   // Actions préventives exigées par la nature du REX (cf. le refine plus
   // haut) : indépendantes du statut brouillon/publié, puisqu'elles décrivent
-  // ce qu'il y a à corriger, pas la diffusion elle-même.
-  if (parsed.actionsPreventives.length > 0) {
-    await prisma.actionRex.createMany({
-      data: parsed.actionsPreventives.map((a) => ({
+  // ce qu'il y a à corriger, pas la diffusion elle-même. Ce sont des actions
+  // du plan d'action, rattachées au REX.
+  const actionsACreer = [
+    ...parsed.actionsPreventives,
+    // "Créer une action associée" : la diffusion elle-même devient une action
+    // du plan d'action, suivie comme les autres.
+    ...(parsed.publier && parsed.modaliteDiffusion === "action" && parsed.actionResponsable
+      ? [
+          {
+            action: `Diffuser le REX ${reference} — ${parsed.titre}`,
+            responsable: parsed.actionResponsable,
+            echeance: parsed.actionEcheance,
+          },
+        ]
+      : []),
+  ];
+  // Une par une : chaque référence ACT-… vient du compteur atomique.
+  for (const a of actionsACreer) {
+    await prisma.action.create({
+      data: {
+        reference: await generateReference("Action", "ACT"),
         rexId: rex.id,
+        type: "PREVENTIVE",
         action: a.action,
         responsable: a.responsable,
         echeance: a.echeance ? new Date(a.echeance) : undefined,
-      })),
-    });
-  }
-
-  // "Créer une action associée" : la diffusion elle-même devient une action
-  // préventive du REX, suivie comme les autres actions préventives.
-  if (parsed.publier && parsed.modaliteDiffusion === "action" && parsed.actionResponsable) {
-    await prisma.actionRex.create({
-      data: {
-        rexId: rex.id,
-        action: `Diffuser le REX ${reference} — ${parsed.titre}`,
-        responsable: parsed.actionResponsable,
-        echeance: parsed.actionEcheance ? new Date(parsed.actionEcheance) : undefined,
       },
     });
   }
 
   for (const chemin of cheminsParents(parsed)) revalidatePath(chemin);
   revalidatePath("/rex");
+  revalidatePath("/plan-action");
   revalidatePath("/synthese");
   redirect(`/rex/${rex.id}`);
 }
@@ -335,8 +341,10 @@ export async function supprimerRex(formData: FormData) {
     },
   });
 
+  // Les actions du REX disparaissent avec lui, comme celles d'un évènement
+  // avec l'évènement : sans quoi elles resteraient au plan d'action sans parent.
   await prisma.$transaction([
-    prisma.actionRex.deleteMany({ where: { rexId: id } }),
+    prisma.action.deleteMany({ where: { rexId: id } }),
     prisma.rex.delete({ where: { id } }),
   ]);
 
@@ -344,59 +352,7 @@ export async function supprimerRex(formData: FormData) {
     revalidatePath(chemin);
   }
   revalidatePath("/rex");
+  revalidatePath("/plan-action");
   revalidatePath("/synthese");
   redirect("/rex");
-}
-
-// Actions préventives du REX.
-
-const actionRexSchema = z.object({
-  action: z.string().min(1, "Description requise"),
-  responsable: z.string().min(1, "Responsable requis"),
-  echeance: z.string().optional(),
-});
-
-export async function creerActionRex(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) redirect("/connexion");
-
-  const rexId = String(formData.get("rexId"));
-  const parsed = actionRexSchema.parse({
-    action: formData.get("action"),
-    responsable: formData.get("responsable"),
-    echeance: formData.get("echeance") || undefined,
-  });
-
-  await prisma.actionRex.create({
-    data: {
-      rexId,
-      action: parsed.action,
-      responsable: parsed.responsable,
-      echeance: parsed.echeance ? new Date(parsed.echeance) : undefined,
-    },
-  });
-
-  revalidatePath(`/rex/${rexId}`);
-}
-
-export async function mettreAJourStatutActionRex(formData: FormData) {
-  const session = await auth();
-  if (!session?.user) redirect("/connexion");
-
-  const id = String(formData.get("id"));
-  const rexId = String(formData.get("rexId"));
-  const statut = z.enum(Object.values(StatutAction) as [string, ...string[]]).parse(formData.get("statut")) as StatutAction;
-
-  await prisma.actionRex.update({
-    where: { id },
-    data: {
-      statut,
-      // Une action marquée réalisée sans date déjà posée se voit attribuer
-      // celle du jour : la date de réalisation vaut déclaration, comme sur le
-      // plan d'action.
-      realiseeLe: statut === "REALISEE" ? new Date() : undefined,
-    },
-  });
-
-  revalidatePath(`/rex/${rexId}`);
 }

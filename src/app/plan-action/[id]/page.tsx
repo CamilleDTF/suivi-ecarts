@@ -42,13 +42,14 @@ export default async function ActionDetailPage({
       ficheSSE: true,
       ecartAmiante: true,
       remontee: true,
+      rex: { select: { id: true, reference: true, titre: true } },
     },
   });
 
   if (!action) notFound();
 
   // Listes proposées pour corriger un rattachement erroné.
-  const [ecartsChoix, evenementsChoix, amianteChoix, remonteesChoix] = await Promise.all([
+  const [ecartsChoix, evenementsChoix, amianteChoix, remonteesChoix, rexChoix] = await Promise.all([
     prisma.ecart.findMany({
       orderBy: { reference: "asc" },
       select: { id: true, reference: true, description: true, dossier: { select: { chantier: true } } },
@@ -65,6 +66,10 @@ export default async function ActionDetailPage({
       orderBy: { reference: "asc" },
       select: { id: true, reference: true, chantierService: true, objet: true },
     }),
+    prisma.rex.findMany({
+      orderBy: { reference: "asc" },
+      select: { id: true, reference: true, titre: true },
+    }),
   ]);
 
   // Plusieurs écarts possibles : le retour va au premier, faute de mieux — le
@@ -78,7 +83,9 @@ export default async function ActionDetailPage({
         ? `/ecart-amiante/${action.ecartAmiante.id}`
         : action.remontee
           ? `/remontees/${action.remontee.id}`
-          : "/plan-action";
+          : action.rex
+            ? `/rex/${action.rex.id}`
+            : "/plan-action";
   const retourLabel = premierEcart
     ? action.ecarts.length > 1
       ? "Retour aux écarts"
@@ -87,7 +94,9 @@ export default async function ActionDetailPage({
       ? "Retour à l'évènement SSE"
       : action.ecartAmiante
         ? "Retour à l'écart amiante"
-        : "Retour au plan d'action";
+        : action.rex
+          ? "Retour au REX"
+          : "Retour au plan d'action";
 
   return (
     <div className="mx-auto max-w-[100rem] px-6 py-8">
@@ -120,6 +129,10 @@ export default async function ActionDetailPage({
           ) : action.remontee ? (
             <Link href={`/remontees/${action.remontee.id}`} className="text-sm text-slate-500 hover:underline">
               Remontée {action.remontee.reference} — {action.remontee.objet}
+            </Link>
+          ) : action.rex ? (
+            <Link href={`/rex/${action.rex.id}`} className="text-sm text-slate-500 hover:underline">
+              REX {action.rex.reference} — {action.rex.titre}
             </Link>
           ) : null}
           <div data-no-print className="mt-1">
@@ -167,6 +180,16 @@ export default async function ActionDetailPage({
                   options: remonteesChoix.map((r) => ({
                     id: r.id,
                     libelle: libelleRattachement(r.reference, r.chantierService, r.objet),
+                  })),
+                },
+                {
+                  cle: "rex",
+                  libelle: "REX",
+                  champ: "rexId",
+                  valeurActuelle: action.rexId,
+                  options: rexChoix.map((r) => ({
+                    id: r.id,
+                    libelle: libelleRattachement(r.reference, null, r.titre),
                   })),
                 },
               ]}

@@ -357,6 +357,10 @@ model Action {
   ecartAmianteId String?
   remontee       RemonteeInfo? @relation(fields: [remonteeId], references: [id])
   remonteeId     String?
+  // Actions préventives d'un REX : elles vivent dans le plan d'action comme les
+  // autres, et se rattachent au REX comme les autres à leur écart ou évènement.
+  rex            Rex?          @relation(fields: [rexId], references: [id])
+  rexId          String?
   type           TypeAction
   action         String
   responsable    String
@@ -372,6 +376,8 @@ model Action {
   modifiePar     String?
   modifieLe      DateTime?
   archiveLe      DateTime?
+
+  @@index([rexId])
 }
 
 // Retour d'expérience MASE : capitalise un enseignement transverse, distinct du plan
@@ -426,31 +432,13 @@ model Rex {
   ecartAmianteId             String?
   remontee                   RemonteeInfo? @relation(fields: [remonteeId], references: [id])
   remonteeId                 String?
-  actionsPreventives         ActionRex[]
+  // Les actions préventives du REX sont des actions du plan d'action.
+  actions                    Action[]
   createdAt                  DateTime      @default(now())
   updatedAt                  DateTime      @updatedAt
   modifiePar                 String?
   modifieLe                  DateTime?
   archiveLe                  DateTime?
-}
-
-// Actions préventives du REX : table à part du plan d'action existant (portée
-// transverse, pas scopée à un écart précis) — toujours de nature préventive par
-// construction, donc pas de champ `type`.
-model ActionRex {
-  id          String       @id @default(cuid())
-  rex         Rex          @relation(fields: [rexId], references: [id])
-  rexId       String
-  action      String
-  responsable String
-  echeance    DateTime?
-  statut      StatutAction @default(A_FAIRE)
-  realiseeLe  DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  archiveLe   DateTime?
-
-  @@index([rexId])
 }
 
 // Plan d'action du Document Unique. Table autonome plutôt qu'un rattachement

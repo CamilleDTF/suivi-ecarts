@@ -58,6 +58,8 @@ export default async function PlanActionPage({
           { ecartAmiante: { nomChantier: contient } },
           { remontee: { reference: contient } },
           { remontee: { objet: contient } },
+          { rex: { reference: contient } },
+          { rex: { titre: contient } },
         ]
       : undefined,
   };
@@ -83,6 +85,7 @@ export default async function PlanActionPage({
         ficheSSE: { select: { id: true, reference: true } },
         ecartAmiante: { select: { id: true, reference: true } },
         remontee: { select: { id: true, reference: true } },
+        rex: { select: { id: true, reference: true } },
       },
       skip: (page - 1) * taillePage,
       take: taillePage,
@@ -228,6 +231,10 @@ export default async function PlanActionPage({
                   ) : a.remontee ? (
                     <Link href={`/remontees/${a.remontee.id}`} className="text-slate-600 hover:underline">
                       {a.remontee.reference}
+                    </Link>
+                  ) : a.rex ? (
+                    <Link href={`/rex/${a.rex.id}`} className="text-slate-600 hover:underline">
+                      {a.rex.reference}
                     </Link>
                   ) : (
                     <span className="text-slate-400">—</span>

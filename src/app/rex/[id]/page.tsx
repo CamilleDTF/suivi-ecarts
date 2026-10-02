@@ -8,18 +8,17 @@ import {
   STATUT_REX_LABELS,
   NATURE_REX_LABELS,
   NATURE_REX_COLORS,
+  TYPE_ACTION_LABELS,
+  STATUT_ACTION_COLORS,
   STATUT_ACTION_LABELS,
-  RESPONSABLES,
 } from "@/lib/labels";
 import {
   mettreAJourRex,
   changerStatutRex,
   publierRex,
   supprimerRex,
-  creerActionRex,
-  mettreAJourStatutActionRex,
 } from "@/app/rex/actions";
-import { StatutREX, StatutAction } from "@/generated/prisma/enums";
+import { StatutREX } from "@/generated/prisma/enums";
 import { StatutSelectForm } from "@/components/statut-select-form";
 import { FormulaireEditable } from "@/components/formulaire-editable";
 import { RexFields } from "@/components/rex-fields";
@@ -45,7 +44,11 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
       ficheSSE: { select: { id: true, reference: true, nomChantier: true } },
       ecartAmiante: { select: { id: true, reference: true, nomChantier: true } },
       remontee: { select: { id: true, reference: true, objet: true } },
-      actionsPreventives: { orderBy: { createdAt: "desc" } },
+      // `select` : jamais `preuve` (photo/PDF en data URL), inutile ici.
+      actions: {
+        orderBy: { createdAt: "desc" },
+        select: { id: true, reference: true, type: true, action: true, responsable: true, echeance: true, statut: true },
+      },
     },
   });
 
@@ -78,6 +81,12 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
             </form>
           )}
           <Link
+            href={`/plan-action/nouveau?rexId=${rex.id}`}
+            className="whitespace-nowrap rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            + Action
+          </Link>
+          <Link
             href={`/rex/${rex.id}/diffusion`}
             className="whitespace-nowrap flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
@@ -93,7 +102,7 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
           <BoutonSupprimer
             action={supprimerRex}
             hiddenFields={{ id: rex.id }}
-            message={`Supprimer ce REX supprimera aussi ${rex.actionsPreventives.length} action(s) préventive(s). Les écarts, évènements ou remontées rattachés ne sont pas touchés. Cette action est irréversible. Continuer ?`}
+            message={`Supprimer ce REX supprimera aussi ${rex.actions.length} action(s) du plan d'action. Les écarts, évènements ou remontées rattachés ne sont pas touchés. Cette action est irréversible. Continuer ?`}
           />
         </div>
       </div>
@@ -203,78 +212,49 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
 
       <div>
         <h2 className="mb-3 text-lg font-semibold text-slate-900">
-          Actions préventives ({rex.actionsPreventives.length})
+          Plan d&apos;action ({rex.actions.length})
         </h2>
         <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
               <tr>
+                <th className="px-4 py-3 font-medium">Référence</th>
+                <th className="px-4 py-3 font-medium">Type</th>
                 <th className="px-4 py-3 font-medium">Action</th>
                 <th className="px-4 py-3 font-medium">Responsable</th>
                 <th className="px-4 py-3 font-medium">Échéance</th>
-                <th data-no-print className="px-4 py-3 font-medium">Statut</th>
+                <th className="px-4 py-3 font-medium">Statut</th>
               </tr>
             </thead>
             <tbody>
-              {rex.actionsPreventives.map((a) => (
+              {rex.actions.map((a) => (
                 <tr key={a.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <Link href={`/plan-action/${a.id}`} className="font-medium text-blue-700 hover:underline">
+                      {a.reference}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3 text-slate-700">{TYPE_ACTION_LABELS[a.type]}</td>
                   <td className="max-w-md px-4 py-3 text-slate-700">{a.action}</td>
                   <td className="px-4 py-3 text-slate-700">{a.responsable}</td>
                   <td className="px-4 py-3 text-slate-500">
                     {a.echeance ? a.echeance.toLocaleDateString("fr-FR") : "—"}
                   </td>
-                  <td data-no-print className="px-4 py-3">
-                    <StatutSelectForm
-                      action={mettreAJourStatutActionRex}
-                      hiddenName="id"
-                      hiddenValue={a.id}
-                      selectName="statut"
-                      defaultValue={a.statut}
-                      options={Object.values(StatutAction).map((s) => ({ value: s, label: STATUT_ACTION_LABELS[s] }))}
-                    />
+                  <td className="px-4 py-3">
+                    <Badge label={STATUT_ACTION_LABELS[a.statut]} colorClass={STATUT_ACTION_COLORS[a.statut]} />
                   </td>
                 </tr>
               ))}
-              {rex.actionsPreventives.length === 0 && (
+              {rex.actions.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-4 py-6 text-center text-slate-400">
-                    Aucune action préventive.
+                  <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
+                    Aucune action.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-        <form
-          action={creerActionRex}
-          data-no-print
-          className="mt-3 grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:grid-cols-[2fr_1fr_1fr_auto]"
-        >
-          <input type="hidden" name="rexId" value={rex.id} />
-          <input
-            name="action"
-            required
-            placeholder="Nouvelle action préventive"
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <select name="responsable" required defaultValue="" className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-            <option value="" disabled>
-              Responsable
-            </option>
-            {RESPONSABLES.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-          <input type="date" name="echeance" className="rounded-md border border-slate-300 px-3 py-2 text-sm" />
-          <button
-            type="submit"
-            className="whitespace-nowrap rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            Ajouter
-          </button>
-        </form>
       </div>
     </div>
   );

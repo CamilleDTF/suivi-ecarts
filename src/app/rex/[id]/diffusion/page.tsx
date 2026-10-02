@@ -34,7 +34,10 @@ export default async function DiffusionRexPage({
       ficheSSE: { select: { id: true, reference: true, nomChantier: true } },
       ecartAmiante: { select: { id: true, reference: true, nomChantier: true } },
       remontee: { select: { id: true, reference: true, objet: true } },
-      actionsPreventives: { orderBy: { createdAt: "asc" } },
+      actions: {
+        orderBy: { createdAt: "asc" },
+        select: { id: true, action: true, responsable: true, echeance: true },
+      },
     },
   });
 
@@ -87,13 +90,13 @@ export default async function DiffusionRexPage({
         <p className="whitespace-pre-line text-sm text-slate-800">{rex.enseignementsTires || "—"}</p>
       </section>
 
-      {rex.actionsPreventives.length > 0 && (
+      {rex.actions.length > 0 && (
         <section className="mb-6 rounded-lg border border-slate-200 bg-white p-5">
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
             Actions préventives
           </h3>
           <ul className="list-disc space-y-1 pl-5 text-sm text-slate-800">
-            {rex.actionsPreventives.map((a) => (
+            {rex.actions.map((a) => (
               <li key={a.id}>
                 {a.action} — {a.responsable}
                 {a.echeance && ` (échéance ${a.echeance.toLocaleDateString("fr-FR")})`}

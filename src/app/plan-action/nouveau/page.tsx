@@ -14,9 +14,10 @@ export default async function NouvelleActionPage({
     ficheSSEId?: string;
     ecartAmianteId?: string;
     remonteeId?: string;
+    rexId?: string;
   }>;
 }) {
-  const { ecartId, ficheSSEId, ecartAmianteId, remonteeId } = await searchParams;
+  const { ecartId, ficheSSEId, ecartAmianteId, remonteeId, rexId } = await searchParams;
 
   const fiche = ficheSSEId
     ? await prisma.ficheSSE.findUnique({ where: { id: ficheSSEId } })
@@ -29,11 +30,15 @@ export default async function NouvelleActionPage({
     ? await prisma.remonteeInfo.findUnique({ where: { id: remonteeId } })
     : null;
 
-  // Sans parent imposé par l'URL, les quatre rattachements possibles sont
+  const rex = !fiche && !ecartAmiante && !remontee && rexId
+    ? await prisma.rex.findUnique({ where: { id: rexId }, select: { id: true, reference: true, titre: true } })
+    : null;
+
+  // Sans parent imposé par l'URL, les cinq rattachements possibles sont
   // proposés : l'écran n'offrait que les écarts.
-  const parentImpose = fiche || ecartAmiante || remontee;
-  const [ecarts, evenements, amiantes, remontees] = parentImpose
-    ? [[], [], [], []]
+  const parentImpose = fiche || ecartAmiante || remontee || rex;
+  const [ecarts, evenements, amiantes, remontees, rexListe] = parentImpose
+    ? [[], [], [], [], []]
     : await Promise.all([
         prisma.ecart.findMany({
           orderBy: { reference: "asc" },
@@ -50,6 +55,10 @@ export default async function NouvelleActionPage({
         prisma.remonteeInfo.findMany({
           orderBy: { reference: "asc" },
           select: { id: true, reference: true, chantierService: true, objet: true },
+        }),
+        prisma.rex.findMany({
+          orderBy: { reference: "asc" },
+          select: { id: true, reference: true, titre: true },
         }),
       ]);
 
@@ -83,6 +92,14 @@ export default async function NouvelleActionPage({
             <label className="mb-1 block text-sm font-medium text-slate-700">Rattachée à</label>
             <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
               Remontée {remontee.reference} — {remontee.objet}
+            </p>
+          </div>
+        ) : rex ? (
+          <div>
+            <input type="hidden" name="rexId" value={rex.id} />
+            <label className="mb-1 block text-sm font-medium text-slate-700">Rattachée à</label>
+            <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+              REX {rex.reference} — {rex.titre}
             </p>
           </div>
         ) : (
@@ -125,6 +142,15 @@ export default async function NouvelleActionPage({
                 options: remontees.map((r) => ({
                   id: r.id,
                   libelle: libelleRattachement(r.reference, r.chantierService, r.objet),
+                })),
+              },
+              {
+                cle: "rex",
+                libelle: "REX",
+                champ: "rexId",
+                options: rexListe.map((r) => ({
+                  id: r.id,
+                  libelle: libelleRattachement(r.reference, null, r.titre),
                 })),
               },
             ]}
