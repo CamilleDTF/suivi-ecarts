@@ -8,11 +8,13 @@ export function BoutonSupprimer({
   hiddenFields,
   message,
   label = "Supprimer",
+  className = "w-full justify-start",
 }: {
   action: (formData: FormData) => void | Promise<void>;
   hiddenFields: Record<string, string>;
   message: string;
   label?: string;
+  className?: string;
 }) {
   return (
     <form
@@ -24,7 +26,7 @@ export function BoutonSupprimer({
       {Object.entries(hiddenFields).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}
-      <Button type="submit" variant="destructive" size="lg" className="w-full justify-start">
+      <Button type="submit" variant="destructive" size="lg" className={className}>
         <Trash2Icon />
         {label}
       </Button>

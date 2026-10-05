@@ -1,12 +1,9 @@
 import Link from "next/link";
-import { ArchiveIcon, ArrowLeftIcon, PlusIcon } from "lucide-react";
+import { ActivityIcon, ArchiveIcon, ArrowLeftIcon, PlusIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
 import { FiltresListe } from "@/components/filtres-liste";
-import { Pagination } from "@/components/pagination";
 import { buttonVariants } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
-import { Origine, StatutDossierEcart } from "@/generated/prisma/enums";
+import { Origine } from "@/generated/prisma/enums";
 import {
   ORIGINE_LABELS,
   STATUT_DOSSIER_ECART_LABELS,
@@ -14,36 +11,30 @@ import {
   DOMAINES_OPTIONS,
   THEME_OPTIONS,
 } from "@/lib/labels";
-import { filtreStatutDossierEcart } from "@/lib/validation";
-import { lireTaillePage } from "@/lib/pagination";
 import { filtreArchive } from "@/lib/archivage";
-import { construireTri } from "@/lib/tri";
-import { EnteteTriable } from "@/components/entete-triable";
+import { cn } from "@/lib/utils";
 
-const COLONNES_TRI = {
-  reference: "reference",
-  dossier: "dossier.reference",
-  description: "description",
-  evenement: "fichesSSE._count",
-  statut: "statut",
-  dateDetection: "dateDetection",
+const COLONNES = [
+  { statut: "OUVERT", point: "bg-amber-500", fond: "bg-amber-500/10" },
+  { statut: "EN_COURS", point: "bg-blue-500", fond: "bg-blue-500/10" },
+  { statut: "CLOTURE", point: "bg-emerald-500", fond: "bg-emerald-500/10" },
+] as const;
+
+const POINT_CRITICITE: Record<string, string> = {
+  Faible: "bg-emerald-500",
+  Moyenne: "bg-amber-500",
+  Élevée: "bg-red-500",
 };
 
-const TON_STATUT: Record<string, TonStatut> = {
-  A_QUALIFIER: "neutre",
-  OUVERT: "ambre",
-  EN_COURS: "bleu",
-  CLOTURE: "vert",
-};
+const PAR_COLONNE = 8;
+const PAR_COLONNE_DEPLIEE = 60;
 
 export default async function EcartsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; statut?: string; origine?: string; page?: string; taille?: string; tri?: string; sens?: string; archives?: string }>;
+  searchParams: Promise<{ q?: string; origine?: string; colonne?: string; archives?: string }>;
 }) {
-  const { q, statut, origine, page: pageParam, taille, tri, sens, archives } = await searchParams;
-  const page = Math.max(1, Number(pageParam) || 1);
-  const taillePage = lireTaillePage(taille);
+  const { q, origine, colonne, archives } = await searchParams;
 
   // Les listes à choix (natures, domaines, thèmes) sont stockées en tableaux :
   // on cherche d'abord quelles options correspondent au texte saisi, puis on
@@ -56,9 +47,8 @@ export default async function EcartsPage({
   const themesTrouves = optionsCorrespondantes(THEME_OPTIONS);
 
   const contient = { contains: q, mode: "insensitive" as const };
-  const where = {
+  const base = {
     ...filtreArchive(archives),
-    statut: filtreStatutDossierEcart(statut),
     origine: origine ? (origine as Origine) : undefined,
     OR: q
       ? [
@@ -77,45 +67,45 @@ export default async function EcartsPage({
       : undefined,
   };
 
-  const [total, ecarts] = await Promise.all([
-    prisma.ecart.count({ where }),
-    prisma.ecart.findMany({
-      where,
-      orderBy: construireTri(tri, sens, COLONNES_TRI, { createdAt: "desc" as const }, ["description"]),
-      // Le décompte des évènements plutôt que le drapeau ficheSSECreee : ce
-      // dernier reste à true si l'évènement est ensuite détaché ou supprimé.
-      // `select` explicite : la liste n'affiche jamais `enregistrement`
-      // (photo/PDF en data URL) du dossier, qui serait sinon retéléchargé en
-      // entier pour chaque écart, à chaque page — c'est la page la plus
-      // consultée de toute l'appli.
-      select: {
-        id: true,
-        reference: true,
-        description: true,
-        statut: true,
-        dateDetection: true,
-        dossier: { select: { id: true, reference: true } },
-        _count: { select: { fichesSSE: true } },
-      },
-      skip: (page - 1) * taillePage,
-      take: taillePage,
+  const colonnes = await Promise.all(
+    COLONNES.map(async (c) => {
+      const where = { ...base, statut: c.statut };
+      const [total, ecarts] = await Promise.all([
+        prisma.ecart.count({ where }),
+        prisma.ecart.findMany({
+          where,
+          orderBy: { dateDetection: "desc" },
+          // `select` explicite : jamais `enregistrement` (photo/PDF en data URL)
+          // du dossier, qui serait retéléchargé en entier pour chaque carte.
+          select: {
+            id: true,
+            reference: true,
+            description: true,
+            criticite: true,
+            dateDetection: true,
+            dossier: { select: { reference: true, chantier: true } },
+            _count: { select: { fichesSSE: true } },
+          },
+          take: colonne === c.statut ? PAR_COLONNE_DEPLIEE : PAR_COLONNE,
+        }),
+      ]);
+      return { ...c, total, ecarts };
     }),
-  ]);
+  );
 
-  const filtreActif = !!q || !!statut || !!origine;
-  const conserves = { tri, sens, taille, archives };
-  const paramsEntete = { q, statut, origine, taille };
+  const total = colonnes.reduce((s, c) => s + c.total, 0);
+  const filtreActif = !!q || !!origine;
 
   return (
-    <div className="mx-auto max-w-[100rem] px-6 py-8 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="mx-auto max-w-[96rem] px-6 py-10 lg:px-10">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="font-display text-4xl font-semibold tracking-tight">
             {archives === "1" ? "Écarts archivés" : "Écarts"}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {total} écart{total > 1 ? "s" : ""}
-            {filtreActif ? " correspondant aux filtres" : archives === "1" ? " archivés" : " au total"}
+          <p className="mt-2 text-sm text-muted-foreground">
+            {colonnes.map((c) => `${c.total} ${STATUT_DOSSIER_ECART_LABELS[c.statut].toLowerCase()}${c.total > 1 && c.statut !== "EN_COURS" ? "s" : ""}`).join(" · ")}
+            {filtreActif ? " — filtre en cours" : ""}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -124,7 +114,7 @@ export default async function EcartsPage({
             className={buttonVariants({ variant: "ghost", size: "lg" })}
           >
             {archives === "1" ? <ArrowLeftIcon /> : <ArchiveIcon />}
-            {archives === "1" ? "Revenir à la liste" : "Archives"}
+            {archives === "1" ? "Revenir au tableau" : "Archives"}
           </Link>
           <Link href="/ecarts/nouveau" className={buttonVariants({ size: "lg" })}>
             <PlusIcon /> Nouvel écart
@@ -132,23 +122,13 @@ export default async function EcartsPage({
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-6">
         <FiltresListe
           basePath="/ecarts"
           placeholder="Rechercher un écart, un chantier, un déclarant…"
           recherche={q ?? ""}
-          conserves={conserves}
+          conserves={{ archives }}
           filtres={[
-            {
-              name: "statut",
-              valeur: statut ?? "",
-              options: [
-                { value: "", label: "Tous les statuts" },
-                ...Object.values(StatutDossierEcart)
-                  .filter((s) => s !== "A_QUALIFIER")
-                  .map((s) => ({ value: s, label: STATUT_DOSSIER_ECART_LABELS[s] })),
-              ],
-            },
             {
               name: "origine",
               valeur: origine ?? "",
@@ -161,64 +141,66 @@ export default async function EcartsPage({
         />
       </div>
 
-      <div className="overflow-hidden rounded-xl border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <EnteteTriable colonne="reference" libelle="Référence" triActuel={tri} sensActuel={sens} params={paramsEntete} />
-              <EnteteTriable colonne="dossier" libelle="Dossier" triActuel={tri} sensActuel={sens} params={paramsEntete} />
-              <EnteteTriable colonne="description" libelle="Description" triActuel={tri} sensActuel={sens} params={paramsEntete} />
-              <EnteteTriable colonne="evenement" libelle="Évènement" triActuel={tri} sensActuel={sens} params={paramsEntete} />
-              <EnteteTriable colonne="statut" libelle="Statut" triActuel={tri} sensActuel={sens} params={paramsEntete} />
-              <EnteteTriable colonne="dateDetection" libelle="Détecté le" triActuel={tri} sensActuel={sens} params={paramsEntete} />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {ecarts.map((e) => (
-              <TableRow key={e.id}>
-                <TableCell>
-                  <Link href={`/ecarts/${e.id}`} className="font-medium text-foreground underline-offset-4 hover:underline">
-                    {e.reference}
-                  </Link>
-                </TableCell>
-                <TableCell>
-                  {e.dossier ? (
-                    <Link href={`/dossiers/${e.dossier.id}`} className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-                      {e.dossier.reference}
+      {total === 0 ? (
+        <p className="rounded-lg border border-dashed py-16 text-center text-sm text-muted-foreground">
+          {filtreActif ? "Aucun écart ne correspond à ces filtres." : "Aucun écart pour l'instant."}
+        </p>
+      ) : (
+        <div className="grid items-start gap-6 lg:grid-cols-3">
+          {colonnes.map((c) => (
+            <section key={c.statut} aria-label={STATUT_DOSSIER_ECART_LABELS[c.statut]}>
+              <header className="mb-3 flex items-center gap-2.5 border-b-2 border-foreground/80 pb-2">
+                <span className={cn("size-2.5 rounded-full", c.point)} aria-hidden />
+                <h2 className="text-sm font-semibold uppercase tracking-wider">{STATUT_DOSSIER_ECART_LABELS[c.statut]}</h2>
+                <span className="ml-auto rounded bg-foreground px-1.5 py-0.5 text-xs font-semibold tabular-nums text-background">
+                  {c.total}
+                </span>
+              </header>
+
+              <ul className="space-y-2.5">
+                {c.ecarts.map((e) => (
+                  <li key={e.id}>
+                    <Link
+                      href={`/ecarts/${e.id}`}
+                      className="group block rounded-md border bg-card p-3.5 shadow-xs transition-all hover:-translate-y-0.5 hover:border-foreground/30 hover:shadow-md"
+                    >
+                      <div className="mb-1.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                        <span className="font-semibold tracking-wide text-foreground">{e.reference}</span>
+                        <span className="tabular-nums">{e.dateDetection.toLocaleDateString("fr-FR")}</span>
+                      </div>
+                      <p className="line-clamp-3 text-sm leading-snug">{e.description || "Sans description"}</p>
+                      <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="min-w-0 flex-1 truncate">{e.dossier?.chantier ?? "Sans dossier"}</span>
+                        {e._count.fichesSSE > 0 && (
+                          <span className="flex items-center gap-1" title={`${e._count.fichesSSE} évènement(s) SSE`}>
+                            <ActivityIcon className="size-3.5" aria-hidden />
+                            {e._count.fichesSSE}
+                          </span>
+                        )}
+                        {e.criticite && (
+                          <span
+                            className={cn("size-2.5 rounded-full", POINT_CRITICITE[e.criticite] ?? "bg-slate-400")}
+                            title={`Criticité ${e.criticite.toLowerCase()}`}
+                          />
+                        )}
+                      </div>
                     </Link>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell className="max-w-md truncate">{e.description}</TableCell>
-                <TableCell>
-                  {e._count.fichesSSE > 0 ? (
-                    <span className="font-medium">Oui</span>
-                  ) : (
-                    <span className="text-muted-foreground">Non</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <BadgeStatut label={STATUT_DOSSIER_ECART_LABELS[e.statut]} ton={TON_STATUT[e.statut]} />
-                </TableCell>
-                <TableCell className="tabular-nums text-muted-foreground">
-                  {e.dateDetection.toLocaleDateString("fr-FR")}
-                </TableCell>
-              </TableRow>
-            ))}
-            {ecarts.length === 0 && (
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                  {filtreActif ? "Aucun écart ne correspond à ces filtres." : "Aucun écart pour l'instant."}
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-        {total > 0 && (
-          <Pagination total={total} page={page} pageSize={taillePage} baseParams={{ q, statut, origine, taille, tri, sens, archives }} />
-        )}
-      </div>
+                  </li>
+                ))}
+              </ul>
+
+              {c.total > c.ecarts.length && (
+                <Link
+                  href={{ pathname: "/ecarts", query: { ...(q ? { q } : {}), ...(origine ? { origine } : {}), ...(archives ? { archives } : {}), colonne: c.statut } }}
+                  className="mt-3 block rounded-md border border-dashed py-2 text-center text-sm text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+                >
+                  Voir les {c.total - c.ecarts.length} autres
+                </Link>
+              )}
+            </section>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

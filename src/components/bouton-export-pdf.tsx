@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
  * contenu serait coupé à la hauteur affichée. On les déplie juste avant, et on
  * les remet ensuite.
  */
-export function BoutonExportPDF() {
+export function BoutonExportPDF({ className = "w-full justify-start" }: { className?: string }) {
   useEffect(() => {
     const hauteursInitiales = new Map<HTMLTextAreaElement, string>();
 
@@ -44,7 +44,7 @@ export function BoutonExportPDF() {
   }, []);
 
   return (
-    <Button type="button" variant="outline" size="lg" onClick={() => window.print()} className="w-full justify-start">
+    <Button type="button" variant="outline" size="lg" onClick={() => window.print()} className={className}>
       <PrinterIcon />
       Exporter en PDF
     </Button>

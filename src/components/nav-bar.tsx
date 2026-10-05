@@ -2,7 +2,6 @@ import Link from "next/link";
 import { LogOutIcon, ShieldCheckIcon } from "lucide-react";
 import { auth, signOut } from "@/auth";
 import { NavLinks } from "@/components/nav-links";
-import { Button } from "@/components/ui/button";
 
 function initiales(nom: string) {
   return nom
@@ -21,36 +20,42 @@ export async function NavBar() {
   const nom = session.user.name ?? "";
 
   return (
-    // Barre latérale à partir de lg : sept onglets plus le compte ne tiennent
-    // pas sur une seule ligne en haut. En dessous de lg, bandeau horizontal.
-    <header className="border-b bg-sidebar lg:fixed lg:inset-y-0 lg:left-0 lg:z-10 lg:flex lg:w-60 lg:flex-col lg:border-b-0 lg:border-r">
-      <div className="flex items-center px-4 py-3 lg:px-4 lg:py-5">
-        <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <ShieldCheckIcon className="size-4" />
-          </span>
-          <span className="whitespace-nowrap text-sm font-semibold tracking-tight">Suivi des écarts</span>
-        </Link>
-      </div>
+    // Rail d'icônes à partir de lg ; bandeau horizontal en dessous.
+    <header className="flex items-center gap-2 bg-sidebar px-2 py-2 text-sidebar-foreground lg:fixed lg:inset-y-0 lg:left-0 lg:z-10 lg:w-[88px] lg:flex-col lg:items-stretch lg:gap-0 lg:px-2 lg:py-4">
+      <Link
+        href="/"
+        title="Suivi des écarts"
+        className="mx-1 flex size-10 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground lg:mx-auto lg:mb-5"
+      >
+        <ShieldCheckIcon className="size-5" />
+        <span className="sr-only">Suivi des écarts</span>
+      </Link>
 
-      <div className="px-2 pb-3 lg:flex-1 lg:overflow-y-auto lg:px-3 lg:pb-0">
+      <div className="min-w-0 flex-1 lg:overflow-y-auto">
         <NavLinks />
       </div>
 
-      <div className="flex items-center gap-2.5 border-t px-3 py-2 lg:py-3">
-        <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+      <div className="flex shrink-0 items-center gap-2 lg:mt-4 lg:flex-col">
+        <span
+          title={nom}
+          className="flex size-9 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-accent-foreground"
+        >
           {initiales(nom)}
         </span>
-        <span className="min-w-0 flex-1 truncate text-sm">{nom}</span>
         <form
           action={async () => {
             "use server";
             await signOut({ redirectTo: "/connexion" });
           }}
         >
-          <Button type="submit" variant="ghost" size="icon" aria-label="Se déconnecter" title="Se déconnecter">
-            <LogOutIcon />
-          </Button>
+          <button
+            type="submit"
+            aria-label="Se déconnecter"
+            title="Se déconnecter"
+            className="flex size-9 items-center justify-center rounded-md text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          >
+            <LogOutIcon className="size-4" />
+          </button>
         </form>
       </div>
     </header>

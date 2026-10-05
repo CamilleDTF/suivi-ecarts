@@ -5,10 +5,10 @@ import { ArchiveIcon, ArchiveRestoreIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { EntiteArchivable } from "@/lib/archivage";
 
-function Bouton({ archive }: { archive: boolean }) {
+function Bouton({ archive, className }: { archive: boolean; className: string }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" variant="outline" size="lg" disabled={pending} className="w-full justify-start">
+    <Button type="submit" variant="outline" size="lg" disabled={pending} className={className}>
       {archive ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
       {pending ? "…" : archive ? "Désarchiver" : "Archiver"}
     </Button>
@@ -24,17 +24,19 @@ export function BoutonArchiver({
   entite,
   id,
   archive = false,
+  className = "w-full justify-start",
 }: {
   action: (formData: FormData) => void | Promise<void>;
   entite: EntiteArchivable;
   id: string;
   archive?: boolean;
+  className?: string;
 }) {
   return (
     <form action={action}>
       <input type="hidden" name="entite" value={entite} />
       <input type="hidden" name="id" value={id} />
-      <Bouton archive={archive} />
+      <Bouton archive={archive} className={className} />
     </form>
   );
 }
