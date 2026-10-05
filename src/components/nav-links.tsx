@@ -2,18 +2,45 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  ActivityIcon,
+  ChartColumnIcon,
+  ClipboardListIcon,
+  FolderIcon,
+  LightbulbIcon,
+  ListChecksIcon,
+  MessageSquareIcon,
+  ShieldAlertIcon,
+  TriangleAlertIcon,
+  UsersIcon,
+} from "lucide-react";
 
-const LIENS = [
-  { href: "/dossiers", label: "Dossiers" },
-  { href: "/ecarts", label: "Écarts" },
-  { href: "/fiches-sse", label: "Évènements SSE" },
-  { href: "/ecart-amiante", label: "Écart amiante" },
-  { href: "/remontees", label: "Remontées" },
-  { href: "/plan-action", label: "Plan d'action" },
-  { href: "/plan-action-du", label: "Plan d'action DU" },
-  { href: "/rex", label: "REX" },
-  { href: "/synthese", label: "Synthèse" },
-  { href: "/reunion", label: "Réunion QHSE" },
+const GROUPES = [
+  {
+    titre: "Suivi",
+    liens: [
+      { href: "/dossiers", label: "Dossiers", icone: FolderIcon },
+      { href: "/ecarts", label: "Écarts", icone: TriangleAlertIcon },
+      { href: "/fiches-sse", label: "Évènements SSE", icone: ActivityIcon },
+      { href: "/ecart-amiante", label: "Écart amiante", icone: ShieldAlertIcon },
+    ],
+  },
+  {
+    titre: "Amélioration continue",
+    liens: [
+      { href: "/remontees", label: "Remontées", icone: MessageSquareIcon },
+      { href: "/rex", label: "REX", icone: LightbulbIcon },
+    ],
+  },
+  {
+    titre: "Pilotage",
+    liens: [
+      { href: "/plan-action", label: "Plan d'action", icone: ListChecksIcon },
+      { href: "/plan-action-du", label: "Plan d'action DU", icone: ClipboardListIcon },
+      { href: "/synthese", label: "Synthèse", icone: ChartColumnIcon },
+      { href: "/reunion", label: "Réunion QHSE", icone: UsersIcon },
+    ],
+  },
 ];
 
 export function NavLinks() {
@@ -21,25 +48,32 @@ export function NavLinks() {
 
   return (
     // Horizontal sous la barre du haut en petit écran, vertical dans la barre
-    // latérale à partir de lg. La pastille d'onglet actif fonctionne dans les
-    // deux sens, contrairement à un soulignement.
-    <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
-      {LIENS.map((lien) => {
-        const actif = pathname === lien.href || pathname.startsWith(`${lien.href}/`);
-        return (
-          <Link
-            key={lien.href}
-            href={lien.href}
-            className={
-              actif
-                ? "whitespace-nowrap rounded-md bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700"
-                : "whitespace-nowrap rounded-md px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-            }
-          >
-            {lien.label}
-          </Link>
-        );
-      })}
+    // latérale à partir de lg ; les titres de groupe n'existent que là.
+    <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:gap-0 lg:overflow-visible">
+      {GROUPES.map((groupe) => (
+        <div key={groupe.titre} className="flex gap-1 lg:mb-4 lg:flex-col">
+          <p className="hidden px-2.5 pb-1 text-xs font-medium text-muted-foreground lg:block">{groupe.titre}</p>
+          {groupe.liens.map((lien) => {
+            const actif = pathname === lien.href || pathname.startsWith(`${lien.href}/`);
+            const Icone = lien.icone;
+            return (
+              <Link
+                key={lien.href}
+                href={lien.href}
+                aria-current={actif ? "page" : undefined}
+                className={`flex items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-sm transition-colors ${
+                  actif
+                    ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground"
+                    : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground"
+                }`}
+              >
+                <Icone className="size-4 shrink-0" aria-hidden />
+                {lien.label}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
     </nav>
   );
 }

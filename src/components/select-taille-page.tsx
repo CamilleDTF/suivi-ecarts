@@ -17,12 +17,12 @@ export function SelectTaillePage({ taille }: { taille: number }) {
   }
 
   return (
-    <label className="flex items-center gap-2 text-sm text-slate-500">
-      Afficher
+    <label className="flex items-center gap-2">
+      Lignes par page
       <select
         value={String(taille)}
         onChange={(e) => changer(e.target.value)}
-        className="rounded-md border border-slate-300 px-2 py-1 text-sm"
+        className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
       >
         {TAILLES_PAGE.map((t) => (
           <option key={t} value={t}>
@@ -30,7 +30,6 @@ export function SelectTaillePage({ taille }: { taille: number }) {
           </option>
         ))}
       </select>
-      par page
     </label>
   );
 }

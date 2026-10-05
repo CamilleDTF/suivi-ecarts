@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { SelectTaillePage } from "@/components/select-taille-page";
 
 export function Pagination({
@@ -30,7 +32,7 @@ export function Pagination({
   const suivantActif = page < totalPages;
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-sm text-slate-500">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm text-muted-foreground">
       <div className="flex flex-wrap items-center gap-4">
         <span>
           {debut}–{fin} sur {total} résultat{total > 1 ? "s" : ""}
@@ -38,27 +40,26 @@ export function Pagination({
         <SelectTaillePage taille={pageSize} />
       </div>
       <div className="flex items-center gap-2">
+        <span className="mr-1 tabular-nums">
+          Page {page} / {totalPages}
+        </span>
         {precedentActif ? (
-          <Link
-            href={hrefPage(page - 1)}
-            className="rounded-md border border-slate-300 px-2.5 py-1 text-slate-600 hover:bg-slate-50"
-          >
-            ‹
+          <Link href={hrefPage(page - 1)} aria-label="Page précédente" className={buttonVariants({ variant: "outline", size: "icon-sm" })}>
+            <ChevronLeftIcon />
           </Link>
         ) : (
-          <span className="rounded-md border border-slate-200 px-2.5 py-1 text-slate-300">‹</span>
+          <Button variant="outline" size="icon-sm" disabled aria-label="Page précédente">
+            <ChevronLeftIcon />
+          </Button>
         )}
-        <span className="rounded-md bg-blue-600 px-2.5 py-1 font-medium text-white">{page}</span>
-        <span className="px-1 text-slate-400">/ {totalPages}</span>
         {suivantActif ? (
-          <Link
-            href={hrefPage(page + 1)}
-            className="rounded-md border border-slate-300 px-2.5 py-1 text-slate-600 hover:bg-slate-50"
-          >
-            ›
+          <Link href={hrefPage(page + 1)} aria-label="Page suivante" className={buttonVariants({ variant: "outline", size: "icon-sm" })}>
+            <ChevronRightIcon />
           </Link>
         ) : (
-          <span className="rounded-md border border-slate-200 px-2.5 py-1 text-slate-300">›</span>
+          <Button variant="outline" size="icon-sm" disabled aria-label="Page suivante">
+            <ChevronRightIcon />
+          </Button>
         )}
       </div>
     </div>

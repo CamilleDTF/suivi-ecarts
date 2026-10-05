@@ -28,11 +28,11 @@ export default function RootLayout({
       lang="fr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-slate-50">
+      <body className="min-h-full flex flex-col bg-background">
         <NavBar />
         {/* Décalé de la largeur de la barre latérale à partir de lg ; en
             dessous, la barre reste en haut et le contenu suit normalement. */}
-        <main className="flex-1 lg:pl-56">{children}</main>
+        <main className="flex-1 lg:pl-60">{children}</main>
       </body>
     </html>
   );

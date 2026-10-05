@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon } from "lucide-react";
+import { TableHead } from "@/components/ui/table";
 
 /**
  * Entête de colonne cliquable. Un clic trie sur la colonne, un second inverse
@@ -30,18 +32,17 @@ export function EnteteTriable({
     if (valeur && cle !== "tri" && cle !== "sens" && cle !== "page") query[cle] = valeur;
   }
 
+  const Icone = !actif ? ChevronsUpDownIcon : sensActuel === "asc" ? ArrowUpIcon : ArrowDownIcon;
+
   return (
-    <th className="px-4 py-3 font-medium">
+    <TableHead aria-sort={actif ? (sensActuel === "asc" ? "ascending" : "descending") : "none"}>
       <Link
         href={{ query }}
-        className="inline-flex items-center gap-1 hover:text-slate-900"
-        aria-sort={actif ? (sensActuel === "asc" ? "ascending" : "descending") : "none"}
+        className="-ml-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 hover:bg-muted hover:text-foreground"
       >
         {libelle}
-        <span className={actif ? "text-slate-900" : "text-slate-300"} aria-hidden>
-          {actif && sensActuel === "asc" ? "▲" : "▼"}
-        </span>
+        <Icone className={actif ? "size-3.5 text-foreground" : "size-3.5 opacity-40"} aria-hidden />
       </Link>
-    </th>
+    </TableHead>
   );
 }
