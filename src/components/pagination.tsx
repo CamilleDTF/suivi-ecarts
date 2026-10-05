@@ -6,11 +6,19 @@ export function Pagination({
   page,
   pageSize,
   baseParams,
+  basePath,
 }: {
   total: number;
   page: number;
   pageSize: number;
   baseParams: Record<string, string | undefined>;
+  /**
+   * Chemin absolu vers la liste, à fournir quand ce composant peut être
+   * affiché depuis une autre page que la liste elle-même (panneau
+   * liste+détail) : sans lui, les liens resteraient relatifs à la page
+   * courante.
+   */
+  basePath?: string;
 }) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const debut = total === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -23,6 +31,7 @@ export function Pagination({
     }
     if (p > 1) params.set("page", String(p));
     const qs = params.toString();
+    if (basePath) return qs ? `${basePath}?${qs}` : basePath;
     return qs ? `?${qs}` : "?";
   }
 
@@ -35,7 +44,7 @@ export function Pagination({
         <span>
           {debut}–{fin} sur {total} résultat{total > 1 ? "s" : ""}
         </span>
-        <SelectTaillePage taille={pageSize} />
+        <SelectTaillePage taille={pageSize} basePath={basePath} />
       </div>
       <div className="flex items-center gap-2">
         {precedentActif ? (
