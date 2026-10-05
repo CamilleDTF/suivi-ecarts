@@ -1,18 +1,17 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { ArchiveIcon, ArchiveRestoreIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { EntiteArchivable } from "@/lib/archivage";
 
 function Bouton({ archive }: { archive: boolean }) {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="whitespace-nowrap rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-    >
+    <Button type="submit" variant="outline" size="lg" disabled={pending} className="w-full justify-start">
+      {archive ? <ArchiveRestoreIcon /> : <ArchiveIcon />}
       {pending ? "…" : archive ? "Désarchiver" : "Archiver"}
-    </button>
+    </Button>
   );
 }
 

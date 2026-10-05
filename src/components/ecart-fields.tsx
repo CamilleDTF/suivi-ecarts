@@ -34,7 +34,7 @@ type EcartValues = {
 
 const inputCls =
   "w-full rounded-md border border-slate-300 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
-const labelCls = "mb-1 block text-sm font-medium text-slate-700";
+const labelCls = "mb-1.5 block text-sm font-medium";
 
 function toDateInput(d?: Date | null) {
   return d ? d.toISOString().slice(0, 10) : "";
@@ -55,7 +55,7 @@ export function EcartFields({ v = {} }: { v?: EcartValues }) {
   const domaines = avecValeursExistantes(DOMAINES_OPTIONS, v.domaines);
 
   return (
-    <fieldset disabled={disabled} className="space-y-6 disabled:opacity-60">
+    <fieldset disabled={disabled} className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className={labelCls}>Date de détection</label>
@@ -96,9 +96,9 @@ export function EcartFields({ v = {} }: { v?: EcartValues }) {
 
       <fieldset>
         <legend className={labelCls}>Nature(s)</legend>
-        <div className="grid grid-cols-2 gap-1">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
           {natures.map((n) => (
-            <label key={n} className="flex items-center gap-2 text-sm text-slate-700">
+            <label key={n} className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="natures" value={n} defaultChecked={(v.natures ?? []).includes(n)} />
               {n}
             </label>
@@ -108,9 +108,9 @@ export function EcartFields({ v = {} }: { v?: EcartValues }) {
 
       <fieldset>
         <legend className={labelCls}>Domaine(s)</legend>
-        <div className="grid grid-cols-2 gap-1">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
           {domaines.map((d) => (
-            <label key={d} className="flex items-center gap-2 text-sm text-slate-700">
+            <label key={d} className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="domaines" value={d} defaultChecked={(v.domaines ?? []).includes(d)} />
               {d}
             </label>
@@ -120,9 +120,9 @@ export function EcartFields({ v = {} }: { v?: EcartValues }) {
 
       <fieldset>
         <legend className={labelCls}>Thème(s)</legend>
-        <div className="grid grid-cols-2 gap-1">
+        <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
           {THEME_OPTIONS.map((t) => (
-            <label key={t} className="flex items-center gap-2 text-sm text-slate-700">
+            <label key={t} className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="theme" value={t} defaultChecked={(v.theme ?? []).includes(t)} />
               {t}
             </label>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { IconFileText } from "@/components/icons";
+import { PrinterIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 /**
  * Export PDF via l'impression du navigateur ("Enregistrer au format PDF").
@@ -43,13 +44,9 @@ export function BoutonExportPDF() {
   }, []);
 
   return (
-    <button
-      type="button"
-      onClick={() => window.print()}
-      className="whitespace-nowrap flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-    >
-      <IconFileText className="h-4 w-4" />
+    <Button type="button" variant="outline" size="lg" onClick={() => window.print()} className="w-full justify-start">
+      <PrinterIcon />
       Exporter en PDF
-    </button>
+    </Button>
   );
 }

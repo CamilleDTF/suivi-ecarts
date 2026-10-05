@@ -1,5 +1,8 @@
 "use client";
 
+import { Trash2Icon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 export function BoutonSupprimer({
   action,
   hiddenFields,
@@ -21,12 +24,10 @@ export function BoutonSupprimer({
       {Object.entries(hiddenFields).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}
-      <button
-        type="submit"
-        className="whitespace-nowrap rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-      >
+      <Button type="submit" variant="destructive" size="lg" className="w-full justify-start">
+        <Trash2Icon />
         {label}
-      </button>
+      </Button>
     </form>
   );
 }

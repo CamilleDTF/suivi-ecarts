@@ -1,15 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronRightIcon, PlusIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { Badge } from "@/components/badge";
 import {
-  STATUT_DOSSIER_ECART_COLORS,
+  ORIGINE_LABELS,
   STATUT_DOSSIER_ECART_LABELS,
-  STATUT_FICHE_COLORS,
   STATUT_FICHE_LABELS,
+  TYPE_ACTIVITE_LABELS,
   TYPE_ACTION_LABELS,
-  STATUT_ACTION_COLORS,
   STATUT_ACTION_LABELS,
+  STATUT_REX_LABELS,
 } from "@/lib/labels";
 import {
   mettreAJourStatutEcart,
@@ -17,18 +17,40 @@ import {
   supprimerEcart,
   changerRattachementEcart,
 } from "@/app/ecarts/actions";
-import { ChangerRattachement } from "@/components/changer-rattachement";
-import { StatutDossierEcart } from "@/generated/prisma/enums";
-import { StatutSelectForm } from "@/components/statut-select-form";
-import { EcartFields } from "@/components/ecart-fields";
-import { FormulaireEditable } from "@/components/formulaire-editable";
-import { BoutonSupprimer } from "@/components/bouton-supprimer";
-import { BoutonArchiver } from "@/components/bouton-archiver";
 import { archiver, desarchiver } from "@/app/archivage/actions";
-import { BoutonRetour } from "@/components/bouton-retour";
-import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { compterImpactSuppressionEcart } from "@/lib/suppression";
-import { STATUT_REX_COLORS, STATUT_REX_LABELS } from "@/lib/labels";
+import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
+import { ChangerRattachement } from "@/components/changer-rattachement";
+import { EcartFields } from "@/components/ecart-fields";
+import { EditionPanneau } from "@/components/edition-panneau";
+import { Carte, EtatVide, FicheSection, Pastilles, Propriete, Proprietes, TexteLong } from "@/components/fiche";
+import { StatutParcours } from "@/components/statut-parcours";
+import { BoutonArchiver } from "@/components/bouton-archiver";
+import { BoutonSupprimer } from "@/components/bouton-supprimer";
+import { BoutonExportPDF } from "@/components/bouton-export-pdf";
+import { buttonVariants } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+
+const TON_STATUT: Record<string, TonStatut> = {
+  A_QUALIFIER: "neutre",
+  OUVERT: "ambre",
+  EN_COURS: "bleu",
+  CLOTURE: "vert",
+};
+const TON_CRITICITE: Record<string, TonStatut> = { Faible: "vert", Moyenne: "ambre", Élevée: "rouge" };
+const TON_FICHE: Record<string, TonStatut> = { BROUILLON: "neutre", EN_COURS: "bleu", FINALISEE: "vert" };
+const TON_ACTION: Record<string, TonStatut> = {
+  A_FAIRE: "neutre",
+  EN_COURS: "bleu",
+  EN_RETARD: "rouge",
+  REALISEE: "vert",
+  ANNULEE: "neutre",
+};
+const ETAPES = (["OUVERT", "EN_COURS", "CLOTURE"] as const).map((s) => ({
+  value: s,
+  label: STATUT_DOSSIER_ECART_LABELS[s],
+  ton: TON_STATUT[s],
+}));
 
 // Le navigateur nomme le PDF d’après le titre du document : sans titre
 // propre à la fiche, tous les exports s’enregistreraient sous le même nom.
@@ -47,9 +69,7 @@ export default async function EcartDetailPage({
   const ecart = await prisma.ecart.findUnique({
     where: { id },
     include: {
-      // id/reference/chantier seulement, jamais `enregistrement` (photo/PDF en
-      // data URL) : cette page ne fait que lier vers /dossiers/[id].
-      dossier: { select: { id: true, reference: true, chantier: true } },
+      dossier: true,
       remontees: {
         orderBy: { reference: "asc" },
         select: { id: true, reference: true, objet: true },
@@ -74,232 +94,276 @@ export default async function EcartDetailPage({
     select: { id: true, reference: true, chantier: true },
   });
 
+  const lienAjout = buttonVariants({ variant: "outline", size: "sm" });
+
   return (
-    <div className="mx-auto max-w-[100rem] px-6 py-8">
-      <BoutonRetour
-        href={ecart.dossier ? `/dossiers/${ecart.dossier.id}` : "/ecarts"}
-        label={ecart.dossier ? "Retour au dossier" : "Retour aux écarts"}
-      />
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <div className="mb-1 flex items-center gap-3">
-            <h1 className="text-2xl font-semibold text-slate-900">{ecart.reference}</h1>
-            <Badge
-              label={STATUT_DOSSIER_ECART_LABELS[ecart.statut]}
-              colorClass={STATUT_DOSSIER_ECART_COLORS[ecart.statut]}
-            />
+    <div className="mx-auto max-w-[80rem] px-6 py-8 lg:px-8">
+      <nav data-no-print aria-label="Fil d'Ariane" className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground">
+        <Link href="/ecarts" className="hover:text-foreground hover:underline">
+          Écarts
+        </Link>
+        <ChevronRightIcon className="size-3.5" aria-hidden />
+        <span className="text-foreground">{ecart.reference}</span>
+      </nav>
+
+      <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-tight">{ecart.reference}</h1>
+            <BadgeStatut label={STATUT_DOSSIER_ECART_LABELS[ecart.statut]} ton={TON_STATUT[ecart.statut]} />
           </div>
-          {ecart.dossier ? (
-            <Link href={`/dossiers/${ecart.dossier.id}`} className="block text-sm text-slate-500 hover:underline">
-              Dossier {ecart.dossier.reference} — {ecart.dossier.chantier}
-            </Link>
-          ) : (
-            <p className="text-sm text-slate-400">Rattaché à aucun dossier</p>
-          )}
-          <div data-no-print className="mt-1">
-            <ChangerRattachement
-              action={changerRattachementEcart}
-              hiddenFields={{ id: ecart.id }}
-              types={[
-                {
-                  cle: "dossier",
-                  libelle: "Dossier",
-                  champ: "dossierId",
-                  valeurActuelle: ecart.dossierId,
-                  options: dossiersChoix.map((d) => ({
-                    id: d.id,
-                    libelle: `${d.reference} — ${d.chantier}`,
-                  })),
-                },
-              ]}
-            />
-          </div>
-          {/* Plusieurs remontées peuvent viser le même écart : celle qui lui a
-              donné naissance, et celles qu'on y rattache ensuite. Le libellé
-              distingue les deux cas. */}
-          {ecart.remontees.map((r) => (
-            <Link
-              key={r.id}
-              href={`/remontees/${r.id}`}
-              className="block text-sm text-purple-700 hover:underline"
-            >
-              {idsRemonteesOrigine.has(r.id) ? "Issu de la remontée" : "Remontée rattachée"}{" "}
-              {r.reference} — {r.objet}
-            </Link>
-          ))}
-        </div>
-        <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
-          <BoutonExportPDF />
-          <Link
-            href={`/fiches-sse/nouveau?ecartId=${ecart.id}`}
-            className="whitespace-nowrap rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            + Évènement SSE
-          </Link>
-          <Link
-            href={`/plan-action/nouveau?ecartId=${ecart.id}`}
-            className="whitespace-nowrap rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            + Action
-          </Link>
-          {ecart.rex.length === 0 && (
-            <Link
-              href={`/rex/nouveau?ecartId=${ecart.id}`}
-              className="whitespace-nowrap rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              + REX
-            </Link>
-          )}
-          <BoutonArchiver
-            action={ecart.archiveLe ? desarchiver : archiver}
-            entite="ecart"
-            id={ecart.id}
-            archive={!!ecart.archiveLe}
-          />
-          <BoutonSupprimer
-            action={supprimerEcart}
-            hiddenFields={{ id: ecart.id }}
-            message={`Supprimer cet écart supprimera aussi ${impact.fiches} évènement(s) SSE et ${impact.actions} action(s) lié(s). Cette action est irréversible. Continuer ?`}
-          />
-        </div>
-      </div>
-
-      <div data-no-print className="mb-8 rounded-lg border border-slate-200 bg-white p-4">
-        <StatutSelectForm
-          action={mettreAJourStatutEcart}
-          hiddenName="id"
-          hiddenValue={ecart.id}
-          selectName="statut"
-          defaultValue={ecart.statut}
-          options={Object.values(StatutDossierEcart)
-            .filter((s) => s !== "A_QUALIFIER")
-            .map((s) => ({
-            value: s,
-            label: STATUT_DOSSIER_ECART_LABELS[s],
-          }))}
-        />
-      </div>
-
-      <div className="mb-8">
-        <FormulaireEditable
-          action={mettreAJourEcart}
-          hiddenFields={{ id: ecart.id }}
-          modifiePar={ecart.modifiePar}
-          modifieLe={ecart.modifieLe}
-        >
-          <EcartFields v={ecart} />
-        </FormulaireEditable>
-      </div>
-
-      <div className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">
-          Évènements SSE ({ecart.fichesSSE.length})
-        </h2>
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Référence</th>
-                <th className="px-4 py-3 font-medium">Émetteur</th>
-                <th className="px-4 py-3 font-medium">Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ecart.fichesSSE.map((f) => (
-                <tr key={f.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                  <td className="px-4 py-3">
-                    <Link href={`/fiches-sse/${f.id}`} className="font-medium text-blue-700 hover:underline">
-                      {f.reference}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-slate-700">{f.emetteur || "—"}</td>
-                  <td className="px-4 py-3">
-                    <Badge label={STATUT_FICHE_LABELS[f.statutFiche]} colorClass={STATUT_FICHE_COLORS[f.statutFiche]} />
-                  </td>
-                </tr>
-              ))}
-              {ecart.fichesSSE.length === 0 && (
-                <tr>
-                  <td colSpan={3} className="px-4 py-6 text-center text-slate-400">
-                    Aucun évènement SSE.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div>
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">
-          Plan d&apos;action ({ecart.actions.length})
-        </h2>
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Référence</th>
-                <th className="px-4 py-3 font-medium">Type</th>
-                <th className="px-4 py-3 font-medium">Action</th>
-                <th className="px-4 py-3 font-medium">Responsable</th>
-                <th className="px-4 py-3 font-medium">Échéance</th>
-                <th className="px-4 py-3 font-medium">Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ecart.actions.map((a) => (
-                <tr key={a.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                  <td className="px-4 py-3">
-                    <Link href={`/plan-action/${a.id}`} className="font-medium text-blue-700 hover:underline">
-                      {a.reference}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-slate-700">{TYPE_ACTION_LABELS[a.type]}</td>
-                  <td className="max-w-xs truncate px-4 py-3 text-slate-700">{a.action}</td>
-                  <td className="px-4 py-3 text-slate-700">{a.responsable}</td>
-                  <td className="px-4 py-3 text-slate-500">
-                    {a.echeance ? a.echeance.toLocaleDateString("fr-FR") : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge label={STATUT_ACTION_LABELS[a.statut]} colorClass={STATUT_ACTION_COLORS[a.statut]} />
-                  </td>
-                </tr>
-              ))}
-              {ecart.actions.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
-                    Aucune action.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="mt-8">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Retour d&apos;expérience</h2>
-        {ecart.rex.length === 0 ? (
-          <p className="rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-400">
-            Aucun REX pour cet écart.
+          <p className="text-sm text-muted-foreground">
+            Détecté le {ecart.dateDetection.toLocaleDateString("fr-FR")}
+            {ecart.declarant ? ` par ${ecart.declarant}` : ""}
+            {ecart.dossier && (
+              <>
+                {" · "}
+                <Link href={`/dossiers/${ecart.dossier.id}`} className="underline-offset-4 hover:text-foreground hover:underline">
+                  Dossier {ecart.dossier.reference} — {ecart.dossier.chantier}
+                </Link>
+              </>
+            )}
           </p>
-        ) : (
-          <div className="flex flex-wrap gap-3">
-            {ecart.rex.map((r) => (
-              <Link
-                key={r.id}
-                href={`/rex/${r.id}`}
-                className="flex min-w-[220px] items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 hover:bg-slate-50"
-              >
-                <div>
-                  <p className="text-sm font-medium text-blue-700">{r.reference}</p>
-                  <p className="text-xs text-slate-500">{r.titre}</p>
+          <StatutParcours action={mettreAJourStatutEcart} id={ecart.id} etapes={ETAPES} courant={ecart.statut} />
+        </div>
+
+        <div data-no-print className="flex items-center gap-2">
+          <EditionPanneau
+            titre={`Modifier ${ecart.reference}`}
+            description="Les changements sont enregistrés pour tous."
+            action={mettreAJourEcart}
+            hiddenFields={{ id: ecart.id }}
+          >
+            <EcartFields v={ecart} />
+          </EditionPanneau>
+          <Link href={`/plan-action/nouveau?ecartId=${ecart.id}`} className={buttonVariants({ size: "lg" })}>
+            <PlusIcon /> Action
+          </Link>
+        </div>
+      </header>
+
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="space-y-8">
+          <FicheSection titre="Constat">
+            <Carte className="space-y-5 p-5">
+              <TexteLong label="Description" valeur={ecart.description} />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <TexteLong label="Mesure immédiate" valeur={ecart.mesureImmediate} />
+                <TexteLong label="Cause" valeur={ecart.cause} />
+              </div>
+              {(ecart.natures.length > 0 || ecart.domaines.length > 0 || ecart.theme.length > 0) && (
+                <div className="space-y-4 border-t pt-5">
+                  <Pastilles label="Nature" valeurs={ecart.natures} />
+                  <Pastilles label="Domaine" valeurs={ecart.domaines} />
+                  <Pastilles label="Thème" valeurs={ecart.theme} />
                 </div>
-                <Badge label={STATUT_REX_LABELS[r.statut]} colorClass={STATUT_REX_COLORS[r.statut]} />
+              )}
+            </Carte>
+          </FicheSection>
+
+          <FicheSection
+            titre="Évènements SSE"
+            compteur={ecart.fichesSSE.length}
+            action={
+              <Link href={`/fiches-sse/nouveau?ecartId=${ecart.id}`} className={lienAjout} data-no-print>
+                <PlusIcon /> Évènement
               </Link>
+            }
+          >
+            {ecart.fichesSSE.length === 0 ? (
+              <EtatVide>Aucun évènement SSE n’est lié à cet écart.</EtatVide>
+            ) : (
+              <Carte className="overflow-hidden">
+                <Table>
+                  <TableBody>
+                    {ecart.fichesSSE.map((f) => (
+                      <TableRow key={f.id}>
+                        <TableCell>
+                          <Link href={`/fiches-sse/${f.id}`} className="font-medium underline-offset-4 hover:underline">
+                            {f.reference}
+                          </Link>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{f.emetteur || "—"}</TableCell>
+                        <TableCell className="text-right">
+                          <BadgeStatut label={STATUT_FICHE_LABELS[f.statutFiche]} ton={TON_FICHE[f.statutFiche]} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Carte>
+            )}
+          </FicheSection>
+
+          <FicheSection
+            titre="Plan d’action"
+            compteur={ecart.actions.length}
+            action={
+              <Link href={`/plan-action/nouveau?ecartId=${ecart.id}`} className={lienAjout} data-no-print>
+                <PlusIcon /> Action
+              </Link>
+            }
+          >
+            {ecart.actions.length === 0 ? (
+              <EtatVide>Aucune action n’a encore été définie pour cet écart.</EtatVide>
+            ) : (
+              <Carte className="overflow-hidden">
+                <Table>
+                  <TableBody>
+                    {ecart.actions.map((a) => (
+                      <TableRow key={a.id}>
+                        <TableCell className="whitespace-nowrap">
+                          <Link href={`/plan-action/${a.id}`} className="font-medium underline-offset-4 hover:underline">
+                            {a.reference}
+                          </Link>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">{TYPE_ACTION_LABELS[a.type]}</span>
+                        </TableCell>
+                        <TableCell className="max-w-sm whitespace-normal">{a.action}</TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">
+                          {a.responsable}
+                          <span className="mt-0.5 block text-xs tabular-nums">
+                            {a.echeance ? `avant le ${a.echeance.toLocaleDateString("fr-FR")}` : "sans échéance"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <BadgeStatut label={STATUT_ACTION_LABELS[a.statut]} ton={TON_ACTION[a.statut]} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Carte>
+            )}
+          </FicheSection>
+
+          <FicheSection
+            titre="Retour d’expérience"
+            compteur={ecart.rex.length}
+            action={
+              ecart.rex.length === 0 ? (
+                <Link href={`/rex/nouveau?ecartId=${ecart.id}`} className={lienAjout} data-no-print>
+                  <PlusIcon /> REX
+                </Link>
+              ) : undefined
+            }
+          >
+            {ecart.rex.length === 0 ? (
+              <EtatVide>Aucun REX pour cet écart.</EtatVide>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {ecart.rex.map((r) => (
+                  <Link key={r.id} href={`/rex/${r.id}`} className="rounded-xl border bg-card p-4 transition-colors hover:bg-muted/50">
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium">{r.reference}</span>
+                      <BadgeStatut label={STATUT_REX_LABELS[r.statut]} ton="violet" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">{r.titre}</p>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </FicheSection>
+        </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
+          <Carte className="grid grid-cols-3 divide-x text-center">
+            {[
+              { label: "Gravité", valeur: ecart.gravite },
+              { label: "Fréquence", valeur: ecart.frequence },
+            ].map((m) => (
+              <div key={m.label} className="px-2 py-4">
+                <p className="text-2xl font-semibold tabular-nums">{m.valeur || "—"}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{m.label}</p>
+              </div>
             ))}
+            <div className="flex flex-col items-center justify-center gap-1.5 px-2 py-4">
+              {ecart.criticite ? (
+                <BadgeStatut label={ecart.criticite} ton={TON_CRITICITE[ecart.criticite] ?? "neutre"} />
+              ) : (
+                <span className="text-2xl font-semibold">—</span>
+              )}
+              <p className="text-xs text-muted-foreground">Criticité</p>
+            </div>
+          </Carte>
+
+          <Carte>
+            <Proprietes>
+              <Propriete label="Origine">{ORIGINE_LABELS[ecart.origine]}</Propriete>
+              <Propriete label="Type d’activité">
+                {ecart.typeActivite ? TYPE_ACTIVITE_LABELS[ecart.typeActivite] : "—"}
+              </Propriete>
+              <Propriete label="Déclarant">{ecart.declarant || "—"}</Propriete>
+              <Propriete label="Détecté le">{ecart.dateDetection.toLocaleDateString("fr-FR")}</Propriete>
+              <Propriete label="Dossier">
+                {ecart.dossier ? (
+                  <Link href={`/dossiers/${ecart.dossier.id}`} className="underline-offset-4 hover:underline">
+                    {ecart.dossier.reference}
+                  </Link>
+                ) : (
+                  "Aucun"
+                )}
+              </Propriete>
+              {ecart.remontees.length > 0 && (
+                <Propriete label="Remontées">
+                  <span className="flex flex-col items-end gap-0.5">
+                    {ecart.remontees.map((r) => (
+                      <Link
+                        key={r.id}
+                        href={`/remontees/${r.id}`}
+                        title={`${idsRemonteesOrigine.has(r.id) ? "Origine" : "Rattachée"} — ${r.objet}`}
+                        className="underline-offset-4 hover:underline"
+                      >
+                        {r.reference}
+                        {idsRemonteesOrigine.has(r.id) && <span className="ml-1 text-xs font-normal text-muted-foreground">origine</span>}
+                      </Link>
+                    ))}
+                  </span>
+                </Propriete>
+              )}
+            </Proprietes>
+            <div data-no-print className="border-t px-4 py-2.5">
+              <ChangerRattachement
+                action={changerRattachementEcart}
+                hiddenFields={{ id: ecart.id }}
+                types={[
+                  {
+                    cle: "dossier",
+                    libelle: "Dossier",
+                    champ: "dossierId",
+                    valeurActuelle: ecart.dossierId,
+                    options: dossiersChoix.map((d) => ({
+                      id: d.id,
+                      libelle: `${d.reference} — ${d.chantier}`,
+                    })),
+                  },
+                ]}
+              />
+            </div>
+          </Carte>
+
+          <p className="px-1 text-xs text-muted-foreground">
+            Créé le {ecart.createdAt.toLocaleDateString("fr-FR")}
+            {ecart.modifieLe &&
+              ` · modifié le ${ecart.modifieLe.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}${
+                ecart.modifiePar ? ` par ${ecart.modifiePar}` : ""
+              }`}
+          </p>
+
+          <div data-no-print className="flex flex-col gap-2 pt-2">
+            <BoutonExportPDF />
+            <BoutonArchiver
+              action={ecart.archiveLe ? desarchiver : archiver}
+              entite="ecart"
+              id={ecart.id}
+              archive={!!ecart.archiveLe}
+            />
+            <BoutonSupprimer
+              action={supprimerEcart}
+              hiddenFields={{ id: ecart.id }}
+              message={`Supprimer cet écart supprimera aussi ${impact.fiches} évènement(s) SSE et ${impact.actions} action(s) lié(s). Cette action est irréversible. Continuer ?`}
+            />
           </div>
-        )}
+        </aside>
       </div>
     </div>
   );
