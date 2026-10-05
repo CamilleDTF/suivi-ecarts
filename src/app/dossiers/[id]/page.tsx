@@ -11,9 +11,10 @@ import { DossierFields } from "@/components/dossier-fields";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonArchiver } from "@/components/bouton-archiver";
 import { archiver, desarchiver } from "@/app/archivage/actions";
-import { BoutonRetour } from "@/components/bouton-retour";
 import { IconFileText } from "@/components/icons";
 import { compterImpactSuppressionDossier } from "@/lib/suppression";
+import { DossiersListePane, type DossiersListeSearchParams } from "@/components/dossiers-liste-pane";
+import { SplitView, RetourListe } from "@/components/split-view";
 
 // Le navigateur nomme le PDF d’après le titre du document : sans titre
 // propre à la fiche, tous les exports s’enregistreraient sous le même nom.
@@ -25,10 +26,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function DossierDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<DossiersListeSearchParams>;
 }) {
   const { id } = await params;
+  const resolvedSearchParams = await searchParams;
   const dossier = await prisma.dossier.findUnique({
     where: { id },
     include: {
@@ -44,8 +48,9 @@ export default async function DossierDetailPage({
   const impact = await compterImpactSuppressionDossier(dossier.id);
 
   return (
-    <div className="mx-auto max-w-[100rem] px-6 py-8">
-      <BoutonRetour href="/dossiers" label="Retour aux dossiers" />
+    <SplitView liste={<DossiersListePane searchParams={resolvedSearchParams} selectedId={dossier.id} />} detailOuvert>
+      <div className="max-w-[100rem] px-6 py-8">
+      <RetourListe href="/dossiers" label="Dossiers" />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
@@ -166,6 +171,7 @@ export default async function DossierDetailPage({
           </tbody>
         </table>
       </div>
-    </div>
+      </div>
+    </SplitView>
   );
 }

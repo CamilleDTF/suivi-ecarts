@@ -5,13 +5,16 @@ import { ArbreCausesEditeur } from "@/components/arbre-causes-editeur";
 import { AvertissementNonEnregistre } from "@/components/avertissement-non-enregistre";
 import { calculerCriticite, CRITICITE_VERS_TYPE_ANALYSE } from "@/lib/labels";
 import { BoutonCreer } from "@/components/bouton-creer";
+import { FichesSSEListePane, type FichesSSEListeSearchParams } from "@/components/fiches-sse-liste-pane";
+import { SplitView, RetourListe } from "@/components/split-view";
 
 export default async function NouvelleFicheSSEPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ecartId?: string }>;
+  searchParams: Promise<FichesSSEListeSearchParams & { ecartId?: string }>;
 }) {
-  const { ecartId } = await searchParams;
+  const resolvedSearchParams = await searchParams;
+  const { ecartId } = resolvedSearchParams;
   const ecart = ecartId
     ? await prisma.ecart.findUnique({
         where: { id: ecartId },
@@ -35,7 +38,9 @@ export default async function NouvelleFicheSSEPage({
   const criticiteHeritee = calculerCriticite(ecart?.gravite ?? "", ecart?.frequence ?? "");
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <SplitView liste={<FichesSSEListePane searchParams={resolvedSearchParams} />} detailOuvert>
+      <div className="max-w-3xl px-6 py-8">
+      <RetourListe href="/fiches-sse" label="Évènements SSE" />
       <h1 className="mb-1 text-2xl font-semibold text-slate-900">Nouvel évènement SSE</h1>
       {ecart && (
         <p className="mb-6 text-sm text-slate-500">
@@ -76,6 +81,7 @@ export default async function NouvelleFicheSSEPage({
           <BoutonCreer>Enregistrer le brouillon</BoutonCreer>
         </div>
       </form>
-    </div>
+      </div>
+    </SplitView>
   );
 }

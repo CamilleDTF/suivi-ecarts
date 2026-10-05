@@ -6,6 +6,10 @@ import { Pagination } from "@/components/pagination";
 /** Classe à passer aux SelectAutoSubmit placés dans `filtres` : deux par ligne. */
 export const CLASSE_FILTRE_PANE = "w-full rounded-md border border-slate-300 px-2 py-1.5 text-xs";
 
+/** Style des boutons secondaires de l'en-tête (export…) passés dans `actions`. */
+export const CLASSE_ACTION_PANE =
+  "rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50";
+
 export type LigneListe = {
   id: string;
   reference: string;
@@ -28,6 +32,7 @@ export function ListePane({
   titre,
   basePath,
   nouveau,
+  actions,
   recherche,
   filtres,
   filtreActif,
@@ -42,6 +47,8 @@ export function ListePane({
   titre: string;
   basePath: string;
   nouveau: { href: string; label: string };
+  /** Boutons secondaires (export…), à gauche du bouton de création. */
+  actions?: ReactNode;
   recherche: { valeur?: string; placeholder: string };
   /** SelectAutoSubmit (avec CLASSE_FILTRE_PANE) : ils s'envoient au changement. */
   filtres?: ReactNode;
@@ -64,16 +71,19 @@ export function ListePane({
   return (
     <div
       className="flex flex-col overflow-hidden border-r border-slate-200 bg-white"
-      style={{ maxHeight: "calc(100vh - 4rem)" }}
+      style={{ height: "calc(100vh - 4rem)" }}
     >
       <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
         <h2 className="text-base font-semibold text-slate-900">{titre}</h2>
-        <Link
-          href={nouveau.href}
-          className="rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-        >
-          {nouveau.label}
-        </Link>
+        <div className="flex items-center gap-2">
+          {actions}
+          <Link
+            href={nouveau.href}
+            className="rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
+          >
+            {nouveau.label}
+          </Link>
+        </div>
       </div>
 
       <form method="get" action={basePath} className="flex flex-col gap-2 border-b border-slate-100 px-4 py-3">
@@ -84,6 +94,10 @@ export function ListePane({
           placeholder={recherche.placeholder}
           className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm"
         />
+        {/* Ni la taille de page ni la vue archives ne sont des champs du
+            formulaire : sans eux, filtrer les remettrait à zéro. */}
+        {paramsConserves.taille && <input type="hidden" name="taille" value={paramsConserves.taille} />}
+        {archives === "1" && <input type="hidden" name="archives" value="1" />}
         {filtres && <div className="grid grid-cols-2 gap-2">{filtres}</div>}
         <div className="flex items-center justify-between">
           {filtreActif ? (

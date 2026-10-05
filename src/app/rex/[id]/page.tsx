@@ -25,8 +25,9 @@ import { RexFields } from "@/components/rex-fields";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonArchiver } from "@/components/bouton-archiver";
 import { archiver, desarchiver } from "@/app/archivage/actions";
-import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
+import { RexListePane, type RexListeSearchParams } from "@/components/rex-liste-pane";
+import { SplitView, RetourListe } from "@/components/split-view";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -34,8 +35,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: rex ? `REX ${rex.reference}` : "REX" };
 }
 
-export default async function RexDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function RexDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<RexListeSearchParams>;
+}) {
   const { id } = await params;
+  const resolvedSearchParams = await searchParams;
   const rex = await prisma.rex.findUnique({
     where: { id },
     include: {
@@ -55,8 +63,9 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
   if (!rex) notFound();
 
   return (
-    <div className="mx-auto max-w-[100rem] px-6 py-8">
-      <BoutonRetour href="/rex" label="Retour aux REX" />
+    <SplitView liste={<RexListePane searchParams={resolvedSearchParams} selectedId={rex.id} />} detailOuvert>
+    <div className="max-w-[100rem] px-6 py-8">
+      <RetourListe href="/rex" label="REX" />
 
       <div className="mb-6 flex items-start justify-between">
         <div>
@@ -257,5 +266,6 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
     </div>
+    </SplitView>
   );
 }

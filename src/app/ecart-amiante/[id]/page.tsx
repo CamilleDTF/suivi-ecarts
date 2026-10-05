@@ -24,9 +24,10 @@ import { FormulaireEditable } from "@/components/formulaire-editable";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonArchiver } from "@/components/bouton-archiver";
 import { archiver, desarchiver } from "@/app/archivage/actions";
-import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { compterImpactSuppressionEcartAmiante } from "@/lib/suppression";
+import { EcartAmianteListePane, type EcartAmianteListeSearchParams } from "@/components/ecart-amiante-liste-pane";
+import { SplitView, RetourListe } from "@/components/split-view";
 
 // Le navigateur nomme le PDF d’après le titre du document : sans titre
 // propre à la fiche, tous les exports s’enregistreraient sous le même nom.
@@ -38,10 +39,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function EcartAmianteDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<EcartAmianteListeSearchParams>;
 }) {
   const { id } = await params;
+  const resolvedSearchParams = await searchParams;
   const ecartAmiante = await prisma.ecartAmiante.findUnique({
     where: { id },
     include: {
@@ -55,8 +59,12 @@ export default async function EcartAmianteDetailPage({
   const impact = await compterImpactSuppressionEcartAmiante(ecartAmiante.id);
 
   return (
-    <div className="mx-auto max-w-[100rem] px-6 py-8">
-      <BoutonRetour href="/ecart-amiante" label="Retour aux écarts amiante" />
+    <SplitView
+      liste={<EcartAmianteListePane searchParams={resolvedSearchParams} selectedId={ecartAmiante.id} />}
+      detailOuvert
+    >
+      <div className="max-w-[100rem] px-6 py-8">
+      <RetourListe href="/ecart-amiante" label="Écart amiante" />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
@@ -187,6 +195,7 @@ export default async function EcartAmianteDetailPage({
           </table>
         </div>
       </div>
-    </div>
+      </div>
+    </SplitView>
   );
 }
