@@ -1,23 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import { RexWizard } from "@/components/rex-wizard";
-import { RexListePane, type RexListeSearchParams } from "@/components/rex-liste-pane";
-import { SplitView } from "@/components/split-view";
 import { libelleRattachement } from "@/lib/labels";
 
 export default async function NouveauRexPage({
   searchParams,
 }: {
-  searchParams: Promise<
-    RexListeSearchParams & {
-      ecartId?: string;
-      ficheSSEId?: string;
-      ecartAmianteId?: string;
-      remonteeId?: string;
-    }
-  >;
+  searchParams: Promise<{
+    ecartId?: string;
+    ficheSSEId?: string;
+    ecartAmianteId?: string;
+    remonteeId?: string;
+  }>;
 }) {
-  const resolvedSearchParams = await searchParams;
-  const { ecartId, ficheSSEId, ecartAmianteId, remonteeId } = resolvedSearchParams;
+  const { ecartId, ficheSSEId, ecartAmianteId, remonteeId } = await searchParams;
 
   const [fiche, ecartAmiante, remontee] = await Promise.all([
     ficheSSEId ? prisma.ficheSSE.findUnique({ where: { id: ficheSSEId } }) : null,
@@ -67,38 +62,36 @@ export default async function NouveauRexPage({
       ]);
 
   return (
-    <SplitView liste={<RexListePane searchParams={resolvedSearchParams} />} detailOuvert>
-      <RexWizard
-        parentImpose={parentImpose}
-        ecarts={ecarts.map((e) => ({
-          id: e.id,
-          reference: e.reference,
-          libelle: e.description?.trim().replace(/\s+/g, " ")?.slice(0, 90) ?? "—",
-          date: e.dateDetection.toISOString(),
-          chantier: e.dossier?.chantier ?? null,
-        }))}
-        evenements={evenements.map((e) => ({
-          id: e.id,
-          reference: e.reference,
-          libelle: libelleRattachement(e.reference, e.nomChantier, e.descriptionFactuelle),
-          date: null,
-          chantier: e.nomChantier ?? null,
-        }))}
-        amiantes={amiantes.map((e) => ({
-          id: e.id,
-          reference: e.reference,
-          libelle: libelleRattachement(e.reference, e.nomChantier, e.description),
-          date: null,
-          chantier: e.nomChantier ?? null,
-        }))}
-        remontees={remontees.map((r) => ({
-          id: r.id,
-          reference: r.reference,
-          libelle: libelleRattachement(r.reference, r.chantierService, r.objet),
-          date: null,
-          chantier: r.chantierService ?? null,
-        }))}
-      />
-    </SplitView>
+    <RexWizard
+      parentImpose={parentImpose}
+      ecarts={ecarts.map((e) => ({
+        id: e.id,
+        reference: e.reference,
+        libelle: e.description?.trim().replace(/\s+/g, " ")?.slice(0, 90) ?? "—",
+        date: e.dateDetection.toISOString(),
+        chantier: e.dossier?.chantier ?? null,
+      }))}
+      evenements={evenements.map((e) => ({
+        id: e.id,
+        reference: e.reference,
+        libelle: libelleRattachement(e.reference, e.nomChantier, e.descriptionFactuelle),
+        date: null,
+        chantier: e.nomChantier ?? null,
+      }))}
+      amiantes={amiantes.map((e) => ({
+        id: e.id,
+        reference: e.reference,
+        libelle: libelleRattachement(e.reference, e.nomChantier, e.description),
+        date: null,
+        chantier: e.nomChantier ?? null,
+      }))}
+      remontees={remontees.map((r) => ({
+        id: r.id,
+        reference: r.reference,
+        libelle: libelleRattachement(r.reference, r.chantierService, r.objet),
+        date: null,
+        chantier: r.chantierService ?? null,
+      }))}
+    />
   );
 }

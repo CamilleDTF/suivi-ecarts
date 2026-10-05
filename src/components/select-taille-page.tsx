@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { TAILLES_PAGE } from "@/lib/pagination";
 
-export function SelectTaillePage({ taille, basePath }: { taille: number; basePath?: string }) {
+export function SelectTaillePage({ taille }: { taille: number }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -13,10 +13,7 @@ export function SelectTaillePage({ taille, basePath }: { taille: number; basePat
     // Le nombre de pages change : on revient au début pour ne pas atterrir sur
     // une page qui n'existe plus.
     params.delete("page");
-    // Depuis un panneau liste+détail, l'URL courante peut être celle d'un
-    // détail (/ecarts/xyz) : sans basePath, le changement s'appliquerait à
-    // cette page-là plutôt qu'à la liste.
-    router.push(`${basePath ?? ""}?${params.toString()}`);
+    router.push(`?${params.toString()}`);
   }
 
   return (

@@ -5,24 +5,19 @@ import { TypeAction } from "@/generated/prisma/enums";
 import { BoutonCreer } from "@/components/bouton-creer";
 import { ChoixRattachementAction } from "@/components/choix-rattachement-action";
 import { libelleRattachement } from "@/lib/labels";
-import { PlanActionListePane, type PlanActionListeSearchParams } from "@/components/plan-action-liste-pane";
-import { SplitView, RetourListe } from "@/components/split-view";
 
 export default async function NouvelleActionPage({
   searchParams,
 }: {
-  searchParams: Promise<
-    PlanActionListeSearchParams & {
-      ecartId?: string;
-      ficheSSEId?: string;
-      ecartAmianteId?: string;
-      remonteeId?: string;
-      rexId?: string;
-    }
-  >;
+  searchParams: Promise<{
+    ecartId?: string;
+    ficheSSEId?: string;
+    ecartAmianteId?: string;
+    remonteeId?: string;
+    rexId?: string;
+  }>;
 }) {
-  const resolvedSearchParams = await searchParams;
-  const { ecartId, ficheSSEId, ecartAmianteId, remonteeId, rexId } = resolvedSearchParams;
+  const { ecartId, ficheSSEId, ecartAmianteId, remonteeId, rexId } = await searchParams;
 
   const fiche = ficheSSEId
     ? await prisma.ficheSSE.findUnique({ where: { id: ficheSSEId } })
@@ -68,9 +63,7 @@ export default async function NouvelleActionPage({
       ]);
 
   return (
-    <SplitView liste={<PlanActionListePane searchParams={resolvedSearchParams} />} detailOuvert>
-      <div className="max-w-2xl px-6 py-8">
-      <RetourListe href="/plan-action" label="Plan d'action" />
+    <div className="mx-auto max-w-2xl px-6 py-8">
       <h1 className="mb-6 text-2xl font-semibold text-slate-900">Nouvelle action</h1>
 
       <form action={creerAction} className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
@@ -225,6 +218,5 @@ export default async function NouvelleActionPage({
         </div>
       </form>
     </div>
-    </SplitView>
   );
 }

@@ -19,8 +19,6 @@ import { BoutonArchiver } from "@/components/bouton-archiver";
 import { archiver, desarchiver } from "@/app/archivage/actions";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
-import { PlanActionListePane, type PlanActionListeSearchParams } from "@/components/plan-action-liste-pane";
-import { SplitView, RetourListe } from "@/components/split-view";
 
 // Le navigateur nomme le PDF d’après le titre du document : sans titre
 // propre à la fiche, tous les exports s’enregistreraient sous le même nom.
@@ -32,14 +30,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function ActionDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<PlanActionListeSearchParams>;
 }) {
   const { id } = await params;
-  const resolvedSearchParams = await searchParams;
-  const action =await prisma.action.findUnique({
+  const action = await prisma.action.findUnique({
     where: { id },
     // Chantier seulement, jamais `enregistrement` (photo/PDF en data URL).
     include: {
@@ -104,10 +99,8 @@ export default async function ActionDetailPage({
           : "Retour au plan d'action";
 
   return (
-    <SplitView liste={<PlanActionListePane searchParams={resolvedSearchParams} selectedId={action.id} />} detailOuvert>
-      <div className="max-w-[100rem] px-6 py-8">
-      <RetourListe href="/plan-action" label="Plan d'action" />
-      {retourHref !== "/plan-action" && <BoutonRetour href={retourHref} label={retourLabel} />}
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
+      <BoutonRetour href={retourHref} label={retourLabel} />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
@@ -242,6 +235,5 @@ export default async function ActionDetailPage({
         <ActionFields v={action} />
       </FormulaireEditable>
     </div>
-    </SplitView>
   );
 }

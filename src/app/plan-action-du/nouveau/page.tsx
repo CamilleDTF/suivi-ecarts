@@ -2,15 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { creerActionDU } from "@/app/plan-action-du/actions";
 import { ActionDUFields } from "@/components/action-du-fields";
 import { BoutonCreer } from "@/components/bouton-creer";
-import { PlanActionDUListePane, type PlanActionDUListeSearchParams } from "@/components/plan-action-du-liste-pane";
-import { SplitView, RetourListe } from "@/components/split-view";
 
-export default async function NouvelleActionDUPage({
-  searchParams,
-}: {
-  searchParams: Promise<PlanActionDUListeSearchParams>;
-}) {
-  const resolvedSearchParams = await searchParams;
+export default async function NouvelleActionDUPage() {
   // Les responsables déjà saisis complètent les suggestions : le DU nomme des
   // fonctions qui varient d'une entreprise à l'autre.
   const responsables = await prisma.actionDU.findMany({
@@ -21,9 +14,7 @@ export default async function NouvelleActionDUPage({
   });
 
   return (
-    <SplitView liste={<PlanActionDUListePane searchParams={resolvedSearchParams} />} detailOuvert>
-      <div className="max-w-2xl px-6 py-8">
-      <RetourListe href="/plan-action-du" label="Plan d'action DU" />
+    <div className="mx-auto max-w-2xl px-6 py-8">
       <h1 className="mb-1 text-2xl font-semibold text-slate-900">Nouvelle action du DU</h1>
       <p className="mb-6 text-sm text-slate-500">
         Le numéro PA est attribué automatiquement, à la suite du dernier.
@@ -35,7 +26,6 @@ export default async function NouvelleActionDUPage({
           <BoutonCreer>Créer l&apos;action</BoutonCreer>
         </div>
       </form>
-      </div>
-    </SplitView>
+    </div>
   );
 }

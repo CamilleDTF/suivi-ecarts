@@ -25,11 +25,10 @@ import { FormulaireEditable } from "@/components/formulaire-editable";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonArchiver } from "@/components/bouton-archiver";
 import { archiver, desarchiver } from "@/app/archivage/actions";
+import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { compterImpactSuppressionEcart } from "@/lib/suppression";
 import { STATUT_REX_COLORS, STATUT_REX_LABELS } from "@/lib/labels";
-import { EcartsListePane, type EcartsListeSearchParams } from "@/components/ecarts-liste-pane";
-import { SplitView, RetourListe } from "@/components/split-view";
 
 // Le navigateur nomme le PDF d’après le titre du document : sans titre
 // propre à la fiche, tous les exports s’enregistreraient sous le même nom.
@@ -41,13 +40,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function EcartDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<EcartsListeSearchParams>;
 }) {
   const { id } = await params;
-  const resolvedSearchParams = await searchParams;
   const ecart = await prisma.ecart.findUnique({
     where: { id },
     include: {
@@ -79,14 +75,11 @@ export default async function EcartDetailPage({
   });
 
   return (
-    <SplitView liste={<EcartsListePane searchParams={resolvedSearchParams} selectedId={ecart.id} />} detailOuvert>
-      <div className="max-w-[100rem] px-6 py-8">
-      <RetourListe href="/ecarts" label="Écarts" />
-      {ecart.dossier && (
-        <Link href={`/dossiers/${ecart.dossier.id}`} className="mb-4 inline-block text-sm text-slate-500 hover:underline">
-          ← Dossier {ecart.dossier.reference} — {ecart.dossier.chantier}
-        </Link>
-      )}
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
+      <BoutonRetour
+        href={ecart.dossier ? `/dossiers/${ecart.dossier.id}` : "/ecarts"}
+        label={ecart.dossier ? "Retour au dossier" : "Retour aux écarts"}
+      />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
@@ -96,6 +89,13 @@ export default async function EcartDetailPage({
               colorClass={STATUT_DOSSIER_ECART_COLORS[ecart.statut]}
             />
           </div>
+          {ecart.dossier ? (
+            <Link href={`/dossiers/${ecart.dossier.id}`} className="block text-sm text-slate-500 hover:underline">
+              Dossier {ecart.dossier.reference} — {ecart.dossier.chantier}
+            </Link>
+          ) : (
+            <p className="text-sm text-slate-400">Rattaché à aucun dossier</p>
+          )}
           <div data-no-print className="mt-1">
             <ChangerRattachement
               action={changerRattachementEcart}
@@ -301,7 +301,6 @@ export default async function EcartDetailPage({
           </div>
         )}
       </div>
-      </div>
-    </SplitView>
+    </div>
   );
 }

@@ -4,21 +4,12 @@ import { Origine } from "@/generated/prisma/enums";
 import { BoutonCreer } from "@/components/bouton-creer";
 import { ChampFichier } from "@/components/champ-fichier";
 import { ZoneTraitement } from "@/components/formulaire-editable";
-import { DossiersListePane, type DossiersListeSearchParams } from "@/components/dossiers-liste-pane";
-import { SplitView, RetourListe } from "@/components/split-view";
 
-export default async function NouveauDossierPage({
-  searchParams,
-}: {
-  searchParams: Promise<DossiersListeSearchParams>;
-}) {
-  const resolvedSearchParams = await searchParams;
+export default function NouveauDossierPage() {
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <SplitView liste={<DossiersListePane searchParams={resolvedSearchParams} />} detailOuvert>
-      <div className="max-w-2xl px-6 py-8">
-      <RetourListe href="/dossiers" label="Dossiers" />
+    <div className="mx-auto max-w-2xl px-6 py-8">
       <h1 className="mb-6 text-2xl font-semibold text-slate-900">Nouveau dossier</h1>
 
       <form action={creerDossier} className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
@@ -86,7 +77,6 @@ export default async function NouveauDossierPage({
           </div>
         </ZoneTraitement>
       </form>
-      </div>
-    </SplitView>
+    </div>
   );
 }

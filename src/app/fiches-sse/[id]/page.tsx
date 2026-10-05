@@ -27,8 +27,6 @@ import { BoutonArchiver } from "@/components/bouton-archiver";
 import { archiver, desarchiver } from "@/app/archivage/actions";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
-import { FichesSSEListePane, type FichesSSEListeSearchParams } from "@/components/fiches-sse-liste-pane";
-import { SplitView, RetourListe } from "@/components/split-view";
 
 // Le navigateur nomme le PDF d’après le titre du document : sans titre
 // propre à la fiche, tous les exports s’enregistreraient sous le même nom.
@@ -40,13 +38,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function FicheSSEDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<FichesSSEListeSearchParams>;
 }) {
   const { id } = await params;
-  const resolvedSearchParams = await searchParams;
   const fiche = await prisma.ficheSSE.findUnique({
     where: { id },
     include: {
@@ -97,22 +92,16 @@ export default async function FicheSSEDetailPage({
     }),
   ]);
 
-  // Le retour à la liste est assuré par RetourListe : ne reste ici que le
-  // lien vers l'écart parent, quand il existe.
-  const retourParent = fiche.ecart
-    ? { href: `/ecarts/${fiche.ecart.id}`, label: "Retour à l'écart" }
+  const retourHref = fiche.ecart
+    ? `/ecarts/${fiche.ecart.id}`
     : fiche.ecartAmiante
-      ? { href: `/ecart-amiante/${fiche.ecartAmiante.id}`, label: "Retour à l'écart amiante" }
-      : null;
+      ? `/ecart-amiante/${fiche.ecartAmiante.id}`
+      : "/fiches-sse";
+  const retourLabel = fiche.ecart ? "Retour à l'écart" : fiche.ecartAmiante ? "Retour à l'écart amiante" : "Retour aux évènements SSE";
 
   return (
-    <SplitView
-      liste={<FichesSSEListePane searchParams={resolvedSearchParams} selectedId={fiche.id} />}
-      detailOuvert
-    >
-      <div className="max-w-[100rem] px-6 py-8">
-      <RetourListe href="/fiches-sse" label="Évènements SSE" />
-      {retourParent && <BoutonRetour href={retourParent.href} label={retourParent.label} />}
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
+      <BoutonRetour href={retourHref} label={retourLabel} />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <div className="mb-1 flex items-center gap-3">
@@ -300,7 +289,6 @@ export default async function FicheSSEDetailPage({
           </div>
         )}
       </div>
-      </div>
-    </SplitView>
+    </div>
   );
 }

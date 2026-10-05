@@ -10,16 +10,13 @@ import {
 import { Origine, TypeActivite } from "@/generated/prisma/enums";
 import { ChoixDossier } from "@/components/choix-dossier";
 import { BoutonCreer } from "@/components/bouton-creer";
-import { EcartsListePane, type EcartsListeSearchParams } from "@/components/ecarts-liste-pane";
-import { SplitView, RetourListe } from "@/components/split-view";
 
 export default async function NouvelEcartPage({
   searchParams,
 }: {
-  searchParams: Promise<EcartsListeSearchParams & { dossierId?: string; remonteeId?: string }>;
+  searchParams: Promise<{ dossierId?: string; remonteeId?: string }>;
 }) {
-  const resolvedSearchParams = await searchParams;
-  const { dossierId, remonteeId } = resolvedSearchParams;
+  const { dossierId, remonteeId } = await searchParams;
   const [dossiers, remontee] = await Promise.all([
     prisma.dossier.findMany({ orderBy: { createdAt: "desc" } }),
     remonteeId ? prisma.remonteeInfo.findUnique({ where: { id: remonteeId } }) : null,
@@ -28,9 +25,7 @@ export default async function NouvelEcartPage({
   const dossierSelectionne = dossierId ? dossiers.find((d) => d.id === dossierId) : undefined;
 
   return (
-    <SplitView liste={<EcartsListePane searchParams={resolvedSearchParams} />} detailOuvert>
-      <div className="max-w-2xl px-6 py-8">
-      <RetourListe href="/ecarts" label="Écarts" />
+    <div className="mx-auto max-w-2xl px-6 py-8">
       <h1 className="mb-1 text-2xl font-semibold text-slate-900">Nouvel écart</h1>
       {remontee && (
         <p className="mb-6 text-sm text-slate-500">
@@ -171,7 +166,6 @@ export default async function NouvelEcartPage({
           <BoutonCreer>Créer l&apos;écart</BoutonCreer>
         </div>
       </form>
-      </div>
-    </SplitView>
+    </div>
   );
 }

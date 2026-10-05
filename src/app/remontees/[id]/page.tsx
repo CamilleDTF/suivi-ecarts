@@ -25,11 +25,10 @@ import { RemonteeFields } from "@/components/remontee-fields";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonArchiver } from "@/components/bouton-archiver";
 import { archiver, desarchiver } from "@/app/archivage/actions";
+import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { ChangerRattachement } from "@/components/changer-rattachement";
 import { libelleRattachement } from "@/lib/labels";
-import { RemonteesListePane, type RemonteesListeSearchParams } from "@/components/remontees-liste-pane";
-import { SplitView, RetourListe } from "@/components/split-view";
 
 // Le navigateur nomme le PDF d’après le titre du document : sans titre
 // propre à la fiche, tous les exports s’enregistreraient sous le même nom.
@@ -41,13 +40,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function RemonteeDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<RemonteesListeSearchParams>;
 }) {
   const { id } = await params;
-  const resolvedSearchParams = await searchParams;
   const remontee = await prisma.remonteeInfo.findUnique({
     where: { id },
     include: {
@@ -127,9 +123,8 @@ export default async function RemonteeDetailPage({
   const dejaTransformee = remontee.statut === "TRANSFORMEE_EN_ECART";
 
   return (
-    <SplitView liste={<RemonteesListePane searchParams={resolvedSearchParams} selectedId={remontee.id} />} detailOuvert>
-      <div className="max-w-[100rem] px-6 py-8">
-      <RetourListe href="/remontees" label="Remontées" />
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
+      <BoutonRetour href="/remontees" label="Retour aux remontées" />
 
       <div className="mb-6 flex items-start justify-between">
         <div>
@@ -383,7 +378,6 @@ export default async function RemonteeDetailPage({
           </Link>
         )}
       </div>
-      </div>
-    </SplitView>
+    </div>
   );
 }

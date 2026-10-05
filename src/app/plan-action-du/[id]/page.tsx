@@ -7,9 +7,8 @@ import { ActionDUFields } from "@/components/action-du-fields";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonArchiver } from "@/components/bouton-archiver";
 import { archiver, desarchiver } from "@/app/archivage/actions";
+import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
-import { PlanActionDUListePane, type PlanActionDUListeSearchParams } from "@/components/plan-action-du-liste-pane";
-import { SplitView, RetourListe } from "@/components/split-view";
 
 // Le navigateur nomme le PDF d'après le titre du document.
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -18,15 +17,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: fiche ? `Action DU ${referenceActionDU(fiche.numero)}` : "Action DU" };
 }
 
-export default async function ActionDUDetailPage({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<PlanActionDUListeSearchParams>;
-}) {
+export default async function ActionDUDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const resolvedSearchParams = await searchParams;
   const [action, responsables] = await Promise.all([
     prisma.actionDU.findUnique({ where: { id } }),
     prisma.actionDU.findMany({
@@ -40,12 +32,8 @@ export default async function ActionDUDetailPage({
   if (!action) notFound();
 
   return (
-    <SplitView
-      liste={<PlanActionDUListePane searchParams={resolvedSearchParams} selectedId={action.id} />}
-      detailOuvert
-    >
-      <div className="max-w-[100rem] px-6 py-8">
-      <RetourListe href="/plan-action-du" label="Plan d'action DU" />
+    <div className="mx-auto max-w-[100rem] px-6 py-8">
+      <BoutonRetour href="/plan-action-du" label="Retour au plan d'action DU" />
       <div className="mb-6 flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">{referenceActionDU(action.numero)}</h1>
@@ -75,7 +63,6 @@ export default async function ActionDUDetailPage({
       >
         <ActionDUFields v={action} responsablesConnus={responsables.map((r) => r.responsable!)} />
       </FormulaireEditable>
-      </div>
-    </SplitView>
+    </div>
   );
 }
