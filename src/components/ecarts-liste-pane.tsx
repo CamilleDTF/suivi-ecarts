@@ -1,8 +1,6 @@
-import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Badge } from "@/components/badge";
 import { SelectAutoSubmit } from "@/components/select-auto-submit";
-import { Pagination } from "@/components/pagination";
+import { ListePane, CLASSE_FILTRE_PANE } from "@/components/liste-pane";
 import { Origine, StatutDossierEcart } from "@/generated/prisma/enums";
 import {
   ORIGINE_LABELS,
@@ -92,36 +90,18 @@ export async function EcartsListePane({
     }),
   ]);
 
-  const filtreActif = !!q || !!statut || !!origine;
-
   return (
-    <div
-      className="sticky top-16 flex w-[380px] shrink-0 flex-col self-start overflow-hidden border-r border-slate-200 bg-white"
-      style={{ maxHeight: "calc(100vh - 4rem)" }}
-    >
-      <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
-        <h1 className="text-base font-semibold text-slate-900">Écarts</h1>
-        <Link
-          href="/ecarts/nouveau"
-          className="rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-        >
-          + Nouvel écart
-        </Link>
-      </div>
-
-      <form method="get" action="/ecarts" className="flex flex-col gap-2 border-b border-slate-100 px-4 py-3">
-        <input
-          type="text"
-          name="q"
-          defaultValue={q ?? ""}
-          placeholder="Rechercher un écart…"
-          className="w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm"
-        />
-        <div className="flex gap-2">
+    <ListePane
+      titre="Écarts"
+      basePath="/ecarts"
+      nouveau={{ href: "/ecarts/nouveau", label: "+ Nouvel écart" }}
+      recherche={{ valeur: q, placeholder: "Rechercher un écart…" }}
+      filtres={
+        <>
           <SelectAutoSubmit
             name="statut"
             defaultValue={statut ?? ""}
-            className="w-1/2 rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+            className={CLASSE_FILTRE_PANE}
             options={[
               { value: "", label: "Statut : Tous" },
               ...Object.values(StatutDossierEcart)
@@ -132,68 +112,28 @@ export async function EcartsListePane({
           <SelectAutoSubmit
             name="origine"
             defaultValue={origine ?? ""}
-            className="w-1/2 rounded-md border border-slate-300 px-2 py-1.5 text-xs"
+            className={CLASSE_FILTRE_PANE}
             options={[
               { value: "", label: "Origine : Toutes" },
               ...Object.values(Origine).map((o) => ({ value: o, label: ORIGINE_LABELS[o] })),
             ]}
           />
-        </div>
-        <div className="flex items-center justify-between">
-          {filtreActif ? (
-            <Link href="/ecarts" className="text-xs text-slate-500 hover:underline">
-              Réinitialiser les filtres
-            </Link>
-          ) : (
-            <span />
-          )}
-          <Link
-            href={{ pathname: "/ecarts", query: archives === "1" ? { q, statut, origine } : { q, statut, origine, archives: "1" } }}
-            className="text-xs text-slate-500 hover:underline"
-          >
-            {archives === "1" ? "← Revenir à la liste" : "Voir les archives"}
-          </Link>
-        </div>
-      </form>
-
-      <div className="flex-1 overflow-y-auto">
-        {ecarts.map((e) => {
-          const actif = e.id === selectedId;
-          return (
-            <Link
-              key={e.id}
-              href={`/ecarts/${e.id}`}
-              className={`block border-b border-slate-100 px-4 py-3 ${actif ? "bg-blue-50" : "hover:bg-slate-50"}`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-slate-900">{e.reference}</span>
-                <span className="shrink-0 text-xs text-slate-400">{e.dateDetection.toLocaleDateString("fr-FR")}</span>
-              </div>
-              <div className="mt-0.5 truncate text-xs text-slate-500">
-                {e.dossier?.chantier ?? "—"} — {e.description}
-              </div>
-              <div className="mt-1.5">
-                <Badge label={STATUT_DOSSIER_ECART_LABELS[e.statut]} colorClass={STATUT_DOSSIER_ECART_COLORS[e.statut]} />
-              </div>
-            </Link>
-          );
-        })}
-        {ecarts.length === 0 && (
-          <p className="px-4 py-6 text-center text-sm text-slate-400">
-            {filtreActif ? "Aucun écart ne correspond à ce filtre." : "Aucun écart pour l'instant."}
-          </p>
-        )}
-      </div>
-
-      {total > 0 && (
-        <Pagination
-          total={total}
-          page={page}
-          pageSize={taillePage}
-          baseParams={{ q, statut, origine, taille, archives }}
-          basePath="/ecarts"
-        />
-      )}
-    </div>
+        </>
+      }
+      filtreActif={!!q || !!statut || !!origine}
+      archives={archives}
+      paramsConserves={{ q, statut, origine, taille }}
+      lignes={ecarts.map((e) => ({
+        id: e.id,
+        reference: e.reference,
+        date: e.dateDetection.toLocaleDateString("fr-FR"),
+        resume: `${e.dossier?.chantier ?? "—"} — ${e.description}`,
+        badges: [{ label: STATUT_DOSSIER_ECART_LABELS[e.statut], colorClass: STATUT_DOSSIER_ECART_COLORS[e.statut] }],
+      }))}
+      selectedId={selectedId}
+      messageVide="Aucun écart pour l'instant."
+      messageVideFiltre="Aucun écart ne correspond à ce filtre."
+      pagination={{ total, page, pageSize: taillePage, baseParams: { q, statut, origine, taille, archives } }}
+    />
   );
 }

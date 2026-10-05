@@ -11,6 +11,7 @@ import { Origine, TypeActivite } from "@/generated/prisma/enums";
 import { ChoixDossier } from "@/components/choix-dossier";
 import { BoutonCreer } from "@/components/bouton-creer";
 import { EcartsListePane, type EcartsListeSearchParams } from "@/components/ecarts-liste-pane";
+import { SplitView, RetourListe } from "@/components/split-view";
 
 export default async function NouvelEcartPage({
   searchParams,
@@ -27,9 +28,9 @@ export default async function NouvelEcartPage({
   const dossierSelectionne = dossierId ? dossiers.find((d) => d.id === dossierId) : undefined;
 
   return (
-    <div className="flex items-start">
-      <EcartsListePane searchParams={resolvedSearchParams} />
-      <div className="max-w-2xl flex-1 px-6 py-8">
+    <SplitView liste={<EcartsListePane searchParams={resolvedSearchParams} />} detailOuvert>
+      <div className="max-w-2xl px-6 py-8">
+      <RetourListe href="/ecarts" label="Écarts" />
       <h1 className="mb-1 text-2xl font-semibold text-slate-900">Nouvel écart</h1>
       {remontee && (
         <p className="mb-6 text-sm text-slate-500">
@@ -171,6 +172,6 @@ export default async function NouvelEcartPage({
         </div>
       </form>
       </div>
-    </div>
+    </SplitView>
   );
 }

@@ -29,6 +29,7 @@ import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { compterImpactSuppressionEcart } from "@/lib/suppression";
 import { STATUT_REX_COLORS, STATUT_REX_LABELS } from "@/lib/labels";
 import { EcartsListePane, type EcartsListeSearchParams } from "@/components/ecarts-liste-pane";
+import { SplitView, RetourListe } from "@/components/split-view";
 
 // Le navigateur nomme le PDF d’après le titre du document : sans titre
 // propre à la fiche, tous les exports s’enregistreraient sous le même nom.
@@ -78,9 +79,9 @@ export default async function EcartDetailPage({
   });
 
   return (
-    <div className="flex items-start">
-      <EcartsListePane searchParams={resolvedSearchParams} selectedId={ecart.id} />
-      <div className="min-w-0 max-w-[100rem] flex-1 px-6 py-8">
+    <SplitView liste={<EcartsListePane searchParams={resolvedSearchParams} selectedId={ecart.id} />} detailOuvert>
+      <div className="max-w-[100rem] px-6 py-8">
+      <RetourListe href="/ecarts" label="Écarts" />
       {ecart.dossier && (
         <Link href={`/dossiers/${ecart.dossier.id}`} className="mb-4 inline-block text-sm text-slate-500 hover:underline">
           ← Dossier {ecart.dossier.reference} — {ecart.dossier.chantier}
@@ -301,6 +302,6 @@ export default async function EcartDetailPage({
         )}
       </div>
       </div>
-    </div>
+    </SplitView>
   );
 }
