@@ -35,8 +35,6 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background">
         <NavBar />
-        {/* Décalé de la largeur de la barre latérale à partir de lg ; en
-            dessous, la barre reste en haut et le contenu suit normalement. */}
         <main className="flex-1">{children}</main>
       </body>
     </html>
