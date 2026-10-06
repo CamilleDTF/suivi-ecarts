@@ -52,6 +52,8 @@ export type Fait = {
   sujets: string[];
   /** Mots significatifs du texte : racine → forme affichée. */
   termes: Map<string, string>;
+  /** Texte complet, sans accents ni majuscules : sert à la recherche libre. */
+  texte: string;
   gravite: Gravite;
   ouvert: boolean;
   /** Clé du fait dont celui-ci est le prolongement (évènement créé depuis un écart, remontée transformée en écart). */
@@ -144,7 +146,7 @@ const MOTS_VIDES = new Set(
     "dans pour avec sans sont etre etait etaient avait avaient cette cettes leur leurs plus tout tous toute toutes comme mais donc ainsi alors " +
     "lors apres avant entre vers chez sous quoi dont fait faire font ont peut peuvent doit doivent faut aussi encore deja notamment egalement " +
     "concernant suite selon pendant depuis jusqu autre autres meme memes quelque quelques plusieurs chaque ceux celui celle ceci cela nous vous " +
-    "elles notre votre sera seront serait etant avoir quand lorsque afin elle ils lieu etre rien tres bien"
+    "elles notre votre sera seront serait etant avoir quand lorsque afin elle ils lieu etre rien tres bien trop"
   ).split(/\s+/),
 );
 // Mots fréquents mais trop généraux pour désigner un sujet précis.
@@ -158,9 +160,12 @@ const MOTS_GENERIQUES = new Set(
     "disponible disponibles " +
     // Les mots qui nomment déjà un grand sujet : ils recoupent la vue par sujet sans rien apprendre de plus.
     "dechet dechets materiel materiels equipement equipements analyse analyses amiante amiantes amiant organisation documentaire formation " +
-    "environnement protection protections dispositif dispositifs"
+    "environnement enviro protection protections dispositif dispositifs"
   ).split(/\s+/),
 );
+
+// Mots utiles pour préciser une combinaison (« zone · stockage ») mais trop vagues pour former un motif seuls.
+const MOTS_CONNECTEURS = new Set(["zone"]);
 
 const normaliser = (texte: string) =>
   texte
@@ -175,12 +180,12 @@ const racine = (mot: string) => (/(us|ss|is|os)$/.test(mot) ? mot : mot.replace(
 
 function extraireTermes(texte: string): Map<string, string> {
   const termes = new Map<string, string>();
-  for (const m of texte.toLowerCase().matchAll(/[a-zà-öø-ÿ]{5,}/g)) {
+  for (const m of texte.toLowerCase().matchAll(/[a-zà-öø-ÿ]{4,}/g)) {
     const brut = m[0];
     const sansAccent = normaliser(brut);
     if (MOTS_VIDES.has(sansAccent)) continue;
     const cle = racine(sansAccent);
-    if (cle.length < 5 || MOTS_VIDES.has(cle) || MOTS_GENERIQUES.has(cle) || MOTS_GENERIQUES.has(sansAccent)) continue;
+    if (cle.length < 4 || MOTS_VIDES.has(cle) || MOTS_GENERIQUES.has(cle) || MOTS_GENERIQUES.has(sansAccent)) continue;
     if (!termes.has(cle)) termes.set(cle, racine(brut));
   }
   return termes;
@@ -207,6 +212,8 @@ const resume = (texte: string | null | undefined, max = 120) => {
 
 type Analyse = {
   propositions: Proposition[];
+  /** Résultat de la recherche libre (les mots saisis), si elle a été demandée. */
+  recherche: Proposition | null;
   libelles: Map<string, Sujet>;
   stats: { total: number; parType: Record<TypeFait, number>; nbCouverts: number };
   du: Date | null;
@@ -223,8 +230,13 @@ const parametreCreation = { ecart: "ecartId", evenement: "ficheSSEId", amiante: 
 
 const MIN_FAITS = 3;
 const MAX_MOTIFS = 12;
+/** Nombre maximal de mots d'une combinaison, et de mots montrés dans le titre d'un motif. */
+const MAX_MOTS_MOTIF = 4;
+/** Places gardées, dans la liste des motifs, pour des mots seuls qui ne recoupent aucune combinaison. */
+const MIN_PLACES_MOTS_SEULS = 4;
+const MAX_ENSEMBLES = 20000;
 
-export async function analyserPropositions(periode: PeriodeProposition): Promise<Analyse> {
+export async function analyserPropositions(periode: PeriodeProposition, motsRecherche: string[] = []): Promise<Analyse> {
   const maintenant = new Date();
   const depuis = debutPeriode(periode, maintenant);
 
@@ -340,6 +352,7 @@ export async function analyserPropositions(periode: PeriodeProposition): Promise
       libelle: resume(e.description),
       sujets: sujetsDe(e.theme),
       termes: extraireTermes(`${e.description ?? ""} ${e.cause ?? ""}`),
+      texte: normaliser(`${e.description ?? ""} ${e.cause ?? ""}`),
       gravite: Math.max(graviteCriticite(e.criticite), e.natures.includes("Non-conformité critique") ? 2 : 0) as Gravite,
       ouvert: e.statut !== "CLOTURE",
       lieA: null,
@@ -355,6 +368,7 @@ export async function analyserPropositions(periode: PeriodeProposition): Promise
       libelle: resume(f.descriptionFactuelle),
       sujets: sujetsDe(f.theme),
       termes: extraireTermes(f.descriptionFactuelle ?? ""),
+      texte: normaliser(f.descriptionFactuelle ?? ""),
       gravite: Math.max(graviteCriticite(f.criticite), /accident/i.test(f.typeEvenement ?? "") ? 2 : 0) as Gravite,
       ouvert: f.statutFiche !== "FINALISEE",
       lieA: f.ecartId ? `ecart:${f.ecartId}` : f.ecartAmianteId ? `amiante:${f.ecartAmianteId}` : null,
@@ -372,6 +386,7 @@ export async function analyserPropositions(periode: PeriodeProposition): Promise
       // pointe aussi vers le matériel.
       sujets: [...new Set(["amiante", ...(/filtre/i.test(a.cause ?? "") ? ["materiel"] : [])])],
       termes: extraireTermes(`${a.description ?? ""} ${a.cause ?? ""}`),
+      texte: normaliser(`${a.description ?? ""} ${a.cause ?? ""}`),
       // Une exposition accidentelle ou une FIE est grave ; tout autre dépassement
       // reste au moins à noter.
       gravite: a.expositionAccidentelle || a.fie ? 2 : 1,
@@ -389,6 +404,7 @@ export async function analyserPropositions(periode: PeriodeProposition): Promise
       libelle: resume(r.objet),
       sujets: sujetsDe(r.categories),
       termes: extraireTermes(`${r.objet} ${r.description ?? ""}`),
+      texte: normaliser(`${r.objet} ${r.description ?? ""}`),
       gravite: r.natures.includes("Point sensible") ? 1 : 0,
       ouvert: r.statut === "A_TRAITER" || r.statut === "EN_COURS",
       lieA: r.ecartOrigineId ? `ecart:${r.ecartOrigineId}` : null,
@@ -446,12 +462,12 @@ export async function analyserPropositions(periode: PeriodeProposition): Promise
 
     const score =
       n + 2 * Math.max(0, chantiers.length - 1) + 1.5 * Math.max(0, nbTypes - 1) + 4 * nbGraves + 0.5 * nbRecents + 0.3 * nbOuverts;
-    // Haute : un fait grave, un motif dont au moins un quart des faits sont graves, ou un
-    // motif qui touche à la fois beaucoup de faits, de chantiers et de sources. Sinon, le
-    // simple volume ou l'étendue le placent en moyenne (un seul fait grave noyé dans vingt
-    // autres ne fait pas un motif prioritaire : il est déjà proposé seul).
+    // Haute : un fait grave, un motif qui compte au moins deux faits graves, une très grande
+    // ampleur (20 faits), ou beaucoup de faits à la fois sur plusieurs chantiers et sources.
+    // Un seul fait grave dans un petit motif ne le rend pas prioritaire : ce fait est déjà
+    // proposé seul. Moyenne : un volume ou une étendue notables.
     const priorite: Proposition["priorite"] =
-      genre === "grave" || (nbGraves >= 1 && nbGraves * 4 >= n) || (n >= 10 && chantiers.length >= 4 && nbTypes >= 3)
+      genre === "grave" || nbGraves >= 2 || n >= 20 || (n >= 10 && chantiers.length >= 4 && nbTypes >= 3)
         ? "haute"
         : n >= 5 || chantiers.length >= 3
           ? "moyenne"
@@ -535,51 +551,130 @@ export async function analyserPropositions(periode: PeriodeProposition): Promise
   }
   graves.sort((a, b) => b.au.getTime() - a.au.getTime());
 
-  // 2. Motifs : un mot qui revient dans les descriptions et les causes. On garde les
-  //    mots portés par au moins 3 faits mais pas par plus d'un cinquième du corpus
-  //    (au-delà, ce n'est plus un motif mais du vocabulaire courant), puis on
-  //    regroupe les mots qui désignent les mêmes faits (« filtre » et « umd »).
-  const parTerme = new Map<string, { affichage: string; faits: Fait[] }>();
+  // 2. Motifs : des mots qui reviennent ENSEMBLE dans les descriptions et les causes.
+  //    On cherche les combinaisons de 1 à 4 mots portées par au moins 3 faits (un mot ne
+  //    compte pas s'il est dans plus d'un cinquième du corpus : c'est du vocabulaire
+  //    courant), puis on ne garde que les combinaisons « fermées » : celles auxquelles on
+  //    ne peut ajouter aucun mot sans perdre un fait. Un motif à plusieurs mots est plus
+  //    parlant qu'un mot seul (« stockage · déchets · clé » plutôt que « stockage »).
+  //    Les faits jumeaux (évènement créé depuis un écart) sont écartés du calcul puis
+  //    rattachés à leur écart, pour ne pas gonfler les effectifs.
+  const indexFait = new Map(faits.map((f) => [cleFait(f), f]));
+  const distinctsGlobaux = faits.filter((f) => !(f.lieA && indexFait.has(f.lieA)));
+  const jumeauxDe = new Map<string, Fait[]>();
   for (const f of faits) {
+    if (f.lieA && indexFait.has(f.lieA)) jumeauxDe.set(f.lieA, [...(jumeauxDe.get(f.lieA) ?? []), f]);
+  }
+  const parTerme = new Map<string, { affichage: string; ids: number[] }>();
+  distinctsGlobaux.forEach((f, i) => {
     for (const [cle, affichage] of f.termes) {
-      const courant = parTerme.get(cle) ?? { affichage, faits: [] };
-      courant.faits.push(f);
+      const courant = parTerme.get(cle) ?? { affichage, ids: [] };
+      courant.ids.push(i);
       parTerme.set(cle, courant);
     }
-  }
-  const plafondTerme = Math.max(MIN_FAITS + 1, Math.floor(faits.length * 0.2));
-  const candidats = [...parTerme.entries()]
-    .filter(([, t]) => t.faits.length >= MIN_FAITS && t.faits.length <= plafondTerme)
-    .sort((a, b) => b[1].faits.length - a[1].faits.length);
-  const groupes: { cle: string; affichage: string; ids: Set<string>; associes: string[] }[] = [];
-  for (const [cle, t] of candidats) {
-    const ids = new Set(t.faits.map((f) => `${f.type}:${f.id}`));
-    const voisin = groupes.find((g) => {
-      const commun = [...ids].filter((i) => g.ids.has(i)).length;
-      return commun / (ids.size + g.ids.size - commun) >= 0.5;
-    });
-    if (voisin) {
-      voisin.associes.push(t.affichage);
-      for (const i of ids) voisin.ids.add(i);
-    } else {
-      groupes.push({ cle, affichage: t.affichage, ids, associes: [] });
+  });
+  const plafondTerme = Math.max(MIN_FAITS + 1, Math.floor(distinctsGlobaux.length * 0.2));
+  const eligibles = [...parTerme.entries()]
+    .filter(([, t]) => t.ids.length >= MIN_FAITS && t.ids.length <= plafondTerme)
+    .sort(([a], [b]) => a.localeCompare(b));
+  const intersection = (a: number[], b: number[]) => {
+    const dans = new Set(b);
+    return a.filter((x) => dans.has(x));
+  };
+  type Ensemble = { termes: string[]; ids: number[]; dernier: number };
+  let niveau: Ensemble[] = eligibles.map(([cle, t], i) => ({ termes: [cle], ids: t.ids, dernier: i }));
+  const ensembles: Ensemble[] = [...niveau];
+  for (let k = 2; k <= MAX_MOTS_MOTIF && niveau.length > 0 && ensembles.length < MAX_ENSEMBLES; k++) {
+    const suivant: Ensemble[] = [];
+    for (const e of niveau) {
+      for (let i = e.dernier + 1; i < eligibles.length; i++) {
+        const ids = intersection(e.ids, eligibles[i][1].ids);
+        if (ids.length >= MIN_FAITS) suivant.push({ termes: [...e.termes, eligibles[i][0]], ids, dernier: i });
+      }
     }
+    ensembles.push(...suivant);
+    niveau = suivant;
   }
-  const parId = new Map(faits.map((f) => [`${f.type}:${f.id}`, f]));
-  const motifs = groupes
-    .map((g) =>
-      construire(
-        `motif:${g.cle}`,
-        "motif",
-        `« ${g.affichage} »`,
-        [...g.ids].map((i) => parId.get(i)!),
-        lienProposition(`motif:${g.cle}`),
-        g.associes.slice(0, 5),
-      ),
-    )
-    .filter(suffisant)
-    .sort((a, b) => rang[a.priorite] - rang[b.priorite] || b.score - a.score)
-    .slice(0, MAX_MOTIFS);
+  // Combinaisons fermées : tous les ensembles qui portent exactement les mêmes faits se
+  // réunissent en un seul, dont les mots sont l'ensemble de leurs mots.
+  const fermes = new Map<string, { ids: number[]; termes: Set<string> }>();
+  for (const e of ensembles) {
+    const cle = e.ids.join(",");
+    const courant = fermes.get(cle) ?? { ids: e.ids, termes: new Set<string>() };
+    for (const t of e.termes) courant.termes.add(t);
+    fermes.set(cle, courant);
+  }
+  const tousCandidats = [...fermes.values()].sort((a, b) => b.ids.length - a.ids.length);
+  // Les combinaisons de plusieurs mots passent en premier ; un mot seul ne vient qu'en complément.
+  const candidats = tousCandidats.filter((g) => g.termes.size >= 2).slice(0, 600);
+  const candidatsMotSeul = tousCandidats
+    .filter((g) => g.termes.size === 1 && !MOTS_CONNECTEURS.has([...g.termes][0]))
+    .slice(0, 200);
+  const motsDe = (g: { termes: Set<string> }) =>
+    [...g.termes].sort((a, b) => (parTerme.get(b)?.ids.length ?? 0) - (parTerme.get(a)?.ids.length ?? 0));
+  const affichage = (cle: string) => parTerme.get(cle)?.affichage ?? cle;
+  const construireMotif = (g: { ids: number[]; termes: Set<string> }) => {
+    const mots = motsDe(g);
+    const lot = g.ids.flatMap((i) => {
+      const fait = distinctsGlobaux[i];
+      return [fait, ...(jumeauxDe.get(cleFait(fait)) ?? [])];
+    });
+    const cle = `motif:${[...g.termes].sort().join("+")}`;
+    const p = construire(
+      cle,
+      "motif",
+      `« ${mots.slice(0, MAX_MOTS_MOTIF).map(affichage).join(" · ")} »`,
+      lot,
+      lienProposition(cle),
+      mots.slice(MAX_MOTS_MOTIF, MAX_MOTS_MOTIF + 6).map(affichage),
+    );
+    // À effectif voisin, une combinaison de plusieurs mots est plus parlante qu'un mot seul.
+    p.score += 3 * (mots.length - 1);
+    return p;
+  };
+  const classer = (liste: Proposition[]) =>
+    liste.filter(suffisant).sort((a, b) => rang[a.priorite] - rang[b.priorite] || b.score - a.score);
+  // Deux motifs qui désignent en gros les mêmes faits n'en font qu'un : le mieux classé garde la
+  // place et reprend les mots de l'autre.
+  const motifs: Proposition[] = [];
+  const retenir = (liste: Proposition[], fusionner: boolean, plafond: number) => {
+    for (const p of liste) {
+      const cles = new Set(p.faits.map(cleFait));
+      const voisin = motifs.find((m) => {
+        const commun = m.faits.filter((x) => cles.has(cleFait(x))).length;
+        return commun / (cles.size + m.faits.length - commun) >= 0.5;
+      });
+      if (voisin) {
+        if (!fusionner) continue;
+        const motsVoisin = p.titre.replace(/[«»]/g, "").split("·").map((x) => x.trim());
+        const nouveaux = motsVoisin.filter((x) => x && !voisin.titre.includes(x) && !voisin.motsAssocies.includes(x));
+        voisin.motsAssocies = [...voisin.motsAssocies, ...nouveaux].slice(0, 6);
+      } else if (motifs.length < plafond) {
+        motifs.push(p);
+      }
+    }
+  };
+  // Les combinaisons n'occupent pas toute la liste : il reste de la place pour les mots seuls.
+  retenir(classer(candidats.map(construireMotif)), true, MAX_MOTIFS - MIN_PLACES_MOTS_SEULS);
+  // Un mot seul complète la liste s'il ne recoupe pas une combinaison déjà retenue.
+  retenir(classer(candidatsMotSeul.map(construireMotif)), false, MAX_MOTIFS);
+  motifs.sort((a, b) => rang[a.priorite] - rang[b.priorite] || b.score - a.score);
+
+  // Recherche libre : les faits dont le texte contient tous les mots saisis (début de mot, sans
+  // tenir compte des accents ni des majuscules : « filtre » trouve « filtres »).
+  const motsCherches = motsRecherche.map(normaliser).filter((m) => m.length >= 3).slice(0, 6);
+  let recherche: Proposition | null = null;
+  if (motsCherches.length > 0) {
+    const expressions = motsCherches.map((m) => new RegExp(`\\b${m.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
+    const cle = `recherche:${motsCherches.join("+")}`;
+    recherche = construire(
+      cle,
+      "motif",
+      `« ${motsCherches.join(" · ")} »`,
+      faits.filter((fait) => expressions.every((re) => re.test(fait.texte))),
+      lienProposition(cle),
+    );
+  }
 
   // 3. Vue d'ensemble par sujet.
   const parSujet = new Map<string, Fait[]>();
@@ -589,7 +684,7 @@ export async function analyserPropositions(periode: PeriodeProposition): Promise
     .filter(suffisant)
     .sort((a, b) => b.faits.length - a.faits.length);
 
-  return { propositions: [...graves, ...motifs, ...sujets], libelles, stats, du: depuis, au: maintenant };
+  return { propositions: [...graves, ...motifs, ...sujets], recherche, libelles, stats, du: depuis, au: maintenant };
 }
 
 /** Ce que le parcours de création reçoit pour une proposition de motif ou de sujet. */
@@ -611,9 +706,10 @@ export async function prefillDepuisProposition(
   cle: string,
   periode: PeriodeProposition,
 ): Promise<PrefillProposition | null> {
-  const { propositions, libelles } = await analyserPropositions(periode);
-  const p = propositions.find((x) => x.cle === cle && x.genre !== "grave");
-  if (!p) return null;
+  const mots = cle.startsWith("recherche:") ? cle.slice("recherche:".length).split("+") : [];
+  const { propositions, recherche, libelles } = await analyserPropositions(periode, mots);
+  const p = mots.length > 0 ? recherche : propositions.find((x) => x.cle === cle && x.genre !== "grave");
+  if (!p || p.faits.length === 0) return null;
 
   // Point commun et thème : ceux du sujet dominant qui en propose un.
   const info = p.sujetCles.map((s) => libelles.get(s)).find((s) => s?.pointCommun || s?.theme);

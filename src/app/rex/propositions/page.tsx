@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LightbulbIcon, PlusIcon } from "lucide-react";
+import { LightbulbIcon, PlusIcon, SearchIcon } from "lucide-react";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { EtatVide } from "@/components/fiche";
 import { ConteneurPage, EntetePage } from "@/components/page-liste";
@@ -180,11 +180,19 @@ function CarteProposition({ p, libelleSujet }: { p: Proposition; libelleSujet: (
 export default async function PropositionsRexPage({
   searchParams,
 }: {
-  searchParams: Promise<{ periode?: string }>;
+  searchParams: Promise<{ periode?: string; mots?: string }>;
 }) {
-  const { periode: periodeDemandee } = await searchParams;
+  const { periode: periodeDemandee, mots: motsDemandes } = await searchParams;
   const periode = lirePeriodeProposition(periodeDemandee);
-  const { propositions, libelles, stats } = await analyserPropositions(periode);
+  const mots = (motsDemandes ?? "").split(/[\s,;+]+/).filter(Boolean).slice(0, 6);
+  const { propositions, recherche, libelles, stats } = await analyserPropositions(periode, mots);
+  const lien = (p: string, avecMots = true) => {
+    const params = new URLSearchParams();
+    if (p !== PERIODE_PAR_DEFAUT) params.set("periode", p);
+    if (avecMots && mots.length > 0) params.set("mots", mots.join(" "));
+    const qs = params.toString();
+    return qs ? `/rex/propositions?${qs}` : "/rex/propositions";
+  };
   const graves = propositions.filter((p) => p.genre === "grave");
   const motifs = propositions.filter((p) => p.genre === "motif");
   const sujets = propositions.filter((p) => p.genre === "sujet");
@@ -199,11 +207,12 @@ export default async function PropositionsRexPage({
         sousTitre="Faits graves et motifs qui reviennent dans les écarts, évènements SSE, écarts amiante et remontées, et qui n'ont pas encore de REX."
       />
 
-      <div className="mb-6 inline-flex rounded-lg bg-muted p-0.5" role="group" aria-label="Période analysée">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+      <div className="inline-flex rounded-lg bg-muted p-0.5" role="group" aria-label="Période analysée">
         {PERIODES_PROPOSITION.map((p) => (
           <Link
             key={p.cle}
-            href={p.cle === PERIODE_PAR_DEFAUT ? "/rex/propositions" : `/rex/propositions?periode=${p.cle}`}
+            href={lien(p.cle)}
             aria-pressed={p.cle === periode}
             className={cn(
               "rounded-md px-3 py-1.5 text-sm transition-colors",
@@ -215,7 +224,46 @@ export default async function PropositionsRexPage({
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <form action="/rex/propositions" method="get" className="flex min-w-0 flex-1 basis-96 items-center gap-2" role="search">
+        {periode !== PERIODE_PAR_DEFAUT && <input type="hidden" name="periode" value={periode} />}
+        <div className="relative min-w-0 flex-1 sm:max-w-md">
+          <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+          <input
+            type="search"
+            name="mots"
+            defaultValue={mots.join(" ")}
+            placeholder="Chercher avec plusieurs mots : filtre sale, balisage zone…"
+            aria-label="Chercher des faits contenant tous ces mots"
+            className="h-9 w-full rounded-lg border border-input bg-transparent pl-8 pr-2.5 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+        </div>
+        <button type="submit" className={buttonVariants({ variant: "outline", size: "lg" })}>
+          Chercher
+        </button>
+        {mots.length > 0 && (
+          <Link href={lien(periode, false)} className={buttonVariants({ variant: "ghost", size: "lg" })}>
+            Effacer
+          </Link>
+        )}
+      </form>
+      </div>
+
+      {mots.length > 0 && recherche && (
+        <Section
+          titre="Résultat de votre recherche"
+          aide={`Les faits qui contiennent tous les mots saisis (début de mot, sans tenir compte des accents) : ${mots.join(", ")}.`}
+        >
+          {recherche.faits.length === 0 ? (
+            <EtatVide>
+              Aucun fait de la période ne contient tous ces mots{recherche.nbCouverts > 0 ? " qui ne soit déjà couvert par un REX" : ""}. Essayez avec moins de mots ou une période plus longue.
+            </EtatVide>
+          ) : (
+            <CarteProposition p={recherche} libelleSujet={libelleSujet} />
+          )}
+        </Section>
+      )}
+
+      <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border bg-card p-4">
           <p className="text-sm text-muted-foreground">Faits analysés</p>
           <p className="mt-2 font-display text-4xl font-semibold tabular-nums leading-none">{stats.total}</p>
@@ -261,7 +309,7 @@ export default async function PropositionsRexPage({
       {motifs.length > 0 && (
         <Section
           titre="Motifs qui reviennent"
-          aide="Un même mot revient dans les descriptions et les causes de plusieurs faits, sur plusieurs chantiers ou plusieurs sources : un bon candidat pour un REX précis."
+          aide="Des mots qui reviennent ensemble dans les descriptions et les causes de plusieurs faits, sur plusieurs chantiers ou plusieurs sources : un bon candidat pour un REX précis."
         >
           <div className="space-y-4">
             {motifs.map((p) => (
@@ -304,13 +352,19 @@ export default async function PropositionsRexPage({
               exposition accidentelle ou FIE en amiante, écart « non-conformité critique ». Proposé seul, même sans récurrence.
             </li>
             <li>
-              <strong className="text-foreground">Motif</strong> : un mot significatif présent dans au moins 3 faits (descriptions et causes), sans être du
-              vocabulaire courant (pas plus d&apos;un fait sur cinq), sur au moins 2 chantiers ou 2 sources, ou avec un fait grave. Les mots qui
-              désignent les mêmes faits sont regroupés.
+              <strong className="text-foreground">Motif</strong> : une combinaison de mots significatifs (jusqu&apos;à 4) qui reviennent ensemble dans au moins 3
+              faits (descriptions et causes), sans être du vocabulaire courant, sur au moins 2 chantiers ou 2 sources, ou avec un fait grave. Une
+              combinaison de plusieurs mots passe avant un mot seul, qui complète la liste s&apos;il ne recoupe aucune combinaison. Les
+              motifs qui désignent presque les mêmes faits sont regroupés.
             </li>
             <li>
-              <strong className="text-foreground">Priorité</strong> : haute si au moins un quart des faits du motif sont graves, ou s&apos;il compte
-              au moins 10 faits sur 4 chantiers et 3 sources ; moyenne à partir de 5 faits ou 3 chantiers ; sinon à surveiller. À priorité égale, le classement tient compte du nombre de faits, de chantiers et de
+              <strong className="text-foreground">Recherche libre</strong> : saisissez vos propres mots (par exemple « filtre sale ») pour voir tous les
+              faits qui les contiennent, quel que soit le nombre, et créer un REX à partir du résultat.
+            </li>
+            <li>
+              <strong className="text-foreground">Priorité</strong> : haute si le motif compte au moins 2 faits graves, au moins 20 faits, ou
+              au moins 10 faits sur 4 chantiers et 3 sources ; moyenne à partir de 5 faits ou 3 chantiers ; sinon à surveiller. Un fait grave isolé
+              est déjà proposé seul, il ne rend pas à lui seul un motif prioritaire. À priorité égale, le classement tient compte du nombre de faits, de chantiers et de
               sources, de la gravité, des faits ouverts et récents.
             </li>
             <li>
