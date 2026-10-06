@@ -78,19 +78,90 @@ function decomposerTypeEvenement(valeurs: (string | null | undefined)[]): { labe
     .sort((a, b) => b.valeur - a.valeur);
 }
 
-/** Début de période, nombre de mois affichés dans l'évolution et début de la période précédente. */
-function lirePeriode(cle: string, maintenant: Date) {
-  const an = maintenant.getFullYear();
-  const mois = maintenant.getMonth();
-  if (cle === "annee") return { depuis: new Date(an, 0, 1), nbMois: mois + 1, comparable: true };
-  if (cle === "tout") return { depuis: null, nbMois: 24, comparable: false };
-  const n = cle === "3m" ? 3 : cle === "6m" ? 6 : 12;
-  return { depuis: new Date(an, mois - (n - 1), 1), nbMois: n, comparable: true };
+const JOUR = 86_400_000;
+const MOIS_MAX_GRAPHIQUE = 24;
+
+/** « 2026-03-15 » → 15 mars 2026 ; null si ce n'est pas une vraie date. */
+function lireDateIso(texte: string | undefined): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texte ?? "");
+  if (!m) return null;
+  const [an, mois, jour] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const date = new Date(an, mois - 1, jour);
+  if (an < 2000 || an > 2100 || date.getMonth() !== mois - 1 || date.getDate() !== jour) return null;
+  return date;
 }
 
-function moisAffiches(nbMois: number, maintenant: Date) {
+function versIso(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Tout ce que la page doit savoir de la période : bornes (début inclus, fin exclue),
+ * mois du graphique d'évolution, début de la période précédente de même durée, et
+ * les libellés. Les périodes prédéfinies s'arrêtent à la fin du mois courant ; la
+ * période personnalisée va du premier au dernier jour choisis, inclus.
+ */
+function lirePeriode(cle: string, maintenant: Date, duDemande?: string, auDemande?: string) {
+  const an = maintenant.getFullYear();
+  const mois = maintenant.getMonth();
+  const aujourdhui = new Date(an, mois, maintenant.getDate());
+  const finMois = new Date(an, mois + 1, 1);
+  const debut12m = new Date(an, mois - 11, 1);
+
+  if (cle === "perso") {
+    let premier = lireDateIso(duDemande) ?? debut12m;
+    let dernier = lireDateIso(auDemande) ?? aujourdhui;
+    if (premier > dernier) [premier, dernier] = [dernier, premier];
+    const fin = new Date(dernier.getFullYear(), dernier.getMonth(), dernier.getDate() + 1);
+    const moisCouverts = (dernier.getFullYear() - premier.getFullYear()) * 12 + dernier.getMonth() - premier.getMonth() + 1;
+    const jours = Math.round((fin.getTime() - premier.getTime()) / JOUR);
+    const long = (d: Date) =>
+      `${d.getDate() === 1 ? "1er" : d.getDate()} ${d.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}`;
+    const court = (d: Date) => d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+    return {
+      depuis: premier as Date | null,
+      fin,
+      ancre: dernier,
+      nbMois: Math.min(moisCouverts, MOIS_MAX_GRAPHIQUE),
+      graphiqueTronque: moisCouverts > MOIS_MAX_GRAPHIQUE,
+      debutPrecedent: new Date(premier.getFullYear(), premier.getMonth(), premier.getDate() - jours) as Date | null,
+      libelle: `${court(premier)} – ${court(dernier)}`,
+      sousTitre: `du ${long(premier)} au ${long(dernier)}`,
+      du: versIso(premier),
+      au: versIso(dernier),
+    };
+  }
+
+  const base = { fin: finMois, ancre: maintenant, du: versIso(debut12m), au: versIso(aujourdhui) };
+  if (cle === "tout") {
+    return {
+      ...base,
+      depuis: null as Date | null,
+      nbMois: MOIS_MAX_GRAPHIQUE,
+      graphiqueTronque: true,
+      debutPrecedent: null as Date | null,
+      libelle: "tout",
+      sousTitre: "toute la période",
+    };
+  }
+  const nbMois = cle === "annee" ? mois + 1 : cle === "3m" ? 3 : cle === "6m" ? 6 : 12;
+  const depuis = new Date(an, mois - (nbMois - 1), 1);
+  return {
+    ...base,
+    depuis: depuis as Date | null,
+    nbMois,
+    graphiqueTronque: false,
+    debutPrecedent: new Date(an, mois - 2 * nbMois + 1, 1) as Date | null,
+    libelle: PERIODES.find((p) => p.cle === cle)!.label.toLowerCase(),
+    sousTitre: cle === "annee" ? "année en cours" : `${nbMois} mois glissants`,
+    du: versIso(depuis),
+  };
+}
+
+/** Les `nbMois` derniers mois jusqu'au mois de `ancre` inclus. */
+function moisAffiches(nbMois: number, ancre: Date) {
   return Array.from({ length: nbMois }, (_, i) => {
-    const d = new Date(maintenant.getFullYear(), maintenant.getMonth() - (nbMois - 1 - i), 1);
+    const d = new Date(ancre.getFullYear(), ancre.getMonth() - (nbMois - 1 - i), 1);
     return { annee: d.getFullYear(), mois: d.getMonth(), label: MOIS_COURTS[d.getMonth()] };
   });
 }
@@ -106,23 +177,25 @@ function repartirParMois(mois: ReturnType<typeof moisAffiches>, dates: (Date | n
   return compte as number[];
 }
 
-const JOUR = 86_400_000;
-
 export default async function SynthesePage({
   searchParams,
 }: {
-  searchParams: Promise<{ periode?: string; dossier?: string }>;
+  searchParams: Promise<{ periode?: string; du?: string; au?: string; dossier?: string }>;
 }) {
-  const { periode: periodeDemandee, dossier: dossierDemande } = await searchParams;
+  const { periode: periodeDemandee, du: duDemande, au: auDemande, dossier: dossierDemande } = await searchParams;
   const periode = PERIODES.some((p) => p.cle === periodeDemandee) ? periodeDemandee! : "12m";
   const dossierId = dossierDemande || undefined;
 
   const maintenant = new Date();
-  const { depuis, nbMois, comparable } = lirePeriode(periode, maintenant);
-  const mois = moisAffiches(nbMois, maintenant);
+  const { depuis, fin, ancre, nbMois, graphiqueTronque, debutPrecedent, libelle, sousTitre, du, au } = lirePeriode(
+    periode,
+    maintenant,
+    duDemande,
+    auDemande,
+  );
+  const mois = moisAffiches(nbMois, ancre);
   // Le graphique d'évolution ne remonte pas plus loin que ses mois affichés.
-  const debutGraphique = depuis ?? new Date(maintenant.getFullYear(), maintenant.getMonth() - (nbMois - 1), 1);
-  const debutPrecedent = depuis && comparable ? new Date(depuis.getFullYear(), depuis.getMonth() - nbMois, 1) : null;
+  const debutGraphique = new Date(ancre.getFullYear(), ancre.getMonth() - (nbMois - 1), 1);
 
   // Le chantier filtre ce qui s'y rattache : écarts, évènements SSE, actions
   // et remontées. Les écarts amiante n'ont pas de dossier.
@@ -131,12 +204,11 @@ export default async function SynthesePage({
     fiche: dossierId ? { ecart: { dossierId } } : {},
     lie: dossierId ? { ecarts: { some: { dossierId } } } : {},
   };
-  // Borne haute : fin du mois courant, pour que les chiffres et le graphique
-  // comptent la même chose (une date saisie dans le futur n'appartient à aucun
-  // mois affiché).
-  const finMois = new Date(maintenant.getFullYear(), maintenant.getMonth() + 1, 1);
-  const intervalle = (champ: string, debut: Date | null, fin: Date = finMois) =>
-    debut ? { [champ]: { gte: debut, lt: fin } } : { [champ]: { lt: fin } };
+  // Borne haute : fin de la période (fin du mois courant pour les périodes
+  // prédéfinies), pour que les chiffres et le graphique comptent la même chose
+  // (une date saisie dans le futur n'appartient à aucun mois affiché).
+  const intervalle = (champ: string, debut: Date | null, borneHaute: Date = fin) =>
+    debut ? { [champ]: { gte: debut, lt: borneHaute } } : { [champ]: { lt: borneHaute } };
 
   const [dossiers, ecartsPeriode, ecartsPrecedent, ecartsOuverts, ecartsParStatut] = await Promise.all([
     prisma.dossier.findMany({
@@ -266,10 +338,11 @@ export default async function SynthesePage({
   const tauxEfficacite =
     rexTotal > 0 ? Math.round(((rexStatutCounts.EFFICACITE_VERIFIEE ?? 0) / rexTotal) * 100) : null;
 
+  const plusieursAnnees = new Set(mois.map((m) => m.annee)).size > 1;
   const evolution = mois.map((m, i) => ({
     label: m.label,
-    // Au-delà d'un an, les mois se répètent : l'année s'affiche au premier mois et à chaque janvier.
-    annee: nbMois > 12 && (i === 0 || m.mois === 0) ? String(m.annee) : undefined,
+    // Quand les mois chevauchent deux années, l'année s'affiche au premier mois et à chaque janvier.
+    annee: plusieursAnnees && (i === 0 || m.mois === 0) ? String(m.annee) : undefined,
     valeurs: [
       repartirParMois(
         mois,
@@ -342,7 +415,7 @@ export default async function SynthesePage({
     .sort((a, b) => b.date.getTime() - a.date.getTime())
     .slice(0, 6);
 
-  const libellePeriode = PERIODES.find((p) => p.cle === periode)!.label.toLowerCase();
+  const libellePeriode = libelle;
   const chantierChoisi = dossiers.find((d) => d.id === dossierId);
   // Sans donnée sur la période précédente (l'historique ne remonte pas assez
   // loin), un « +91 » n'apprend rien : on n'affiche pas la variation.
@@ -355,7 +428,7 @@ export default async function SynthesePage({
         titre="Synthèse"
         sousTitre={`${
           chantierChoisi ? `Chantier ${chantierChoisi.chantier}` : "Tous les chantiers"
-        } · ${periode === "tout" ? "toute la période" : periode === "annee" ? "année en cours" : `${libellePeriode} glissants`}`}
+        } · ${sousTitre}`}
       >
         <div data-no-print>
           <BoutonExportPDF className="" />
@@ -365,6 +438,8 @@ export default async function SynthesePage({
       <div className="mb-8">
         <SyntheseFiltres
           periode={periode}
+          du={du}
+          au={au}
           dossier={dossierId ?? ""}
           dossiers={dossiers.map((d) => ({ id: d.id, libelle: `${d.chantier} (${d.reference})` }))}
         />
@@ -461,7 +536,7 @@ export default async function SynthesePage({
       </div>
 
       <TitreSection>Évolution</TitreSection>
-      <Bloc titre="Détections par mois" complement={periode === "tout" ? "24 derniers mois" : undefined}>
+      <Bloc titre="Détections par mois" complement={graphiqueTronque ? `${MOIS_MAX_GRAPHIQUE} derniers mois` : undefined}>
         <ColonnesGroupees
           mois={evolution}
           series={[

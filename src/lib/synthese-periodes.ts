@@ -6,4 +6,5 @@ export const PERIODES = [
   { cle: "12m", label: "12 mois" },
   { cle: "annee", label: "Année en cours" },
   { cle: "tout", label: "Tout" },
+  { cle: "perso", label: "Personnalisée" },
 ] as const;
