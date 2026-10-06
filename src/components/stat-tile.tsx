@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 const COULEURS = {
-  bleu: { bg: "bg-blue-50", text: "text-blue-600" },
+  bleu: { bg: "bg-primary/10", text: "text-primary" },
   orange: { bg: "bg-amber-50", text: "text-amber-600" },
   violet: { bg: "bg-purple-50", text: "text-purple-600" },
   sarcelle: { bg: "bg-teal-50", text: "text-teal-600" },
@@ -23,9 +23,9 @@ export function StatTile({
   couleur?: keyof typeof COULEURS;
 }) {
   const toneClasses = {
-    neutral: "border-slate-200 bg-white",
-    critical: "border-red-200 bg-white",
-    good: "border-green-200 bg-white",
+    neutral: "border-border bg-card",
+    critical: "border-red-200 bg-card",
+    good: "border-green-200 bg-card",
   }[tone];
 
   const valueClasses = {
@@ -37,10 +37,10 @@ export function StatTile({
   const c = COULEURS[couleur];
 
   return (
-    <div className={`rounded-lg border p-4 shadow-sm ${toneClasses}`}>
+    <div className={`rounded-xl border p-4 ${toneClasses}`}>
       <div className="mb-3 flex min-h-[2.5rem] items-center gap-3">
         {icon && (
-          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${c.bg} ${c.text}`}>
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${c.bg} ${c.text}`}>
             {icon}
           </span>
         )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { Button } from "@/components/ui/button";
 import { useOccupe } from "@/components/formulaire-editable";
 
 /**
@@ -18,12 +19,8 @@ export function BoutonCreer({ children }: { children: React.ReactNode }) {
   const { pending } = useFormStatus();
   const occupe = useOccupe();
   return (
-    <button
-      type="submit"
-      disabled={pending || occupe}
-      className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-    >
+    <Button type="submit" size="lg" disabled={pending || occupe}>
       {pending ? "Enregistrement…" : children}
-    </button>
+    </Button>
   );
 }

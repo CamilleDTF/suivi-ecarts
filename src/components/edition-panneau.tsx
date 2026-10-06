@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 import { PencilIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useOccupe, ZoneTraitement } from "@/components/formulaire-editable";
 import {
   Sheet,
   SheetClose,
@@ -19,6 +20,9 @@ import {
 // soumission (pending: true -> false) referme le panneau.
 function Enregistrer({ onDone }: { onDone: () => void }) {
   const { pending } = useFormStatus();
+  // Un champ pas encore prêt (une photo en cours de conversion) retient
+  // l'enregistrement : sans cela, on enregistrerait la fiche sans elle.
+  const occupe = useOccupe();
   const etaitEnCours = useRef(false);
 
   useEffect(() => {
@@ -27,7 +31,7 @@ function Enregistrer({ onDone }: { onDone: () => void }) {
   }, [pending, onDone]);
 
   return (
-    <Button type="submit" size="lg" disabled={pending}>
+    <Button type="submit" size="lg" disabled={pending || occupe}>
       {pending ? "Enregistrement…" : "Enregistrer"}
     </Button>
   );
@@ -75,6 +79,7 @@ export function EditionPanneau({
           <PencilIcon /> Modifier
         </SheetTrigger>
         <SheetContent className="data-[side=right]:sm:max-w-xl">
+          <ZoneTraitement>
           <form action={action} className="flex min-h-0 flex-1 flex-col">
             <SheetHeader className="border-b px-6 py-4">
               <SheetTitle className="text-lg">{titre}</SheetTitle>
@@ -91,6 +96,7 @@ export function EditionPanneau({
               <Enregistrer onDone={termine} />
             </SheetFooter>
           </form>
+          </ZoneTraitement>
         </SheetContent>
       </Sheet>
       {toast && (

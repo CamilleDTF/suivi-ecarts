@@ -1,16 +1,17 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Badge } from "@/components/badge";
-import { SelectAutoSubmit } from "@/components/select-auto-submit";
+import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
+import { EnteteTriable } from "@/components/entete-triable";
+import { FiltresListe } from "@/components/filtres-liste";
+import { BoutonArchives, BoutonNouveau, CadreTableau, ConteneurPage, EntetePage } from "@/components/page-liste";
 import { Pagination } from "@/components/pagination";
+import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
 import { Origine, StatutDossierEcart } from "@/generated/prisma/enums";
-import { ORIGINE_LABELS, STATUT_DOSSIER_ECART_COLORS, STATUT_DOSSIER_ECART_LABELS } from "@/lib/labels";
+import { ORIGINE_LABELS, STATUT_DOSSIER_ECART_LABELS } from "@/lib/labels";
 import { filtreStatutDossierEcart } from "@/lib/validation";
 import { lireTaillePage } from "@/lib/pagination";
 import { filtreArchive } from "@/lib/archivage";
-import { LienArchives } from "@/components/lien-archives";
 import { construireTri } from "@/lib/tri";
-import { EnteteTriable } from "@/components/entete-triable";
 
 const COLONNES_TRI = {
   reference: "reference",
@@ -19,6 +20,13 @@ const COLONNES_TRI = {
   origine: "origine",
   statut: "statut",
   dateDetection: "dateDetection",
+};
+
+const TON_STATUT: Record<string, TonStatut> = {
+  A_QUALIFIER: "neutre",
+  OUVERT: "ambre",
+  EN_COURS: "bleu",
+  CLOTURE: "vert",
 };
 
 export default async function DossiersPage({
@@ -90,144 +98,105 @@ export default async function DossiersPage({
   );
 
   const filtreActif = !!q || !!statut || !!origine;
+  const paramsEntete = { q, statut, origine, taille };
 
   return (
-    <div className="mx-auto max-w-[100rem] px-6 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">Dossiers</h1>
-        <Link
-          href="/dossiers/nouveau"
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          + Nouveau dossier
-        </Link>
+    <ConteneurPage>
+      <EntetePage
+        titre={archives === "1" ? "Dossiers archivés" : "Dossiers"}
+        sousTitre={`${total} dossier${total > 1 ? "s" : ""}${filtreActif ? " correspondant aux filtres" : ""}`}
+      >
+        <BoutonArchives basePath="/dossiers" archives={archives} params={{ q, statut, origine, taille, tri, sens }} />
+        <BoutonNouveau href="/dossiers/nouveau">Nouveau dossier</BoutonNouveau>
+      </EntetePage>
+
+      <div className="mb-4">
+        <FiltresListe
+          basePath="/dossiers"
+          placeholder="Rechercher un dossier, un chantier, un déclarant…"
+          recherche={q ?? ""}
+          conserves={{ tri, sens, taille, archives }}
+          filtres={[
+            {
+              name: "statut",
+              valeur: statut ?? "",
+              options: [
+                { value: "", label: "Tous les statuts" },
+                ...Object.values(StatutDossierEcart)
+                  .filter((s) => s !== "A_QUALIFIER")
+                  .map((s) => ({ value: s, label: STATUT_DOSSIER_ECART_LABELS[s] })),
+              ],
+            },
+            {
+              name: "origine",
+              valeur: origine ?? "",
+              options: [
+                { value: "", label: "Toutes les origines" },
+                ...Object.values(Origine).map((o) => ({ value: o, label: ORIGINE_LABELS[o] })),
+              ],
+            },
+          ]}
+        />
       </div>
 
-      <form method="get" className="mb-4 flex flex-wrap items-center gap-3">
-        <input
-          type="text"
-          name="q"
-          defaultValue={q ?? ""}
-          placeholder="Rechercher un dossier…"
-          className="min-w-[220px] flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-        <SelectAutoSubmit
-          name="statut"
-          defaultValue={statut ?? ""}
-          options={[
-            { value: "", label: "Statut : Tous" },
-            ...Object.values(StatutDossierEcart)
-              .filter((s) => s !== "A_QUALIFIER")
-              .map((s) => ({ value: s, label: STATUT_DOSSIER_ECART_LABELS[s] })),
-          ]}
-        />
-        <SelectAutoSubmit
-          name="origine"
-          defaultValue={origine ?? ""}
-          options={[
-            { value: "", label: "Origine : Toutes" },
-            ...Object.values(Origine).map((o) => ({ value: o, label: ORIGINE_LABELS[o] })),
-          ]}
-        />
-        {filtreActif && (
-          <Link href="/dossiers" className="text-sm text-slate-500 hover:underline">
-            Réinitialiser
-          </Link>
-        )}
-        <LienArchives archives={archives} params={{ q, statut, origine, taille, tri, sens }} />
-      </form>
-
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
-            <tr>
-              <EnteteTriable
-                colonne="reference"
-                libelle="Référence"
-                triActuel={tri}
-                sensActuel={sens}
-                params={{ q, statut, origine, taille }}
-              />
-              <EnteteTriable
-                colonne="chantier"
-                libelle="Chantier"
-                triActuel={tri}
-                sensActuel={sens}
-                params={{ q, statut, origine, taille }}
-              />
-              <EnteteTriable
-                colonne="declarant"
-                libelle="Déclarant"
-                triActuel={tri}
-                sensActuel={sens}
-                params={{ q, statut, origine, taille }}
-              />
-              <EnteteTriable
-                colonne="origine"
-                libelle="Origine"
-                triActuel={tri}
-                sensActuel={sens}
-                params={{ q, statut, origine, taille }}
-              />
-              <EnteteTriable
-                colonne="statut"
-                libelle="Statut"
-                triActuel={tri}
-                sensActuel={sens}
-                params={{ q, statut, origine, taille }}
-              />
-              <th className="px-4 py-3 font-medium">Écarts</th>
-              <th className="px-4 py-3 font-medium">Écarts ouverts</th>
-              <EnteteTriable
-                colonne="dateDetection"
-                libelle="Détecté le"
-                triActuel={tri}
-                sensActuel={sens}
-                params={{ q, statut, origine, taille }}
-              />
-            </tr>
-          </thead>
-          <tbody>
-            {dossiers.map((d) => (
-              <tr key={d.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                <td className="px-4 py-3">
-                  <Link href={`/dossiers/${d.id}`} className="font-medium text-blue-700 hover:underline">
-                    {d.reference}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-slate-700">{d.chantier}</td>
-                <td className="px-4 py-3 text-slate-700">{d.declarant}</td>
-                <td className="px-4 py-3 text-slate-700">{ORIGINE_LABELS[d.origine]}</td>
-                <td className="px-4 py-3">
-                  <Badge
-                    label={STATUT_DOSSIER_ECART_LABELS[d.statut]}
-                    colorClass={STATUT_DOSSIER_ECART_COLORS[d.statut]}
-                  />
-                </td>
-                <td className="px-4 py-3 text-slate-700">{d._count.ecarts}</td>
-                <td className="px-4 py-3">
-                  {(ouvertsParDossier.get(d.id) ?? 0) > 0 ? (
-                    <span className="font-medium text-slate-900">{ouvertsParDossier.get(d.id)}</span>
-                  ) : (
-                    <span className="text-slate-400">0</span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-slate-500">
-                  {d.dateDetection.toLocaleDateString("fr-FR")}
-                </td>
-              </tr>
-            ))}
+      <CadreTableau>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <EnteteTriable colonne="reference" libelle="Référence" triActuel={tri} sensActuel={sens} params={paramsEntete} />
+              <EnteteTriable colonne="chantier" libelle="Chantier" triActuel={tri} sensActuel={sens} params={paramsEntete} />
+              <EnteteTriable colonne="declarant" libelle="Déclarant" triActuel={tri} sensActuel={sens} params={paramsEntete} />
+              <EnteteTriable colonne="origine" libelle="Origine" triActuel={tri} sensActuel={sens} params={paramsEntete} />
+              <EnteteTriable colonne="statut" libelle="Statut" triActuel={tri} sensActuel={sens} params={paramsEntete} />
+              <TableHead className="text-right">Écarts</TableHead>
+              <TableHead className="text-right">Ouverts</TableHead>
+              <EnteteTriable colonne="dateDetection" libelle="Détecté le" triActuel={tri} sensActuel={sens} params={paramsEntete} />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {dossiers.map((d) => {
+              const ouverts = ouvertsParDossier.get(d.id) ?? 0;
+              return (
+                <TableRow key={d.id}>
+                  <TableCell>
+                    <Link href={`/dossiers/${d.id}`} className="font-medium underline-offset-4 hover:underline">
+                      {d.reference}
+                    </Link>
+                  </TableCell>
+                  <TableCell className="max-w-xs truncate">{d.chantier}</TableCell>
+                  <TableCell className="text-muted-foreground">{d.declarant}</TableCell>
+                  <TableCell className="text-muted-foreground">{ORIGINE_LABELS[d.origine]}</TableCell>
+                  <TableCell>
+                    <BadgeStatut label={STATUT_DOSSIER_ECART_LABELS[d.statut]} ton={TON_STATUT[d.statut]} />
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{d._count.ecarts}</TableCell>
+                  <TableCell className={`text-right tabular-nums ${ouverts > 0 ? "font-medium" : "text-muted-foreground"}`}>
+                    {ouverts}
+                  </TableCell>
+                  <TableCell className="tabular-nums text-muted-foreground">
+                    {d.dateDetection.toLocaleDateString("fr-FR")}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
             {dossiers.length === 0 && (
-              <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-slate-400">
-                  {filtreActif ? "Aucun dossier ne correspond à ce filtre." : "Aucun dossier pour l'instant."}
-                </td>
-              </tr>
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
+                  {filtreActif ? "Aucun dossier ne correspond à ces filtres." : "Aucun dossier pour l'instant."}
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-        {total > 0 && <Pagination total={total} page={page} pageSize={taillePage} baseParams={{ q, statut, origine, taille }} />}
-      </div>
-    </div>
+          </TableBody>
+        </Table>
+        {total > 0 && (
+          <Pagination
+            total={total}
+            page={page}
+            pageSize={taillePage}
+            baseParams={{ q, statut, origine, taille, tri, sens, archives }}
+          />
+        )}
+      </CadreTableau>
+    </ConteneurPage>
   );
 }
