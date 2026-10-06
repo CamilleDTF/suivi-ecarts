@@ -21,8 +21,8 @@ function toDateInput(d?: Date | null) {
 }
 
 const inputCls =
-  "w-full rounded-md border border-slate-300 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
-const labelCls = "mb-1 block text-sm font-medium text-slate-700";
+  "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground";
+const labelCls = "mb-1.5 block text-sm font-medium";
 
 export function ActionFields({ v }: { v: ActionValues }) {
   const disabled = !useEditMode();
@@ -50,7 +50,7 @@ export function ActionFields({ v }: { v: ActionValues }) {
         <textarea name="action" defaultValue={v.action} required rows={3} className={inputCls} />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div>
           <label className={labelCls}>Responsable</label>
           <select name="responsable" defaultValue={v.responsable} required className={inputCls}>
@@ -68,13 +68,13 @@ export function ActionFields({ v }: { v: ActionValues }) {
         <div>
           <label className={labelCls}>Réalisé le</label>
           <input type="date" name="realiseeLe" defaultValue={toDateInput(v.realiseeLe)} className={inputCls} />
-          <p className="mt-1 text-xs text-slate-400">Une date fait passer l&apos;action à « Réalisée ».</p>
+          <p className="mt-1 text-xs text-muted-foreground">Une date fait passer l&apos;action à « Réalisée ».</p>
         </div>
       </div>
 
-      <div className="border-t border-slate-100 pt-4">
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Validation</h2>
-        <div className="mb-4 grid grid-cols-2 gap-4">
+      <div className="border-t pt-4">
+        <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Validation</h2>
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={labelCls}>Vérifié par</label>
             <select name="verifiePar" defaultValue={v.verifiePar ?? ""} className={inputCls}>

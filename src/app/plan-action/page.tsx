@@ -1,16 +1,19 @@
 import Link from "next/link";
+import { DownloadIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { Badge } from "@/components/badge";
-import { SelectAutoSubmit } from "@/components/select-auto-submit";
-import { StatutAction } from "@/generated/prisma/enums";
-import { STATUT_ACTION_COLORS, STATUT_ACTION_LABELS, TYPE_ACTION_LABELS, RESPONSABLES } from "@/lib/labels";
+import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
+import { EnteteTriable } from "@/components/entete-triable";
+import { FiltresListe } from "@/components/filtres-liste";
+import { BoutonArchives, BoutonNouveau, CadreTableau, ConteneurPage, EntetePage } from "@/components/page-liste";
 import { Pagination } from "@/components/pagination";
+import { buttonVariants } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { StatutAction } from "@/generated/prisma/enums";
+import { STATUT_ACTION_LABELS, TYPE_ACTION_LABELS, RESPONSABLES } from "@/lib/labels";
 import { filtreStatutAction } from "@/lib/validation";
 import { lireTaillePage } from "@/lib/pagination";
 import { filtreArchive } from "@/lib/archivage";
-import { LienArchives } from "@/components/lien-archives";
 import { construireTri } from "@/lib/tri";
-import { EnteteTriable } from "@/components/entete-triable";
 
 const COLONNES_TRI = {
   reference: "reference",
@@ -20,6 +23,16 @@ const COLONNES_TRI = {
   echeance: "echeance",
   statut: "statut",
 };
+
+const TON_STATUT: Record<string, TonStatut> = {
+  A_FAIRE: "neutre",
+  EN_COURS: "bleu",
+  EN_RETARD: "rouge",
+  REALISEE: "vert",
+  ANNULEE: "neutre",
+};
+
+const LIEN_RATTACHEMENT = "text-muted-foreground underline-offset-4 hover:text-foreground hover:underline";
 
 export default async function PlanActionPage({
   searchParams,
@@ -93,6 +106,11 @@ export default async function PlanActionPage({
   ]);
 
   const filtreActif = !!q || !!statut || !!responsable;
+  const paramsEntete = { q, statut, responsable, taille, archives };
+
+  // Un responsable passé dans l'URL mais absent de la liste (ancienne valeur)
+  // reste affiché dans le filtre plutôt que de le laisser vide.
+  const responsables = !responsable || RESPONSABLES.includes(responsable) ? RESPONSABLES : [responsable, ...RESPONSABLES];
 
   const paramsExport = new URLSearchParams();
   if (statut) paramsExport.set("statut", statut);
@@ -100,175 +118,126 @@ export default async function PlanActionPage({
   const hrefExport = `/plan-action/export${paramsExport.toString() ? `?${paramsExport.toString()}` : ""}`;
 
   return (
-    <div className="mx-auto max-w-[100rem] px-6 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">Plan d&apos;action</h1>
-        <div className="flex gap-2">
-          <a
-            href={hrefExport}
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Exporter
-          </a>
-          <Link
-            href="/plan-action/nouveau"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            + Nouvelle action
-          </Link>
-        </div>
+    <ConteneurPage>
+      <EntetePage
+        titre={archives === "1" ? "Plan d'action archivé" : "Plan d'action"}
+        sousTitre={`${total} action${total > 1 ? "s" : ""}${filtreActif ? " correspondant aux filtres" : ""}`}
+      >
+        <BoutonArchives basePath="/plan-action" archives={archives} params={{ q, statut, responsable, taille, tri, sens }} />
+        <a href={hrefExport} className={buttonVariants({ variant: "outline", size: "lg" })}>
+          <DownloadIcon /> Exporter
+        </a>
+        <BoutonNouveau href="/plan-action/nouveau">Nouvelle action</BoutonNouveau>
+      </EntetePage>
+
+      <div className="mb-4">
+        <FiltresListe
+          basePath="/plan-action"
+          placeholder="Rechercher une action, un responsable, un rattachement…"
+          recherche={q ?? ""}
+          conserves={{ tri, sens, taille, archives }}
+          filtres={[
+            {
+              name: "statut",
+              valeur: statut ?? "",
+              options: [
+                { value: "", label: "Tous les statuts" },
+                ...Object.values(StatutAction).map((s) => ({ value: s, label: STATUT_ACTION_LABELS[s] })),
+              ],
+            },
+            {
+              name: "responsable",
+              valeur: responsable ?? "",
+              options: [{ value: "", label: "Tous les responsables" }, ...responsables.map((r) => ({ value: r, label: r }))],
+            },
+          ]}
+        />
       </div>
 
-      <form method="get" className="mb-4 flex flex-wrap items-center gap-3">
-        <input
-          type="text"
-          name="q"
-          defaultValue={q ?? ""}
-          placeholder="Rechercher une action…"
-          className="min-w-[220px] flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-        <SelectAutoSubmit
-          name="statut"
-          defaultValue={statut ?? ""}
-          options={[
-            { value: "", label: "Statut : Tous" },
-            ...Object.values(StatutAction).map((s) => ({ value: s, label: STATUT_ACTION_LABELS[s] })),
-          ]}
-        />
-        <SelectAutoSubmit
-          name="responsable"
-          defaultValue={responsable ?? ""}
-          options={[
-            { value: "", label: "Responsable : Tous" },
-            ...RESPONSABLES.map((r) => ({ value: r, label: r })),
-          ]}
-        />
-        {filtreActif && (
-          <Link href="/plan-action" className="text-sm text-slate-500 hover:underline">
-            Réinitialiser
-          </Link>
-        )}
-        <LienArchives archives={archives} params={{ q, statut, responsable, taille, tri, sens }} />
-      </form>
-
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
-            <tr>
-              <EnteteTriable
-                colonne="reference"
-                libelle="Référence"
-                triActuel={tri}
-                sensActuel={sens}
-                params={{ q, statut, responsable, taille }}
-              />
-              <th className="px-4 py-3 font-medium">Rattaché à</th>
-              <EnteteTriable
-                colonne="type"
-                libelle="Type"
-                triActuel={tri}
-                sensActuel={sens}
-                params={{ q, statut, responsable, taille }}
-              />
-              <EnteteTriable
-                colonne="action"
-                libelle="Action"
-                triActuel={tri}
-                sensActuel={sens}
-                params={{ q, statut, responsable, taille }}
-              />
-              <EnteteTriable
-                colonne="responsable"
-                libelle="Responsable"
-                triActuel={tri}
-                sensActuel={sens}
-                params={{ q, statut, responsable, taille }}
-              />
-              <EnteteTriable
-                colonne="echeance"
-                libelle="Échéance"
-                triActuel={tri}
-                sensActuel={sens}
-                params={{ q, statut, responsable, taille }}
-              />
-              <EnteteTriable
-                colonne="statut"
-                libelle="Statut"
-                triActuel={tri}
-                sensActuel={sens}
-                params={{ q, statut, responsable, taille }}
-              />
-            </tr>
-          </thead>
-          <tbody>
+      <CadreTableau>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <EnteteTriable colonne="reference" libelle="Référence" triActuel={tri} sensActuel={sens} params={paramsEntete} />
+              <TableHead>Rattaché à</TableHead>
+              <EnteteTriable colonne="type" libelle="Type" triActuel={tri} sensActuel={sens} params={paramsEntete} />
+              <EnteteTriable colonne="action" libelle="Action" triActuel={tri} sensActuel={sens} params={paramsEntete} />
+              <EnteteTriable colonne="responsable" libelle="Responsable" triActuel={tri} sensActuel={sens} params={paramsEntete} />
+              <EnteteTriable colonne="echeance" libelle="Échéance" triActuel={tri} sensActuel={sens} params={paramsEntete} />
+              <EnteteTriable colonne="statut" libelle="Statut" triActuel={tri} sensActuel={sens} params={paramsEntete} />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {actions.map((a) => (
-              <tr key={a.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                <td className="whitespace-nowrap px-4 py-3">
-                  <Link href={`/plan-action/${a.id}`} className="font-medium text-blue-700 hover:underline">
+              <TableRow key={a.id}>
+                <TableCell>
+                  <Link href={`/plan-action/${a.id}`} className="font-medium underline-offset-4 hover:underline">
                     {a.reference}
                   </Link>
-                </td>
-                <td className="px-4 py-3">
+                </TableCell>
+                <TableCell>
                   {a.ecarts.length > 0 ? (
                     // Plusieurs écarts : tous listés, chacun cliquable. En
                     // afficher un seul laisserait croire à un rattachement
                     // unique.
-                    <span className="flex flex-wrap gap-x-2 gap-y-0.5">
+                    <span className="flex max-w-56 flex-wrap gap-x-2 gap-y-0.5">
                       {a.ecarts.map((e) => (
-                        <Link key={e.id} href={`/ecarts/${e.id}`} className="text-slate-600 hover:underline">
+                        <Link key={e.id} href={`/ecarts/${e.id}`} title="Écart" className={LIEN_RATTACHEMENT}>
                           {e.reference}
                         </Link>
                       ))}
                     </span>
                   ) : a.ficheSSE ? (
-                    <Link href={`/fiches-sse/${a.ficheSSE.id}`} className="text-slate-600 hover:underline">
+                    <Link href={`/fiches-sse/${a.ficheSSE.id}`} title="Évènement SSE" className={LIEN_RATTACHEMENT}>
                       {a.ficheSSE.reference}
                     </Link>
                   ) : a.ecartAmiante ? (
-                    <Link href={`/ecart-amiante/${a.ecartAmiante.id}`} className="text-slate-600 hover:underline">
+                    <Link href={`/ecart-amiante/${a.ecartAmiante.id}`} title="Écart amiante" className={LIEN_RATTACHEMENT}>
                       {a.ecartAmiante.reference}
                     </Link>
                   ) : a.remontee ? (
-                    <Link href={`/remontees/${a.remontee.id}`} className="text-slate-600 hover:underline">
+                    <Link href={`/remontees/${a.remontee.id}`} title="Remontée" className={LIEN_RATTACHEMENT}>
                       {a.remontee.reference}
                     </Link>
                   ) : a.rex ? (
-                    <Link href={`/rex/${a.rex.id}`} className="text-slate-600 hover:underline">
+                    <Link href={`/rex/${a.rex.id}`} title="REX" className={LIEN_RATTACHEMENT}>
                       {a.rex.reference}
                     </Link>
                   ) : (
-                    <span className="text-slate-400">—</span>
+                    <span className="text-muted-foreground">—</span>
                   )}
-                </td>
-                <td className="px-4 py-3 text-slate-700">{TYPE_ACTION_LABELS[a.type]}</td>
-                <td className="max-w-xs truncate px-4 py-3 text-slate-700">{a.action}</td>
-                <td className="px-4 py-3 text-slate-700">{a.responsable}</td>
-                <td className="px-4 py-3 text-slate-500">
+                </TableCell>
+                <TableCell className="text-muted-foreground">{TYPE_ACTION_LABELS[a.type]}</TableCell>
+                <TableCell className="max-w-sm truncate" title={a.action}>
+                  {a.action}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{a.responsable}</TableCell>
+                <TableCell className="tabular-nums text-muted-foreground">
                   {a.echeance ? a.echeance.toLocaleDateString("fr-FR") : "—"}
-                </td>
-                <td className="px-4 py-3">
-                  <Badge label={STATUT_ACTION_LABELS[a.statut]} colorClass={STATUT_ACTION_COLORS[a.statut]} />
-                </td>
-              </tr>
+                </TableCell>
+                <TableCell>
+                  <BadgeStatut label={STATUT_ACTION_LABELS[a.statut]} ton={TON_STATUT[a.statut]} />
+                </TableCell>
+              </TableRow>
             ))}
             {actions.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                  {filtreActif ? "Aucune action ne correspond à ce filtre." : "Aucune action pour l'instant."}
-                </td>
-              </tr>
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                  {filtreActif ? "Aucune action ne correspond à ces filtres." : "Aucune action pour l'instant."}
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
         {total > 0 && (
           <Pagination
             total={total}
             page={page}
             pageSize={taillePage}
-            baseParams={{ q, statut, responsable, taille }}
+            baseParams={{ q, statut, responsable, taille, tri, sens, archives }}
           />
         )}
-      </div>
-    </div>
+      </CadreTableau>
+    </ConteneurPage>
   );
 }

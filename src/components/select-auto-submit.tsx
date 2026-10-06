@@ -5,7 +5,7 @@ export function SelectAutoSubmit({
   defaultValue,
   options,
   form,
-  className = "rounded-md border border-slate-300 px-3 py-2 text-sm",
+  className = "h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
 }: {
   name: string;
   defaultValue: string;

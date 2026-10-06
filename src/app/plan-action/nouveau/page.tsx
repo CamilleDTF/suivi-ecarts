@@ -3,8 +3,16 @@ import { creerAction } from "@/app/plan-action/actions";
 import { TYPE_ACTION_LABELS, RESPONSABLES } from "@/lib/labels";
 import { TypeAction } from "@/generated/prisma/enums";
 import { BoutonCreer } from "@/components/bouton-creer";
+import { BoutonRetour } from "@/components/bouton-retour";
 import { ChoixRattachementAction } from "@/components/choix-rattachement-action";
+import { ConteneurPage, EntetePage } from "@/components/page-liste";
 import { libelleRattachement } from "@/lib/labels";
+
+const inputCls =
+  "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+const labelCls = "mb-1.5 block text-sm font-medium";
+// Parent imposé par l'URL : lu, pas choisi.
+const parentCls = "rounded-lg border bg-muted/40 px-2.5 py-1.5 text-sm";
 
 export default async function NouvelleActionPage({
   searchParams,
@@ -62,43 +70,54 @@ export default async function NouvelleActionPage({
         }),
       ]);
 
-  return (
-    <div className="mx-auto max-w-2xl px-6 py-8">
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Nouvelle action</h1>
+  // Le retour mène au parent quand l'URL en désigne un (« + Action » depuis sa
+  // fiche), au plan d'action sinon.
+  const retour = fiche
+    ? { href: `/fiches-sse/${fiche.id}`, label: "Retour à l'évènement SSE" }
+    : ecartAmiante
+      ? { href: `/ecart-amiante/${ecartAmiante.id}`, label: "Retour à l'écart amiante" }
+      : remontee
+        ? { href: `/remontees/${remontee.id}`, label: "Retour à la remontée" }
+        : rex
+          ? { href: `/rex/${rex.id}`, label: "Retour au REX" }
+          : ecartId
+            ? { href: `/ecarts/${ecartId}`, label: "Retour à l'écart" }
+            : { href: "/plan-action", label: "Retour au plan d'action" };
 
-      <form action={creerAction} className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
+  return (
+    <ConteneurPage largeur="formulaire">
+      <BoutonRetour href={retour.href} label={retour.label} />
+      <EntetePage titre="Nouvelle action" />
+
+      <form action={creerAction} className="space-y-4 rounded-xl border bg-card p-6">
         {fiche ? (
           <div>
             <input type="hidden" name="ficheSSEId" value={fiche.id} />
-            <label className="mb-1 block text-sm font-medium text-slate-700">Rattachée à</label>
-            <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-              Évènement {fiche.reference}
-            </p>
-            <p className="mt-1 text-xs text-slate-400">
+            <label className={labelCls}>Rattachée à</label>
+            <p className={parentCls}>Évènement {fiche.reference}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
               Cette action sera rattachée uniquement à l&apos;évènement, pas à l&apos;écart ou l&apos;écart amiante lié.
             </p>
           </div>
         ) : ecartAmiante ? (
           <div>
             <input type="hidden" name="ecartAmianteId" value={ecartAmiante.id} />
-            <label className="mb-1 block text-sm font-medium text-slate-700">Rattachée à</label>
-            <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-              Écart amiante {ecartAmiante.reference}
-            </p>
+            <label className={labelCls}>Rattachée à</label>
+            <p className={parentCls}>Écart amiante {ecartAmiante.reference}</p>
           </div>
         ) : remontee ? (
           <div>
             <input type="hidden" name="remonteeId" value={remontee.id} />
-            <label className="mb-1 block text-sm font-medium text-slate-700">Rattachée à</label>
-            <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            <label className={labelCls}>Rattachée à</label>
+            <p className={parentCls}>
               Remontée {remontee.reference} — {remontee.objet}
             </p>
           </div>
         ) : rex ? (
           <div>
             <input type="hidden" name="rexId" value={rex.id} />
-            <label className="mb-1 block text-sm font-medium text-slate-700">Rattachée à</label>
-            <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            <label className={labelCls}>Rattachée à</label>
+            <p className={parentCls}>
               REX {rex.reference} — {rex.titre}
             </p>
           </div>
@@ -158,8 +177,8 @@ export default async function NouvelleActionPage({
         )}
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Type</label>
-          <select name="type" required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
+          <label className={labelCls}>Type</label>
+          <select name="type" required className={inputCls}>
             {Object.values(TypeAction).map((t) => (
               <option key={t} value={t}>
                 {TYPE_ACTION_LABELS[t]}
@@ -169,23 +188,14 @@ export default async function NouvelleActionPage({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Action</label>
-          <textarea
-            name="action"
-            required
-            rows={3}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
+          <label className={labelCls}>Action</label>
+          <textarea name="action" required rows={3} className={inputCls} />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Responsable</label>
-            <select
-              name="responsable"
-              required
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            >
+            <label className={labelCls}>Responsable</label>
+            <select name="responsable" required className={inputCls}>
               {RESPONSABLES.map((r) => (
                 <option key={r} value={r}>
                   {r}
@@ -194,29 +204,21 @@ export default async function NouvelleActionPage({
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Échéance</label>
-            <input
-              type="date"
-              name="echeance"
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
+            <label className={labelCls}>Échéance</label>
+            <input type="date" name="echeance" className={inputCls} />
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Réalisé le</label>
-          <input
-            type="date"
-            name="realiseeLe"
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-          <p className="mt-1 text-xs text-slate-400">Une date fait passer l&apos;action à « Réalisée ».</p>
+          <label className={labelCls}>Réalisé le</label>
+          <input type="date" name="realiseeLe" className={inputCls} />
+          <p className="mt-1 text-xs text-muted-foreground">Une date fait passer l&apos;action à « Réalisée ».</p>
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
           <BoutonCreer>Créer l&apos;action</BoutonCreer>
         </div>
       </form>
-    </div>
+    </ConteneurPage>
   );
 }

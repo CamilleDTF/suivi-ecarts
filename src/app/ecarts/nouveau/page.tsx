@@ -10,6 +10,8 @@ import {
 import { Origine, TypeActivite } from "@/generated/prisma/enums";
 import { ChoixDossier } from "@/components/choix-dossier";
 import { BoutonCreer } from "@/components/bouton-creer";
+import { BoutonRetour } from "@/components/bouton-retour";
+import { ConteneurPage, EntetePage } from "@/components/page-liste";
 
 export default async function NouvelEcartPage({
   searchParams,
@@ -25,16 +27,18 @@ export default async function NouvelEcartPage({
   const dossierSelectionne = dossierId ? dossiers.find((d) => d.id === dossierId) : undefined;
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-8">
-      <h1 className="mb-1 text-2xl font-semibold text-slate-900">Nouvel écart</h1>
-      {remontee && (
-        <p className="mb-6 text-sm text-slate-500">
-          Créé à partir de la remontée {remontee.reference} — {remontee.objet}. La remontée passera
-          en « Transformée en écart ».
-        </p>
-      )}
+    <ConteneurPage largeur="formulaire">
+      <BoutonRetour href="/ecarts" label="Écarts" />
+      <EntetePage
+        titre="Nouvel écart"
+        sousTitre={
+          remontee
+            ? `Créé à partir de la remontée ${remontee.reference} — ${remontee.objet}. La remontée passera en « Transformée en écart ».`
+            : undefined
+        }
+      />
 
-      <form action={creerEcart} className="mt-6 space-y-4 rounded-lg border border-slate-200 bg-white p-6">
+      <form action={creerEcart} className="space-y-4 rounded-xl border bg-card p-6">
         {remonteeId && <input type="hidden" name="remonteeId" value={remonteeId} />}
         <ChoixDossier
           dossiers={dossiers}
@@ -166,6 +170,6 @@ export default async function NouvelEcartPage({
           <BoutonCreer>Créer l&apos;écart</BoutonCreer>
         </div>
       </form>
-    </div>
+    </ConteneurPage>
   );
 }

@@ -6,6 +6,7 @@ import { DonutChart } from "@/components/donut-chart";
 import { ActiviteRecente, type ActiviteItem } from "@/components/activite-recente";
 import { IconFolder, IconAlertTriangle, IconFileText } from "@/components/icons";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
+import { ConteneurPage, EntetePage } from "@/components/page-liste";
 import { compterOccurrences } from "@/lib/statistiques";
 
 // Le navigateur nomme le PDF d'après le titre du document : la date évite que
@@ -239,13 +240,12 @@ export default async function SynthesePage() {
   const typeDominant = trouverDominant(typeRepartition, totalEvenements);
 
   return (
-    <div className="mx-auto max-w-[100rem] px-6 py-8">
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-semibold text-slate-900">Synthèse</h1>
+    <ConteneurPage>
+      <EntetePage titre="Synthèse" sousTitre="Vue d’ensemble des dossiers, écarts, évènements SSE et retours d’expérience.">
         <div data-no-print>
-          <BoutonExportPDF />
+          <BoutonExportPDF className="" />
         </div>
-      </div>
+      </EntetePage>
 
       <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatTile
@@ -342,7 +342,7 @@ export default async function SynthesePage() {
 
       {(rexTotal > 0 || rexBrouillons > 0) && (
         <div className="mb-8">
-          <h2 className="mb-3 text-lg font-semibold text-slate-900">Retour d&apos;expérience (REX)</h2>
+          <h2 className="mb-3 font-display text-xl font-semibold">Retour d&apos;expérience (REX)</h2>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <StatTile label="REX publiés" value={rexTotal} icon={<IconFileText className="h-5 w-5" />} couleur="bleu" />
             <StatTile
@@ -395,7 +395,7 @@ export default async function SynthesePage() {
       </div>
 
       <div className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">Focus Évènements SSE</h2>
+        <h2 className="mb-3 font-display text-xl font-semibold">Focus Évènements SSE</h2>
 
         <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
           <StatTile
@@ -450,6 +450,6 @@ export default async function SynthesePage() {
           </div>
         )}
       </div>
-    </div>
+    </ConteneurPage>
   );
 }

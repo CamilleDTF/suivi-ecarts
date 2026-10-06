@@ -25,7 +25,7 @@ export function DateAutoSubmit({
         name={name}
         defaultValue={defaultValue}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}
-        className="rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900"
+        className="h-9 rounded-lg border border-input bg-transparent px-2.5 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
       />
     </label>
   );

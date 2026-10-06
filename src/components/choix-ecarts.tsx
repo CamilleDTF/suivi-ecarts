@@ -36,7 +36,7 @@ export function ChoixEcarts({
           if (e.target.value) setChoisis([...choisis, e.target.value]);
         }}
         disabled={restants.length === 0}
-        className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-400"
+        className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:bg-muted disabled:text-muted-foreground"
       >
         <option value="">
           {restants.length === 0
@@ -57,14 +57,14 @@ export function ChoixEcarts({
           {choisis.map((id) => (
             <li
               key={id}
-              className="flex items-start gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-sm"
+              className="flex items-start gap-2 rounded-lg border bg-muted/40 px-3 py-1.5 text-sm"
             >
-              <span className="min-w-0 flex-1 text-slate-700">{libelle(id)}</span>
+              <span className="min-w-0 flex-1">{libelle(id)}</span>
               <button
                 type="button"
                 onClick={() => setChoisis(choisis.filter((c) => c !== id))}
                 aria-label={`Retirer ${libelle(id)}`}
-                className="shrink-0 text-sm font-medium text-red-600 hover:underline"
+                className="shrink-0 text-sm font-medium text-destructive hover:underline"
               >
                 Retirer
               </button>
@@ -75,7 +75,7 @@ export function ChoixEcarts({
       )}
 
       {choisis.length === 0 && (
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-muted-foreground">
           {options.length === 0 ? "Aucun écart pour l'instant." : "Au moins un écart est requis."}
         </p>
       )}

@@ -13,7 +13,8 @@ type TypeRattachement = {
   multiple?: boolean;
 };
 
-const inputCls = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm";
+const inputCls =
+  "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
 
 /**
  * Choix du rattachement d'une nouvelle action.
@@ -41,13 +42,14 @@ export function ChoixRattachementAction({
 
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium text-slate-700">Rattachée à</label>
-      <div className="mb-2 flex flex-wrap items-center gap-4 text-sm text-slate-700">
+      <label className="mb-1.5 block text-sm font-medium">Rattachée à</label>
+      <div className="mb-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
         {types.map((t) => (
-          <label key={t.cle} className="flex items-center gap-1.5">
+          <label key={t.cle} className="flex cursor-pointer items-center gap-1.5">
             <input
               type="radio"
               name="typeRattachement"
+              className="accent-primary"
               value={t.cle}
               checked={choisi === t.cle}
               onChange={() => setChoisi(t.cle)}
@@ -77,7 +79,7 @@ export function ChoixRattachementAction({
             ))}
           </select>
           {actif.options.length === 0 && (
-            <p className="mt-1 text-xs text-slate-400">Aucun élément de ce type pour l&apos;instant.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Aucun élément de ce type pour l&apos;instant.</p>
           )}
         </>
       )}

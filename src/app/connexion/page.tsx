@@ -3,6 +3,9 @@
 import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ShieldCheckIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 function ConnexionForm() {
   const router = useRouter();
@@ -31,49 +34,46 @@ function ConnexionForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-sm rounded-xl border border-slate-200 bg-white p-8 shadow-sm"
-      >
-        <h1 className="mb-1 text-xl font-semibold text-slate-900">
-          Suivi des écarts
-        </h1>
-        <p className="mb-6 text-sm text-slate-500">Connecte-toi pour continuer.</p>
+    <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <form onSubmit={onSubmit} className="w-full max-w-sm rounded-xl border bg-card p-8">
+        <span className="mb-6 flex size-11 items-center justify-center rounded-lg bg-sidebar text-sidebar-primary">
+          <ShieldCheckIcon className="size-5" />
+        </span>
+        <h1 className="mb-1 font-display text-3xl font-semibold tracking-tight">Suivi des écarts</h1>
+        <p className="mb-6 text-sm text-muted-foreground">Connecte-toi pour continuer.</p>
 
-        <label className="mb-1 block text-sm font-medium text-slate-700">
+        <label htmlFor="identifiant" className="mb-1.5 block text-sm font-medium">
           Identifiant
         </label>
-        <input
+        <Input
+          id="identifiant"
           type="text"
           autoComplete="username"
           placeholder="Ton prénom"
           required
           value={identifiant}
           onChange={(e) => setIdentifiant(e.target.value)}
-          className="mb-4 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="mb-4 h-9"
         />
 
-        <label className="mb-1 block text-sm font-medium text-slate-700">
+        <label htmlFor="mot-de-passe" className="mb-1.5 block text-sm font-medium">
           Mot de passe
         </label>
-        <input
+        <Input
+          id="mot-de-passe"
           type="password"
+          autoComplete="current-password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mb-4 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="mb-4 h-9"
         />
 
-        {erreur && <p className="mb-4 text-sm text-red-600">{erreur}</p>}
+        {erreur && <p className="mb-4 text-sm text-destructive">{erreur}</p>}
 
-        <button
-          type="submit"
-          disabled={enCours}
-          className="w-full rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-        >
+        <Button type="submit" size="lg" disabled={enCours} className="w-full">
           {enCours ? "Connexion..." : "Se connecter"}
-        </button>
+        </Button>
       </form>
     </div>
   );

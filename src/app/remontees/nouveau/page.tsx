@@ -4,6 +4,7 @@ import { RemonteeFields } from "@/components/remontee-fields";
 import { AvertissementNonEnregistre } from "@/components/avertissement-non-enregistre";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonCreer } from "@/components/bouton-creer";
+import { ConteneurPage, EntetePage } from "@/components/page-liste";
 
 export default async function NouvelleRemonteePage() {
   // Suggestions : chantiers déjà connus des dossiers et des remontées.
@@ -16,17 +17,15 @@ export default async function NouvelleRemonteePage() {
   ].sort();
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-8">
+    <ConteneurPage largeur="formulaire">
       <BoutonRetour href="/remontees" label="Retour aux remontées" />
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Nouvelle remontée d&apos;information</h1>
+      <EntetePage
+        titre="Nouvelle remontée d’information"
+        sousTitre="Une remontée d’information peut rester une simple information, ou être transformée en écart si nécessaire."
+      />
 
-      <form action={creerRemontee} className="space-y-6 rounded-lg border border-slate-200 bg-white p-6">
+      <form action={creerRemontee} className="space-y-6 rounded-xl border bg-card p-6">
         <AvertissementNonEnregistre />
-
-        <p className="rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-800">
-          Une remontée d&apos;information peut rester une simple information, ou être transformée en
-          écart si nécessaire.
-        </p>
 
         <RemonteeFields chantiersConnus={chantiersConnus} />
 
@@ -34,6 +33,6 @@ export default async function NouvelleRemonteePage() {
           <BoutonCreer>Enregistrer la remontée</BoutonCreer>
         </div>
       </form>
-    </div>
+    </ConteneurPage>
   );
 }

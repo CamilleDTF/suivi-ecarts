@@ -1,14 +1,17 @@
 import Link from "next/link";
+import { DownloadIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { SelectAutoSubmit } from "@/components/select-auto-submit";
-import { RESPONSABLES_DU, TYPES_ACTION_DU, referenceActionDU, avecValeursExistantes } from "@/lib/labels";
+import { EnteteTriable } from "@/components/entete-triable";
+import { FiltresListe } from "@/components/filtres-liste";
+import { ListePreuves } from "@/components/liste-preuves";
+import { BoutonArchives, BoutonNouveau, CadreTableau, ConteneurPage, EntetePage } from "@/components/page-liste";
 import { Pagination } from "@/components/pagination";
+import { buttonVariants } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RESPONSABLES_DU, TYPES_ACTION_DU, referenceActionDU, avecValeursExistantes } from "@/lib/labels";
 import { lireTaillePage } from "@/lib/pagination";
 import { filtreArchive } from "@/lib/archivage";
-import { LienArchives } from "@/components/lien-archives";
 import { construireTri } from "@/lib/tri";
-import { EnteteTriable } from "@/components/entete-triable";
-import { ListePreuves } from "@/components/liste-preuves";
 
 const COLONNES_TRI = {
   numero: "numero",
@@ -16,6 +19,10 @@ const COLONNES_TRI = {
   typeAction: "typeAction",
   responsable: "responsable",
 };
+
+// Les mesures du DU sont des phrases entières et plusieurs cellules reviennent
+// à la ligne : on aligne tout en haut, avec un peu plus d'air que le défaut.
+const CELLULE = "py-3 align-top whitespace-normal";
 
 /**
  * "PA3", "pa 3" ou "3" désignent le numéro 3.
@@ -92,7 +99,7 @@ export default async function PlanActionDUPage({
   ]);
 
   const filtreActif = !!q || !!typeAction || !!responsable;
-  const params = { q, typeAction, responsable, taille };
+  const params = { q, typeAction, responsable, taille, archives };
 
   const paramsExport = new URLSearchParams();
   if (typeAction) paramsExport.set("typeAction", typeAction);
@@ -100,76 +107,58 @@ export default async function PlanActionDUPage({
   const hrefExport = `/plan-action-du/export${paramsExport.toString() ? `?${paramsExport.toString()}` : ""}`;
 
   return (
-    <div className="mx-auto max-w-[100rem] px-6 py-8">
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Plan d&apos;action DU</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Mesures de prévention du Document Unique. Les numéros PA sont ceux auxquels renvoient les
-            fiches de risques.
-          </p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <a
-            href={hrefExport}
-            className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Exporter
-          </a>
-          <Link
-            href="/plan-action-du/nouveau"
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            + Nouvelle action
-          </Link>
-        </div>
+    <ConteneurPage>
+      <EntetePage
+        titre={archives === "1" ? "Plan d'action DU archivé" : "Plan d'action DU"}
+        sousTitre={`${total} action${total > 1 ? "s" : ""}${filtreActif ? " correspondant aux filtres" : ""}. Mesures de prévention du Document Unique : les numéros PA sont ceux auxquels renvoient les fiches de risques.`}
+      >
+        <BoutonArchives basePath="/plan-action-du" archives={archives} params={{ ...params, tri, sens }} />
+        <a href={hrefExport} className={buttonVariants({ variant: "outline", size: "lg" })}>
+          <DownloadIcon /> Exporter
+        </a>
+        <BoutonNouveau href="/plan-action-du/nouveau">Nouvelle action</BoutonNouveau>
+      </EntetePage>
+
+      <div className="mb-4">
+        <FiltresListe
+          basePath="/plan-action-du"
+          placeholder="Rechercher (PA3, un risque, une preuve…)"
+          recherche={q ?? ""}
+          conserves={{ tri, sens, taille, archives }}
+          filtres={[
+            {
+              name: "typeAction",
+              valeur: typeAction ?? "",
+              options: [
+                { value: "", label: "Tous les types" },
+                ...avecValeursExistantes(
+                  TYPES_ACTION_DU,
+                  typesUtilises.map((t) => t.typeAction!),
+                ).map((t) => ({ value: t, label: t })),
+              ],
+            },
+            {
+              name: "responsable",
+              valeur: responsable ?? "",
+              options: [
+                { value: "", label: "Tous les responsables" },
+                ...avecValeursExistantes(
+                  RESPONSABLES_DU,
+                  responsablesUtilises.map((r) => r.responsable!),
+                ).map((r) => ({ value: r, label: r })),
+              ],
+            },
+          ]}
+        />
       </div>
 
-      <form method="get" className="mb-4 flex flex-wrap items-center gap-3">
-        <input
-          type="text"
-          name="q"
-          defaultValue={q ?? ""}
-          placeholder="Rechercher (PA3, un risque, une preuve…)"
-          className="min-w-[220px] flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-        <SelectAutoSubmit
-          name="typeAction"
-          defaultValue={typeAction ?? ""}
-          options={[
-            { value: "", label: "Type : Tous" },
-            ...avecValeursExistantes(
-              TYPES_ACTION_DU,
-              typesUtilises.map((t) => t.typeAction!),
-            ).map((t) => ({ value: t, label: t })),
-          ]}
-        />
-        <SelectAutoSubmit
-          name="responsable"
-          defaultValue={responsable ?? ""}
-          options={[
-            { value: "", label: "Responsable : Tous" },
-            ...avecValeursExistantes(
-              RESPONSABLES_DU,
-              responsablesUtilises.map((r) => r.responsable!),
-            ).map((r) => ({ value: r, label: r })),
-          ]}
-        />
-        {filtreActif && (
-          <Link href="/plan-action-du" className="text-sm text-slate-500 hover:underline">
-            Réinitialiser
-          </Link>
-        )}
-        <LienArchives archives={archives} params={{ q, typeAction, responsable, taille, tri, sens }} />
-      </form>
-
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-left align-top text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
-            <tr>
+      <CadreTableau>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
               <EnteteTriable colonne="numero" libelle="N°" triActuel={tri} sensActuel={sens} params={params} />
               <EnteteTriable colonne="action" libelle="Action" triActuel={tri} sensActuel={sens} params={params} />
-              <th className="px-4 py-3 font-medium">Risques concernés</th>
+              <TableHead>Risques concernés</TableHead>
               <EnteteTriable
                 colonne="typeAction"
                 libelle="Type d'action"
@@ -184,44 +173,54 @@ export default async function PlanActionDUPage({
                 sensActuel={sens}
                 params={params}
               />
-              <th className="px-4 py-3 font-medium">Preuve de réalisation</th>
-            </tr>
-          </thead>
-          <tbody>
+              <TableHead>Preuve de réalisation</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {actions.map((a) => (
-              <tr key={a.id} className="border-b border-slate-100 align-top last:border-0 hover:bg-slate-50">
-                <td className="whitespace-nowrap px-4 py-3">
-                  <Link
-                    href={`/plan-action-du/${a.id}`}
-                    className="font-medium text-blue-700 hover:underline"
-                  >
+              <TableRow key={a.id}>
+                <TableCell className={`${CELLULE} whitespace-nowrap`}>
+                  <Link href={`/plan-action-du/${a.id}`} className="font-medium underline-offset-4 hover:underline">
                     {referenceActionDU(a.numero)}
                   </Link>
-                </td>
+                </TableCell>
                 {/* Pas de troncature sur l'action : les mesures du DU sont des
                     phrases entières, et le tableau sert à les relire. */}
-                <td className="min-w-[22rem] px-4 py-3 text-slate-700">{a.action}</td>
-                <td className="px-4 py-3 text-slate-600">{a.risquesConcernes ?? "—"}</td>
-                <td className="whitespace-nowrap px-4 py-3 text-slate-700">{a.typeAction ?? "—"}</td>
-                <td className="px-4 py-3 text-slate-700">{a.responsable ?? "—"}</td>
-                <td className="px-4 py-3 text-slate-600">
-                  <ListePreuves valeur={a.preuveRealisation} />
-                </td>
-              </tr>
+                <TableCell className={`${CELLULE} min-w-[22rem]`}>{a.action}</TableCell>
+                <TableCell className={`${CELLULE} min-w-[8rem] text-muted-foreground`}>
+                  {a.risquesConcernes || "—"}
+                </TableCell>
+                <TableCell className={`${CELLULE} whitespace-nowrap text-muted-foreground`}>
+                  {a.typeAction || "—"}
+                </TableCell>
+                <TableCell className={`${CELLULE} min-w-[9rem] text-muted-foreground`}>
+                  {a.responsable || "—"}
+                </TableCell>
+                <TableCell className={`${CELLULE} min-w-[10rem] text-muted-foreground`}>
+                  {/* ListePreuves colore son tiret en gris ardoise : on gère le
+                      cas vide ici pour rester sur la palette de la refonte. */}
+                  {a.preuveRealisation?.trim() ? <ListePreuves valeur={a.preuveRealisation} /> : "—"}
+                </TableCell>
+              </TableRow>
             ))}
             {actions.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
-                  {filtreActif
-                    ? "Aucune action ne correspond à ce filtre."
-                    : "Aucune action pour l'instant."}
-                </td>
-              </tr>
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                  {filtreActif ? "Aucune action ne correspond à ces filtres." : "Aucune action pour l'instant."}
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-        {total > 0 && <Pagination total={total} page={page} pageSize={taillePage} baseParams={params} />}
-      </div>
-    </div>
+          </TableBody>
+        </Table>
+        {total > 0 && (
+          <Pagination
+            total={total}
+            page={page}
+            pageSize={taillePage}
+            baseParams={{ ...params, tri, sens }}
+          />
+        )}
+      </CadreTableau>
+    </ConteneurPage>
   );
 }

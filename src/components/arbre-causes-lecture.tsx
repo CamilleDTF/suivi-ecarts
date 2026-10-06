@@ -24,12 +24,12 @@ function Branche({ noeud, profondeur }: { noeud: Noeud; profondeur: number }) {
   return (
     <li style={{ marginLeft: profondeur * 18 }} className="mt-1.5 break-inside-avoid">
       <div className="flex flex-wrap items-baseline gap-2">
-        <span aria-hidden className="text-slate-300">
+        <span aria-hidden className="text-muted-foreground/60">
           {profondeur === 0 ? "▪" : "↳"}
         </span>
-        <span className="text-sm text-slate-800">{noeud.libelle}</span>
+        <span className="text-sm">{noeud.libelle}</span>
         {noeud.estCauseRacine && (
-          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
             Cause racine
           </span>
         )}

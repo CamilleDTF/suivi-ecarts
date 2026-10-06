@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { Badge } from "@/components/badge";
-import { SelectAutoSubmit } from "@/components/select-auto-submit";
+import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
+import { EnteteTriable } from "@/components/entete-triable";
+import { FiltresFichesSSE } from "@/components/filtres-fiches-sse";
+import { BoutonArchives, BoutonNouveau, CadreTableau, ConteneurPage, EntetePage } from "@/components/page-liste";
 import { Pagination } from "@/components/pagination";
+import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from "@/components/ui/table";
 import { StatutFiche } from "@/generated/prisma/enums";
 import {
-  STATUT_FICHE_COLORS,
   STATUT_FICHE_LABELS,
   THEME_OPTIONS,
   DOMAINES_OPTIONS,
@@ -14,10 +16,7 @@ import {
 } from "@/lib/labels";
 import { lireTaillePage } from "@/lib/pagination";
 import { filtreArchive } from "@/lib/archivage";
-import { LienArchives } from "@/components/lien-archives";
 import { construireTri } from "@/lib/tri";
-import { EnteteTriable } from "@/components/entete-triable";
-import { DateAutoSubmit } from "@/components/date-auto-submit";
 
 const COLONNES_TRI = {
   reference: "reference",
@@ -32,6 +31,12 @@ const COLONNES_TRI = {
 // décroissante remonterait d'abord les évènements dont la date n'est pas
 // saisie.
 const COLONNES_NULLABLES = ["date", "type", "chantier", "emetteur"];
+
+const TON_STATUT: Record<string, TonStatut> = {
+  BROUILLON: "neutre",
+  EN_COURS: "bleu",
+  FINALISEE: "vert",
+};
 
 export default async function FichesSSEPage({
   searchParams,
@@ -150,161 +155,96 @@ export default async function FichesSSEPage({
   const paramsListe = { q, statut, type, du, au, taille, archives };
 
   return (
-    <div className="mx-auto max-w-[100rem] px-6 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-slate-900">Évènements SSE</h1>
-        <Link
-          href="/fiches-sse/nouveau"
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          + Nouvel évènement SSE
-        </Link>
-      </div>
+    <ConteneurPage>
+      <EntetePage
+        titre={archives === "1" ? "Évènements SSE archivés" : "Évènements SSE"}
+        sousTitre={`${total} évènement${total > 1 ? "s" : ""}${filtreActif ? " correspondant aux filtres" : ""}`}
+      >
+        <BoutonArchives basePath="/fiches-sse" archives={archives} params={{ q, statut, type, du, au, taille, tri, sens }} />
+        <BoutonNouveau href="/fiches-sse/nouveau">Nouvel évènement SSE</BoutonNouveau>
+      </EntetePage>
 
-      <form method="get" className="mb-4 flex flex-wrap items-center gap-3">
-        <input
-          type="text"
-          name="q"
-          defaultValue={q ?? ""}
-          placeholder="Rechercher un évènement…"
-          className="min-w-[220px] flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm"
-        />
-        <SelectAutoSubmit
-          name="statut"
-          defaultValue={statut ?? ""}
-          options={[
-            { value: "", label: "Statut : Tous" },
+      <div className="mb-4">
+        <FiltresFichesSSE
+          recherche={q ?? ""}
+          statut={statut ?? ""}
+          type={type ?? ""}
+          du={du ?? ""}
+          au={au ?? ""}
+          statuts={[
+            { value: "", label: "Tous les statuts" },
             ...Object.values(StatutFiche).map((s) => ({ value: s, label: STATUT_FICHE_LABELS[s] })),
           ]}
+          types={[{ value: "", label: "Tous les types" }, ...typesProposes.map((t) => ({ value: t, label: t }))]}
+          conserves={{ tri, sens, taille, archives }}
         />
-        <SelectAutoSubmit
-          name="type"
-          defaultValue={type ?? ""}
-          options={[
-            { value: "", label: "Type : Tous" },
-            ...typesProposes.map((t) => ({ value: t, label: t })),
-          ]}
-        />
-        <DateAutoSubmit name="du" defaultValue={du ?? ""} label="Du" />
-        <DateAutoSubmit name="au" defaultValue={au ?? ""} label="au" />
-        {/* Le tri, la taille de page et la vue archives ne sont pas des champs
-            du formulaire : sans ces champs cachés, filtrer les remettrait à
-            zéro. */}
-        {tri && <input type="hidden" name="tri" value={tri} />}
-        {sens && <input type="hidden" name="sens" value={sens} />}
-        {taille && <input type="hidden" name="taille" value={taille} />}
-        {archives && <input type="hidden" name="archives" value={archives} />}
-        {filtreActif && (
-          <Link href="/fiches-sse" className="text-sm text-slate-500 hover:underline">
-            Réinitialiser
-          </Link>
-        )}
-        <LienArchives archives={archives} params={{ q, statut, type, du, au, taille, tri, sens }} />
-      </form>
+      </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
-            <tr>
-              <EnteteTriable
-                colonne="reference"
-                libelle="Référence"
-                triActuel={tri}
-                sensActuel={sens}
-                params={paramsListe}
-              />
-              <EnteteTriable
-                colonne="date"
-                libelle="Date"
-                triActuel={tri}
-                sensActuel={sens}
-                params={paramsListe}
-              />
-              <EnteteTriable
-                colonne="type"
-                libelle="Type d'évènement"
-                triActuel={tri}
-                sensActuel={sens}
-                params={paramsListe}
-              />
-              <th className="px-4 py-3 font-medium">Rattaché à</th>
-              <EnteteTriable
-                colonne="chantier"
-                libelle="Chantier"
-                triActuel={tri}
-                sensActuel={sens}
-                params={paramsListe}
-              />
-              <EnteteTriable
-                colonne="emetteur"
-                libelle="Émetteur"
-                triActuel={tri}
-                sensActuel={sens}
-                params={paramsListe}
-              />
-              <EnteteTriable
-                colonne="statut"
-                libelle="Statut"
-                triActuel={tri}
-                sensActuel={sens}
-                params={paramsListe}
-              />
-            </tr>
-          </thead>
-          <tbody>
+      <CadreTableau>
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <EnteteTriable colonne="reference" libelle="Référence" triActuel={tri} sensActuel={sens} params={paramsListe} />
+              <EnteteTriable colonne="date" libelle="Date" triActuel={tri} sensActuel={sens} params={paramsListe} />
+              <EnteteTriable colonne="type" libelle="Type d'évènement" triActuel={tri} sensActuel={sens} params={paramsListe} />
+              <TableHead>Rattaché à</TableHead>
+              <EnteteTriable colonne="chantier" libelle="Chantier" triActuel={tri} sensActuel={sens} params={paramsListe} />
+              <EnteteTriable colonne="emetteur" libelle="Émetteur" triActuel={tri} sensActuel={sens} params={paramsListe} />
+              <EnteteTriable colonne="statut" libelle="Statut" triActuel={tri} sensActuel={sens} params={paramsListe} />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {fiches.map((f) => (
-              <tr key={f.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                <td className="px-4 py-3">
-                  <Link href={`/fiches-sse/${f.id}`} className="font-medium text-blue-700 hover:underline">
+              <TableRow key={f.id}>
+                <TableCell>
+                  <Link href={`/fiches-sse/${f.id}`} className="font-medium underline-offset-4 hover:underline">
                     {f.reference}
                   </Link>
-                </td>
-                <td className="px-4 py-3 whitespace-nowrap text-slate-700">
+                </TableCell>
+                <TableCell className="tabular-nums text-muted-foreground">
                   {f.dateHeure ? f.dateHeure.toLocaleDateString("fr-FR") : "—"}
-                </td>
-                <td className="px-4 py-3 text-slate-700">{f.typeEvenement || "—"}</td>
-                <td className="px-4 py-3">
+                </TableCell>
+                <TableCell className="max-w-xs truncate">{f.typeEvenement || "—"}</TableCell>
+                <TableCell>
                   {/* Un évènement peut naître d'un écart ou d'un écart amiante :
                       la colonne montrait le premier cas et affichait "Aucun"
                       pour le second, alors que le rattachement existe. */}
                   {f.ecart ? (
-                    <Link href={`/ecarts/${f.ecart.id}`} className="text-slate-600 hover:underline">
+                    <Link href={`/ecarts/${f.ecart.id}`} className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
                       {f.ecart.reference}
                     </Link>
                   ) : f.ecartAmiante ? (
-                    <Link href={`/ecart-amiante/${f.ecartAmiante.id}`} className="text-slate-600 hover:underline">
+                    <Link
+                      href={`/ecart-amiante/${f.ecartAmiante.id}`}
+                      className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                    >
                       {f.ecartAmiante.reference}
-                      <span className="ml-1 text-xs text-slate-400">(amiante)</span>
+                      <span className="ml-1 text-xs">(amiante)</span>
                     </Link>
                   ) : (
-                    <span className="text-slate-400">Aucun</span>
+                    <span className="text-muted-foreground">Aucun</span>
                   )}
-                </td>
-                <td className="px-4 py-3 text-slate-700">{f.nomChantier || "—"}</td>
-                <td className="px-4 py-3 text-slate-700">{f.emetteur || "—"}</td>
-                <td className="px-4 py-3">
-                  <Badge label={STATUT_FICHE_LABELS[f.statutFiche]} colorClass={STATUT_FICHE_COLORS[f.statutFiche]} />
-                </td>
-              </tr>
+                </TableCell>
+                <TableCell className="max-w-xs truncate">{f.nomChantier || "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{f.emetteur || "—"}</TableCell>
+                <TableCell>
+                  <BadgeStatut label={STATUT_FICHE_LABELS[f.statutFiche]} ton={TON_STATUT[f.statutFiche]} />
+                </TableCell>
+              </TableRow>
             ))}
             {fiches.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-400">
-                  {filtreActif ? "Aucun évènement ne correspond à ce filtre." : "Aucun évènement SSE pour l'instant."}
-                </td>
-              </tr>
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
+                  {filtreActif ? "Aucun évènement ne correspond à ces filtres." : "Aucun évènement SSE pour l'instant."}
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
         {total > 0 && (
-          <Pagination
-            total={total}
-            page={page}
-            pageSize={taillePage}
-            baseParams={{ ...paramsListe, tri, sens }}
-          />
+          <Pagination total={total} page={page} pageSize={taillePage} baseParams={{ ...paramsListe, tri, sens }} />
         )}
-      </div>
-    </div>
+      </CadreTableau>
+    </ConteneurPage>
   );
 }

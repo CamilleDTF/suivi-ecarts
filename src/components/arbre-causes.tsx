@@ -35,9 +35,9 @@ function CauseNode({
   return (
     <li style={{ marginLeft: depth * 20 }} className="mt-2">
       <div className="flex items-center gap-2">
-        <span className="text-sm text-slate-800">{cause.libelle}</span>
+        <span className="text-sm">{cause.libelle}</span>
         {cause.estCauseRacine && (
-          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+          <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
             Cause racine
           </span>
         )}
@@ -45,7 +45,7 @@ function CauseNode({
           <button
             type="button"
             onClick={() => onSupprimer(cause.id)}
-            className="text-xs text-slate-400 hover:text-red-600"
+            className="text-xs text-muted-foreground hover:text-destructive"
           >
             supprimer
           </button>
@@ -112,10 +112,10 @@ export function ArbreCauses({
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Arbre des causes</h2>
+    <div className="rounded-xl border bg-card p-4">
+      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Arbre des causes</h2>
 
-      {causes.length === 0 && <p className="text-sm text-slate-400">Aucune cause renseignée.</p>}
+      {causes.length === 0 && <p className="text-sm text-muted-foreground">Aucune cause renseignée.</p>}
 
       <ul>
         {arbre.map((cause) => (
@@ -131,13 +131,13 @@ export function ArbreCauses({
       </ul>
 
       {!disabled && (
-        <div className="mt-4 space-y-2 border-t border-slate-100 pt-4">
+        <div className="mt-4 space-y-2 border-t pt-4">
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">Nouvelle cause</label>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Nouvelle cause</label>
             <input
               value={libelle}
               onChange={(e) => setLibelle(e.target.value)}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               placeholder="Description de la cause"
             />
           </div>
@@ -145,7 +145,7 @@ export function ArbreCauses({
             <select
               value={parentId}
               onChange={(e) => setParentId(e.target.value)}
-              className="max-w-full flex-1 rounded-md border border-slate-300 px-2 py-1.5 text-sm sm:max-w-xs"
+              className="max-w-full flex-1 rounded-lg border border-input bg-transparent px-2 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:max-w-xs"
             >
               <option value="">— Cause de premier niveau —</option>
               {causes.map((c) => (
@@ -154,7 +154,7 @@ export function ArbreCauses({
                 </option>
               ))}
             </select>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
                 checked={estCauseRacine}
@@ -166,7 +166,7 @@ export function ArbreCauses({
               type="button"
               onClick={handleAjouter}
               disabled={enCours || !libelle.trim()}
-              className="ml-auto rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+              className="ml-auto rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/80 disabled:opacity-50"
             >
               {enCours ? "..." : "Ajouter"}
             </button>

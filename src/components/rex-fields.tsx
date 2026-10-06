@@ -27,8 +27,8 @@ type RexValues = {
 };
 
 const inputCls =
-  "w-full rounded-md border border-slate-300 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
-const labelCls = "mb-1 block text-sm font-medium text-slate-700";
+  "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground";
+const labelCls = "mb-1.5 block text-sm font-medium";
 
 // Reprend la liste des sous-types connus, en y ajoutant toute valeur déjà
 // enregistrée qui n'y figure pas, pour ne pas la perdre à l'enregistrement.
@@ -45,7 +45,7 @@ export function RexFields({ v = {} }: { v?: RexValues }) {
   const pointsCommuns = avecValeursExistantes(POINTS_COMMUNS_REX_OPTIONS, v.pointsCommuns);
 
   return (
-    <fieldset disabled={disabled} className="space-y-4 disabled:opacity-60">
+    <fieldset disabled={disabled} className="space-y-5 disabled:opacity-60">
       <div>
         <label className={labelCls}>Titre</label>
         <input name="titre" defaultValue={v.titre ?? ""} required className={inputCls} />
@@ -63,7 +63,7 @@ export function RexFields({ v = {} }: { v?: RexValues }) {
       <div>
         <label className={labelCls}>Bonne pratique / pratique observée</label>
         <textarea name="pratiqueDescription" defaultValue={v.pratiqueDescription ?? ""} rows={2} className={inputCls} />
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1.5 text-xs text-muted-foreground">
           La bonne pratique à généraliser, ou la pratique observée à ne pas reproduire selon la nature choisie.
         </p>
       </div>
@@ -78,7 +78,7 @@ export function RexFields({ v = {} }: { v?: RexValues }) {
             </option>
           ))}
         </select>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1.5 text-xs text-muted-foreground">
           Renseigné seulement si ce REX vient d&apos;un évènement SSE.
         </p>
       </div>
@@ -92,8 +92,8 @@ export function RexFields({ v = {} }: { v?: RexValues }) {
         <legend className={labelCls}>Points communs observés</legend>
         <div className="flex flex-wrap gap-x-4 gap-y-2">
           {pointsCommuns.map((p) => (
-            <label key={p} className="flex items-center gap-2 text-sm text-slate-700">
-              <input type="checkbox" name="pointsCommuns" value={p} defaultChecked={(v.pointsCommuns ?? []).includes(p)} />
+            <label key={p} className="flex items-center gap-2 text-sm">
+              <input type="checkbox" className="accent-primary" name="pointsCommuns" value={p} defaultChecked={(v.pointsCommuns ?? []).includes(p)} />
               {p}
             </label>
           ))}
@@ -119,8 +119,8 @@ export function RexFields({ v = {} }: { v?: RexValues }) {
         <legend className={labelCls}>Thèmes concernés</legend>
         <div className="flex flex-wrap gap-x-4 gap-y-2">
           {themes.map((t) => (
-            <label key={t} className="flex items-center gap-2 text-sm text-slate-700">
-              <input type="checkbox" name="themes" value={t} defaultChecked={(v.themes ?? []).includes(t)} />
+            <label key={t} className="flex items-center gap-2 text-sm">
+              <input type="checkbox" className="accent-primary" name="themes" value={t} defaultChecked={(v.themes ?? []).includes(t)} />
               {t}
             </label>
           ))}
@@ -131,9 +131,10 @@ export function RexFields({ v = {} }: { v?: RexValues }) {
         <legend className={labelCls}>Qui doit recevoir ce REX</legend>
         <div className="flex flex-wrap gap-x-4 gap-y-2">
           {destinataires.map((d) => (
-            <label key={d} className="flex items-center gap-2 text-sm text-slate-700">
+            <label key={d} className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
+                className="accent-primary"
                 name="destinatairesRoles"
                 value={d}
                 defaultChecked={(v.destinatairesRoles ?? []).includes(d)}
@@ -148,8 +149,8 @@ export function RexFields({ v = {} }: { v?: RexValues }) {
         <legend className={labelCls}>Canaux de diffusion</legend>
         <div className="flex flex-wrap gap-x-4 gap-y-2">
           {canaux.map((c) => (
-            <label key={c} className="flex items-center gap-2 text-sm text-slate-700">
-              <input type="checkbox" name="canaux" value={c} defaultChecked={(v.canaux ?? []).includes(c)} />
+            <label key={c} className="flex items-center gap-2 text-sm">
+              <input type="checkbox" className="accent-primary" name="canaux" value={c} defaultChecked={(v.canaux ?? []).includes(c)} />
               {c}
             </label>
           ))}

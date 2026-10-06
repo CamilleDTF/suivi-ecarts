@@ -68,8 +68,9 @@ type FicheSSEValues = {
 };
 
 const inputCls =
-  "w-full rounded-md border border-slate-300 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
-const labelCls = "mb-1 block text-sm font-medium text-slate-700";
+  "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-muted/50 disabled:text-muted-foreground";
+const labelCls = "mb-1.5 block text-sm font-medium";
+const titreSectionCls = "mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground";
 
 function toDatetimeLocal(d?: Date | null) {
   return d ? d.toISOString().slice(0, 16) : "";
@@ -124,7 +125,7 @@ function CasesACocher({
   return (
     <div className="flex flex-wrap gap-x-4 gap-y-2">
       {avecValeursExistantes(options, v).map((o) => (
-        <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
+        <label key={o} className="flex items-center gap-2 text-sm">
           <input type="checkbox" name={name} value={o} defaultChecked={v.includes(o)} />
           {o}
         </label>
@@ -174,12 +175,12 @@ export function FicheSSEFields({
   return (
     <fieldset disabled={disabled} className="space-y-6 disabled:opacity-60">
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">1. Déclaration</h2>
+        <h2 className={titreSectionCls}>1. Déclaration</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Numéro interne</label>
             {nouveau ? (
-              <p className="rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-400">
+              <p className="rounded-lg border border-dashed bg-muted/40 px-2.5 py-1.5 text-sm text-muted-foreground">
                 Généré automatiquement à l&apos;enregistrement
               </p>
             ) : (
@@ -240,7 +241,7 @@ export function FicheSSEFields({
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">2. Mesures immédiates</h2>
+        <h2 className={titreSectionCls}>2. Mesures immédiates</h2>
         <textarea
           name="mesuresImmediatesPrises"
           rows={2}
@@ -250,7 +251,7 @@ export function FicheSSEFields({
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">3. Évaluation du risque</h2>
+        <h2 className={titreSectionCls}>3. Évaluation du risque</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Type d&apos;événement</label>
@@ -287,8 +288,8 @@ export function FicheSSEFields({
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">4. Communication (déclaration externe)</h2>
-        <label className="mb-3 flex items-center gap-2 text-sm text-slate-700">
+        <h2 className={titreSectionCls}>4. Communication (déclaration externe)</h2>
+        <label className="mb-3 flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             name="declarationExterneNecessaire"
@@ -309,7 +310,7 @@ export function FicheSSEFields({
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">5. Type d&apos;analyse des causes</h2>
+        <h2 className={titreSectionCls}>5. Type d&apos;analyse des causes</h2>
         <select
           name="typeAnalyse"
           defaultValue={v.typeAnalyse ?? ""}
@@ -328,14 +329,14 @@ export function FicheSSEFields({
       {TYPES_ANALYSE_AVEC_ARBRE_CAUSES.includes(typeAnalyse) && apresTypeAnalyse}
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">
+        <h2 className={titreSectionCls}>
           Documentation et communication
         </h2>
         <div className="mb-3">
           <label className={labelCls}>Mise à jour nécessaire ?</label>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {MISE_A_JOUR_OPTIONS.map((o) => (
-              <label key={o} className="flex items-center gap-2 text-sm text-slate-700">
+              <label key={o} className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"
                   name="miseAJourNecessaire"
@@ -381,7 +382,7 @@ export function FicheSSEFields({
           </div>
         )}
 
-        <label className="mt-4 mb-3 flex items-center gap-2 text-sm text-slate-700">
+        <label className="mt-4 mb-3 flex items-center gap-2 text-sm">
           <input
             type="checkbox"
             name="communicationInterne"
@@ -400,7 +401,7 @@ export function FicheSSEFields({
           />
         </div>
 
-        <label className="mt-4 flex items-center gap-2 text-sm text-slate-700">
+        <label className="mt-4 flex items-center gap-2 text-sm">
           <input type="checkbox" name="nouveauRisqueNecessaire" defaultChecked={!!v.nouveauRisqueNecessaire} />
           Nouveau risque à ajouter
         </label>
@@ -415,7 +416,7 @@ export function FicheSSEFields({
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">8. Validation &amp; clôture</h2>
+        <h2 className={titreSectionCls}>8. Validation &amp; clôture</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Nom (validation)</label>
@@ -426,7 +427,7 @@ export function FicheSSEFields({
             <input name="validationFonction" defaultValue={v.validationFonction ?? ""} className={inputCls} />
           </div>
         </div>
-        <label className="mt-4 mb-3 flex items-center gap-2 text-sm text-slate-700">
+        <label className="mt-4 mb-3 flex items-center gap-2 text-sm">
           <input type="checkbox" name="toutesActionsCloturees" defaultChecked={!!v.toutesActionsCloturees} />
           Toutes les actions sont clôturées
         </label>

@@ -1,33 +1,51 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronRightIcon, CircleDashedIcon, FileTextIcon, PlusIcon, SendIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { Badge } from "@/components/badge";
 import {
   ORIGINE_REX_LABELS,
-  STATUT_REX_COLORS,
   STATUT_REX_LABELS,
   NATURE_REX_LABELS,
-  NATURE_REX_COLORS,
+  NATURES_REX_REQUERANT_DESCRIPTION,
   TYPE_ACTION_LABELS,
-  STATUT_ACTION_COLORS,
   STATUT_ACTION_LABELS,
 } from "@/lib/labels";
-import {
-  mettreAJourRex,
-  changerStatutRex,
-  publierRex,
-  supprimerRex,
-} from "@/app/rex/actions";
+import { mettreAJourRex, changerStatutRex, publierRex, supprimerRex } from "@/app/rex/actions";
 import { StatutREX } from "@/generated/prisma/enums";
-import { StatutSelectForm } from "@/components/statut-select-form";
-import { FormulaireEditable } from "@/components/formulaire-editable";
-import { RexFields } from "@/components/rex-fields";
-import { BoutonSupprimer } from "@/components/bouton-supprimer";
-import { BoutonArchiver } from "@/components/bouton-archiver";
 import { archiver, desarchiver } from "@/app/archivage/actions";
-import { BoutonRetour } from "@/components/bouton-retour";
+import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
+import { BadgeBrouillon, BadgeNatureRex, BadgeStatutRex, TON_STATUT_REX } from "@/components/badges-rex";
+import { EditionPanneau } from "@/components/edition-panneau";
+import { Carte, EtatVide, FicheSection, Pastilles, Propriete, Proprietes, TexteLong } from "@/components/fiche";
+import { RexFields } from "@/components/rex-fields";
+import { StatutParcours } from "@/components/statut-parcours";
+import { BoutonArchiver } from "@/components/bouton-archiver";
+import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
+import { buttonVariants } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
+const TON_ACTION: Record<string, TonStatut> = {
+  A_FAIRE: "neutre",
+  EN_COURS: "bleu",
+  EN_RETARD: "rouge",
+  REALISEE: "vert",
+  ANNULEE: "neutre",
+};
+const ETAPES_STATUT = Object.values(StatutREX).map((s) => ({
+  value: s,
+  label: STATUT_REX_LABELS[s],
+  ton: TON_STATUT_REX[s],
+}));
+// Le libellé suit ce que la nature décrit, comme dans l'assistant de création.
+const LIBELLE_PRATIQUE: Record<string, string> = {
+  BONNE_PRATIQUE: "Bonne pratique",
+  PRATIQUE_A_EVITER: "Pratique observée",
+};
+const LIEN_ORIGINE = "font-medium underline-offset-4 hover:underline";
+
+// Le navigateur nomme le PDF d’après le titre du document : sans titre
+// propre à la fiche, tous les exports s’enregistreraient sous le même nom.
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const rex = await prisma.rex.findUnique({ where: { id }, select: { reference: true } });
@@ -54,207 +72,225 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
 
   if (!rex) notFound();
 
-  return (
-    <div className="mx-auto max-w-[100rem] px-6 py-8">
-      <BoutonRetour href="/rex" label="Retour aux REX" />
+  const lienAjout = buttonVariants({ variant: "outline", size: "sm" });
+  const aDiffusion = rex.themes.length > 0 || rex.destinatairesRoles.length > 0 || rex.canaux.length > 0;
+  const affichePratique =
+    !!rex.pratiqueDescription?.trim() || NATURES_REX_REQUERANT_DESCRIPTION.includes(rex.nature);
 
-      <div className="mb-6 flex items-start justify-between">
-        <div>
-          <div className="mb-1 flex flex-wrap items-center gap-3">
-            <h1 className="text-2xl font-semibold text-slate-900">{rex.reference}</h1>
-            {rex.brouillon && <Badge label="Brouillon" colorClass="bg-slate-200 text-slate-700" />}
-            <Badge label={STATUT_REX_LABELS[rex.statut]} colorClass={STATUT_REX_COLORS[rex.statut]} />
-            <Badge label={NATURE_REX_LABELS[rex.nature]} colorClass={NATURE_REX_COLORS[rex.nature]} />
+  return (
+    <div className="mx-auto max-w-[80rem] px-4 py-8 lg:px-8">
+      <nav data-no-print aria-label="Fil d'Ariane" className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+        <Link href="/rex" className="hover:text-foreground hover:underline">
+          Retours d&apos;expérience
+        </Link>
+        <ChevronRightIcon className="size-3.5" aria-hidden />
+        <span className="text-foreground">{rex.reference}</span>
+      </nav>
+
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 max-w-3xl space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-md bg-primary px-2 py-0.5 text-xs font-semibold tracking-wide text-primary-foreground">
+              {rex.reference}
+            </span>
+            {rex.brouillon && <BadgeBrouillon />}
+            <BadgeStatutRex statut={rex.statut} />
+            <BadgeNatureRex nature={rex.nature} />
           </div>
-          <p className="text-sm text-slate-500">{rex.titre}</p>
+          <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight">{rex.titre}</h1>
         </div>
-        <div data-no-print className="flex shrink-0 flex-wrap justify-end gap-2">
+        <div data-no-print className="flex flex-wrap items-center gap-2">
+          <EditionPanneau
+            titre={`Modifier ${rex.reference}`}
+            description="Les changements sont enregistrés pour tous."
+            action={mettreAJourRex}
+            hiddenFields={{ id: rex.id }}
+          >
+            <RexFields v={rex} />
+          </EditionPanneau>
+          <Link href={`/rex/${rex.id}/diffusion`} className={buttonVariants({ variant: "outline", size: "lg" })}>
+            <FileTextIcon /> Fiche de diffusion
+          </Link>
           {rex.brouillon && (
             <form action={publierRex}>
               <input type="hidden" name="id" value={rex.id} />
-              <button
-                type="submit"
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                Publier le REX
+              <button type="submit" className={buttonVariants({ size: "lg" })}>
+                <SendIcon /> Publier le REX
               </button>
             </form>
           )}
           <Link
             href={`/plan-action/nouveau?rexId=${rex.id}`}
-            className="whitespace-nowrap rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className={buttonVariants({ variant: rex.brouillon ? "outline" : "default", size: "lg" })}
           >
-            + Action
+            <PlusIcon /> Action
           </Link>
-          <Link
-            href={`/rex/${rex.id}/diffusion`}
-            className="whitespace-nowrap flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Fiche de diffusion
-          </Link>
-          <BoutonExportPDF />
-          <BoutonArchiver
-            action={rex.archiveLe ? desarchiver : archiver}
-            entite="rex"
-            id={rex.id}
-            archive={!!rex.archiveLe}
-          />
-          <BoutonSupprimer
-            action={supprimerRex}
-            hiddenFields={{ id: rex.id }}
-            message={`Supprimer ce REX supprimera aussi ${rex.actions.length} action(s) du plan d'action. Les écarts, évènements ou remontées rattachés ne sont pas touchés. Cette action est irréversible. Continuer ?`}
-          />
         </div>
-      </div>
+      </header>
 
-      <div className="mb-6 rounded-lg border border-slate-200 bg-white p-4 text-sm">
-        <p className="mb-1 text-xs uppercase tracking-wide text-slate-500">
-          Origine — {ORIGINE_REX_LABELS[rex.origine]}
-        </p>
-        {rex.ecarts.length > 0 ? (
-          <ul>
-            {rex.ecarts.map((e) => (
-              <li key={e.id}>
-                <Link href={`/ecarts/${e.id}`} className="text-blue-700 hover:underline">
-                  Écart {e.reference}
-                  {e.dossier ? ` — ${e.dossier.chantier}` : ""}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : rex.ficheSSE ? (
-          <Link href={`/fiches-sse/${rex.ficheSSE.id}`} className="text-blue-700 hover:underline">
-            Évènement SSE {rex.ficheSSE.reference}
-            {rex.ficheSSE.nomChantier ? ` — ${rex.ficheSSE.nomChantier}` : ""}
-          </Link>
-        ) : rex.ecartAmiante ? (
-          <Link href={`/ecart-amiante/${rex.ecartAmiante.id}`} className="text-blue-700 hover:underline">
-            Écart amiante {rex.ecartAmiante.reference} — {rex.ecartAmiante.nomChantier}
-          </Link>
-        ) : rex.remontee ? (
-          <Link href={`/remontees/${rex.remontee.id}`} className="text-blue-700 hover:underline">
-            Remontée {rex.remontee.reference} — {rex.remontee.objet}
-          </Link>
+      <div className="mb-8">
+        {rex.brouillon ? (
+          <Carte className="flex items-start gap-3 border-dashed bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+            <CircleDashedIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <p>
+              Ce REX est encore en brouillon : il n&apos;a pas été diffusé et n&apos;est pas compté dans les
+              indicateurs du tableau de bord. Cliquez sur « Publier le REX » quand il est prêt.
+            </p>
+          </Carte>
         ) : (
-          <span className="text-slate-400">Aucun rattachement — REX spontané / bonne pratique</span>
+          <StatutParcours action={changerStatutRex} id={rex.id} etapes={ETAPES_STATUT} courant={rex.statut} />
         )}
       </div>
 
-      {rex.brouillon ? (
-        <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-          Ce REX est encore en brouillon : il n&apos;a pas été diffusé et n&apos;est pas compté dans les
-          indicateurs du tableau de bord. Cliquez sur « Publier le REX » quand il est prêt.
-        </div>
-      ) : (
-        <div data-no-print className="mb-6 rounded-lg border border-slate-200 bg-white p-4">
-          <StatutSelectForm
-            action={changerStatutRex}
-            hiddenName="id"
-            hiddenValue={rex.id}
-            selectName="statut"
-            defaultValue={rex.statut}
-            options={Object.values(StatutREX).map((s) => ({ value: s, label: STATUT_REX_LABELS[s] }))}
-          />
-          <p className="mt-2 text-xs text-slate-400">
-            {rex.dateDiffusion && `Diffusé le ${rex.dateDiffusion.toLocaleDateString("fr-FR")}`}
-            {rex.dateDiffusion && rex.dateVerificationEfficacite && " · "}
-            {rex.dateVerificationEfficacite &&
-              `Efficacité vérifiée le ${rex.dateVerificationEfficacite.toLocaleDateString("fr-FR")}`}
-            {!rex.dateDiffusion && rex.dateDiffusionPlanifiee &&
-              `Diffusion planifiée le ${rex.dateDiffusionPlanifiee.toLocaleDateString("fr-FR")}`}
-          </p>
-        </div>
-      )}
-
-      <div className="mb-6 flex flex-wrap gap-4 rounded-lg border border-slate-200 bg-white p-4 text-sm">
-        <div className="min-w-[180px]">
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">Thèmes</p>
-          <div className="flex flex-wrap gap-1.5">
-            {rex.themes.length > 0
-              ? rex.themes.map((t) => (
-                  <span key={t} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">{t}</span>
-                ))
-              : <span className="text-slate-400">—</span>}
-          </div>
-        </div>
-        <div className="min-w-[180px]">
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">Destinataires</p>
-          <div className="flex flex-wrap gap-1.5">
-            {rex.destinatairesRoles.length > 0
-              ? rex.destinatairesRoles.map((d) => (
-                  <span key={d} className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs text-blue-700">{d}</span>
-                ))
-              : <span className="text-slate-400">—</span>}
-          </div>
-        </div>
-        <div className="min-w-[180px]">
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">Canaux de diffusion</p>
-          <div className="flex flex-wrap gap-1.5">
-            {rex.canaux.length > 0
-              ? rex.canaux.map((c) => (
-                  <span key={c} className="rounded-full bg-slate-50 px-2.5 py-0.5 text-xs text-slate-600">{c}</span>
-                ))
-              : <span className="text-slate-400">—</span>}
-          </div>
-        </div>
-      </div>
-
-      <div className="mb-8">
-        <FormulaireEditable
-          action={mettreAJourRex}
-          hiddenFields={{ id: rex.id }}
-          modifiePar={rex.modifiePar}
-          modifieLe={rex.modifieLe}
-        >
-          <RexFields v={rex} />
-        </FormulaireEditable>
-      </div>
-
-      <div>
-        <h2 className="mb-3 text-lg font-semibold text-slate-900">
-          Plan d&apos;action ({rex.actions.length})
-        </h2>
-        <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-medium">Référence</th>
-                <th className="px-4 py-3 font-medium">Type</th>
-                <th className="px-4 py-3 font-medium">Action</th>
-                <th className="px-4 py-3 font-medium">Responsable</th>
-                <th className="px-4 py-3 font-medium">Échéance</th>
-                <th className="px-4 py-3 font-medium">Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rex.actions.map((a) => (
-                <tr key={a.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <Link href={`/plan-action/${a.id}`} className="font-medium text-blue-700 hover:underline">
-                      {a.reference}
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
+        <div className="space-y-8">
+          <Carte className="p-5">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Origine — {ORIGINE_REX_LABELS[rex.origine]}
+            </p>
+            {rex.ecarts.length > 0 ? (
+              <ul className="space-y-1 text-sm">
+                {rex.ecarts.map((e) => (
+                  <li key={e.id}>
+                    <Link href={`/ecarts/${e.id}`} className={LIEN_ORIGINE}>
+                      Écart {e.reference}
+                      {e.dossier ? ` — ${e.dossier.chantier}` : ""}
                     </Link>
-                  </td>
-                  <td className="px-4 py-3 text-slate-700">{TYPE_ACTION_LABELS[a.type]}</td>
-                  <td className="max-w-md px-4 py-3 text-slate-700">{a.action}</td>
-                  <td className="px-4 py-3 text-slate-700">{a.responsable}</td>
-                  <td className="px-4 py-3 text-slate-500">
-                    {a.echeance ? a.echeance.toLocaleDateString("fr-FR") : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge label={STATUT_ACTION_LABELS[a.statut]} colorClass={STATUT_ACTION_COLORS[a.statut]} />
-                  </td>
-                </tr>
-              ))}
-              {rex.actions.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
-                    Aucune action.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  </li>
+                ))}
+              </ul>
+            ) : rex.ficheSSE ? (
+              <Link href={`/fiches-sse/${rex.ficheSSE.id}`} className={`text-sm ${LIEN_ORIGINE}`}>
+                Évènement SSE {rex.ficheSSE.reference}
+                {rex.ficheSSE.nomChantier ? ` — ${rex.ficheSSE.nomChantier}` : ""}
+              </Link>
+            ) : rex.ecartAmiante ? (
+              <Link href={`/ecart-amiante/${rex.ecartAmiante.id}`} className={`text-sm ${LIEN_ORIGINE}`}>
+                Écart amiante {rex.ecartAmiante.reference} — {rex.ecartAmiante.nomChantier}
+              </Link>
+            ) : rex.remontee ? (
+              <Link href={`/remontees/${rex.remontee.id}`} className={`text-sm ${LIEN_ORIGINE}`}>
+                Remontée {rex.remontee.reference} — {rex.remontee.objet}
+              </Link>
+            ) : (
+              <p className="text-sm italic text-muted-foreground">Aucun rattachement — REX spontané / bonne pratique</p>
+            )}
+          </Carte>
+
+          <Carte className="space-y-5 p-5">
+            <TexteLong label="Enseignements tirés" valeur={rex.enseignementsTires} />
+            {affichePratique && (
+              <TexteLong
+                label={LIBELLE_PRATIQUE[rex.nature] ?? "Bonne pratique / pratique observée"}
+                valeur={rex.pratiqueDescription}
+              />
+            )}
+            <TexteLong label="Cause racine / facteurs communs" valeur={rex.causeRacine} />
+            <Pastilles label="Points communs observés" valeurs={rex.pointsCommuns} />
+            <TexteLong label="Pourquoi ce REX mérite diffusion" valeur={rex.raisonDiffusion} />
+          </Carte>
+
+          {aDiffusion ? (
+            <Carte className="grid gap-4 p-5 sm:grid-cols-3">
+              <Pastilles label="Thèmes concernés" valeurs={rex.themes} />
+              <Pastilles label="Qui doit recevoir ce REX" valeurs={rex.destinatairesRoles} />
+              <Pastilles label="Canaux de diffusion" valeurs={rex.canaux} />
+            </Carte>
+          ) : (
+            <EtatVide>Thèmes, destinataires et canaux de diffusion non renseignés.</EtatVide>
+          )}
+
+          <Carte className="p-5">
+            <TexteLong label="Note interne / QHSE" valeur={rex.noteInterne} />
+          </Carte>
+
+          <FicheSection
+            titre="Plan d’action"
+            compteur={rex.actions.length}
+            action={
+              <Link href={`/plan-action/nouveau?rexId=${rex.id}`} className={lienAjout} data-no-print>
+                <PlusIcon /> Action
+              </Link>
+            }
+          >
+            {rex.actions.length === 0 ? (
+              <EtatVide>Aucune action n’est rattachée à ce REX.</EtatVide>
+            ) : (
+              <Carte className="overflow-hidden">
+                <Table>
+                  <TableBody>
+                    {rex.actions.map((a) => (
+                      <TableRow key={a.id}>
+                        <TableCell className="whitespace-nowrap">
+                          <Link href={`/plan-action/${a.id}`} className="font-medium underline-offset-4 hover:underline">
+                            {a.reference}
+                          </Link>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">{TYPE_ACTION_LABELS[a.type]}</span>
+                        </TableCell>
+                        <TableCell className="max-w-sm whitespace-normal">{a.action}</TableCell>
+                        <TableCell className="whitespace-nowrap text-muted-foreground">
+                          {a.responsable}
+                          <span className="mt-0.5 block text-xs tabular-nums">
+                            {a.echeance ? `avant le ${a.echeance.toLocaleDateString("fr-FR")}` : "sans échéance"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <BadgeStatut label={STATUT_ACTION_LABELS[a.statut]} ton={TON_ACTION[a.statut]} />
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </Carte>
+            )}
+          </FicheSection>
         </div>
+
+        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+          <Carte>
+            <Proprietes>
+              <Propriete label="Nature">{NATURE_REX_LABELS[rex.nature]}</Propriete>
+              {(rex.sousTypeSSE || rex.origine === "EVENEMENT_SSE") && (
+                <Propriete label="Sous-type SSE">{rex.sousTypeSSE || "—"}</Propriete>
+              )}
+              {!rex.dateDiffusion && rex.dateDiffusionPlanifiee && (
+                <Propriete label="Diffusion planifiée">{rex.dateDiffusionPlanifiee.toLocaleDateString("fr-FR")}</Propriete>
+              )}
+              {rex.dateDiffusion && (
+                <Propriete label="Diffusé le">{rex.dateDiffusion.toLocaleDateString("fr-FR")}</Propriete>
+              )}
+              {rex.dateVerificationEfficacite && (
+                <Propriete label="Efficacité vérifiée le">
+                  {rex.dateVerificationEfficacite.toLocaleDateString("fr-FR")}
+                </Propriete>
+              )}
+            </Proprietes>
+          </Carte>
+          <div data-no-print className="flex flex-wrap gap-2 pt-1">
+            <BoutonExportPDF className="" />
+            <BoutonArchiver
+              action={rex.archiveLe ? desarchiver : archiver}
+              entite="rex"
+              id={rex.id}
+              archive={!!rex.archiveLe}
+              className=""
+            />
+            <BoutonSupprimer
+              action={supprimerRex}
+              hiddenFields={{ id: rex.id }}
+              message={`Supprimer ce REX supprimera aussi ${rex.actions.length} action(s) du plan d'action. Les écarts, évènements ou remontées rattachés ne sont pas touchés. Cette action est irréversible. Continuer ?`}
+              className=""
+            />
+          </div>
+          <p className="px-1 text-xs text-muted-foreground">
+            Créé le {rex.createdAt.toLocaleDateString("fr-FR")}
+            {rex.modifieLe
+              ? ` · modifié le ${rex.modifieLe.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}${
+                  rex.modifiePar ? ` par ${rex.modifiePar}` : ""
+                }`
+              : " · aucune modification enregistrée"}
+          </p>
+        </aside>
       </div>
     </div>
   );

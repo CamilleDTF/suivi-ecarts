@@ -12,8 +12,9 @@ type ActionDUValues = {
 };
 
 const inputCls =
-  "w-full rounded-md border border-slate-300 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400";
-const labelCls = "mb-1 block text-sm font-medium text-slate-700";
+  "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground";
+const labelCls = "mb-1.5 block text-sm font-medium";
+const aideCls = "mt-1.5 text-xs text-muted-foreground";
 
 export function ActionDUFields({
   v,
@@ -31,7 +32,7 @@ export function ActionDUFields({
   const types = avecValeursExistantes(TYPES_ACTION_DU, v.typeAction ? [v.typeAction] : []);
 
   return (
-    <fieldset disabled={disabled} className="space-y-4 disabled:opacity-60">
+    <fieldset disabled={disabled} className="space-y-5 disabled:opacity-60">
       <div>
         <label className={labelCls}>Action</label>
         <textarea name="action" defaultValue={v.action ?? ""} required rows={3} className={inputCls} />
@@ -47,13 +48,13 @@ export function ActionDUFields({
         />
         {/* Saisie libre assumée : le DU écrit des plages ("E3 à E15") et des
             listes mêlées qu'une sélection de risques cochés ne rendrait pas. */}
-        <p className="mt-1 text-xs text-slate-400">
+        <p className={aideCls}>
           Codes du Document Unique, séparés par des virgules. Les plages s&apos;écrivent telles
           quelles.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label className={labelCls}>Type d&apos;action</label>
           <select name="typeAction" defaultValue={v.typeAction ?? ""} className={inputCls}>
@@ -93,7 +94,7 @@ export function ActionDUFields({
           placeholder={"Causerie\nMail\nQuiz mensuel\nAudit interne chantier"}
           className={inputCls}
         />
-        <p className="mt-1 text-xs text-slate-400">Un moyen de preuve par ligne.</p>
+        <p className={aideCls}>Un moyen de preuve par ligne.</p>
       </div>
     </fieldset>
   );

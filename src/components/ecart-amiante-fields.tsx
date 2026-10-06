@@ -32,8 +32,10 @@ type EcartAmianteValues = {
   evenementSSE?: boolean | null;
 };
 
-const inputCls = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm";
-const labelCls = "mb-1 block text-sm font-medium text-slate-700";
+const inputCls =
+  "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+const labelCls = "mb-1.5 block text-sm font-medium";
+const titreSectionCls = "mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground";
 
 function toDateInput(d?: Date | null) {
   return d ? d.toISOString().slice(0, 10) : "";
@@ -51,11 +53,11 @@ function avecValeurExistante(options: string[], valeur?: string | null) {
 function OuiNon({ name, valeur }: { name: string; valeur?: boolean | null }) {
   return (
     <div className="flex items-center gap-4">
-      <label className="flex items-center gap-1.5 text-sm text-slate-700">
+      <label className="flex items-center gap-1.5 text-sm">
         <input type="radio" name={name} value="oui" defaultChecked={valeur === true} />
         Oui
       </label>
-      <label className="flex items-center gap-1.5 text-sm text-slate-700">
+      <label className="flex items-center gap-1.5 text-sm">
         <input type="radio" name={name} value="non" defaultChecked={valeur === false} />
         Non
       </label>
@@ -68,7 +70,7 @@ export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
   return (
     <fieldset disabled={disabled} className="space-y-6 disabled:opacity-60">
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Identification</h2>
+        <h2 className={titreSectionCls}>Identification</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Date</label>
@@ -102,7 +104,7 @@ export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Analyse</h2>
+        <h2 className={titreSectionCls}>Analyse</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Type d&apos;analyse</label>
@@ -144,7 +146,7 @@ export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Cause</h2>
+        <h2 className={titreSectionCls}>Cause</h2>
         <select name="cause" defaultValue={v.cause ?? ""} className={inputCls}>
           <option value="">—</option>
           {avecValeurExistante(CAUSES_ECART_AMIANTE, v.cause).map((c) => (
@@ -156,7 +158,7 @@ export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Exposition</h2>
+        <h2 className={titreSectionCls}>Exposition</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Exposition accidentelle</label>
@@ -174,8 +176,8 @@ export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Nouvelle analyse</h2>
-        <label className="mb-3 flex items-center gap-2 text-sm text-slate-700">
+        <h2 className={titreSectionCls}>Nouvelle analyse</h2>
+        <label className="mb-3 flex items-center gap-2 text-sm">
           <input type="checkbox" name="besoinNouvelleAnalyse" defaultChecked={!!v.besoinNouvelleAnalyse} />
           Besoin d&apos;une nouvelle analyse
         </label>
@@ -223,7 +225,7 @@ export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
       </div>
 
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase text-slate-500">Clôture</h2>
+        <h2 className={titreSectionCls}>Clôture</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Date de clôture</label>
@@ -235,7 +237,7 @@ export function EcartAmianteFields({ v = {} }: { v?: EcartAmianteValues }) {
             />
           </div>
         </div>
-        <label className="mt-3 flex items-center gap-2 text-sm text-slate-700">
+        <label className="mt-3 flex items-center gap-2 text-sm">
           <input type="checkbox" name="evenementSSE" defaultChecked={!!v.evenementSSE} />
           Événement SSE associé
         </label>

@@ -143,6 +143,7 @@ export default async function EcartDetailPage({
       date: ecart.dateDetection,
       titre: "Écart détecté",
       detail: ecart.declarant ? `Déclaré par ${ecart.declarant}` : undefined,
+      rang: 0,
       ton: "ambre",
     },
     ...ecart.remontees.map<EvenementChrono>((r) => ({
@@ -150,6 +151,7 @@ export default async function EcartDetailPage({
       titre: `${idsRemonteesOrigine.has(r.id) ? "Remontée à l’origine" : "Remontée rattachée"} ${r.reference}`,
       detail: r.objet,
       href: `/remontees/${r.id}`,
+      rang: 1,
       ton: "violet",
     })),
     ...ecart.fichesSSE.map<EvenementChrono>((f) => ({
@@ -157,6 +159,7 @@ export default async function EcartDetailPage({
       titre: `Évènement SSE ${f.reference} ouvert`,
       detail: STATUT_FICHE_LABELS[f.statutFiche],
       href: `/fiches-sse/${f.id}`,
+      rang: 2,
       ton: "bleu",
     })),
     ...ecart.actions.flatMap<EvenementChrono>((a) => [
@@ -165,10 +168,11 @@ export default async function EcartDetailPage({
         titre: `Action ${a.reference} créée`,
         detail: `${a.action} — ${a.responsable}`,
         href: `/plan-action/${a.id}`,
+        rang: 3,
         ton: "bleu",
       },
       ...(a.realiseeLe
-        ? [{ date: a.realiseeLe, titre: `Action ${a.reference} réalisée`, href: `/plan-action/${a.id}`, ton: "vert" as const }]
+        ? [{ date: a.realiseeLe, titre: `Action ${a.reference} réalisée`, href: `/plan-action/${a.id}`, rang: 4, ton: "vert" as const }]
         : []),
     ]),
     ...ecart.rex.map<EvenementChrono>((r) => ({
@@ -176,6 +180,7 @@ export default async function EcartDetailPage({
       titre: `REX ${r.reference} créé`,
       detail: r.titre,
       href: `/rex/${r.id}`,
+      rang: 5,
       ton: "violet",
     })),
     ...(ecart.modifieLe
@@ -184,6 +189,7 @@ export default async function EcartDetailPage({
             date: ecart.modifieLe,
             titre: "Fiche modifiée",
             detail: ecart.modifiePar ? `Par ${ecart.modifiePar}` : undefined,
+            rang: 6,
             ton: "neutre" as const,
           },
         ]

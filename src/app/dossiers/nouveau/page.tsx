@@ -2,81 +2,92 @@ import { creerDossier } from "@/app/dossiers/actions";
 import { ORIGINE_LABELS } from "@/lib/labels";
 import { Origine } from "@/generated/prisma/enums";
 import { BoutonCreer } from "@/components/bouton-creer";
+import { BoutonRetour } from "@/components/bouton-retour";
 import { ChampFichier } from "@/components/champ-fichier";
 import { ZoneTraitement } from "@/components/formulaire-editable";
+import { ConteneurPage, EntetePage } from "@/components/page-liste";
+
+const inputCls =
+  "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+const labelCls = "mb-1.5 block text-sm font-medium";
 
 export default function NouveauDossierPage() {
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="mx-auto max-w-2xl px-6 py-8">
-      <h1 className="mb-6 text-2xl font-semibold text-slate-900">Nouveau dossier</h1>
+    <ConteneurPage largeur="formulaire">
+      <BoutonRetour href="/dossiers" label="Retour aux dossiers" />
+      <EntetePage
+        titre="Nouveau dossier"
+        sousTitre="Un dossier regroupe les écarts détectés sur un même chantier."
+      />
 
-      <form action={creerDossier} className="space-y-4 rounded-lg border border-slate-200 bg-white p-6">
+      <form action={creerDossier} className="rounded-xl border bg-card p-6">
         {/* ZoneTraitement ne rend aucun élément : elle relaie « photo en cours
             de conversion » au bouton de création, qui doit attendre — sinon le
             dossier est créé sans la photo. */}
         <ZoneTraitement>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
-              Date de détection
-            </label>
-            <input
-              type="date"
-              name="dateDetection"
-              defaultValue={today}
-              required
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
+          <div className="space-y-5">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div>
+                <label htmlFor="dateDetection" className={labelCls}>
+                  Date de détection
+                </label>
+                <input
+                  id="dateDetection"
+                  type="date"
+                  name="dateDetection"
+                  defaultValue={today}
+                  required
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="origine" className={labelCls}>
+                  Origine
+                </label>
+                <select id="origine" name="origine" required className={inputCls}>
+                  {Object.values(Origine).map((o) => (
+                    <option key={o} value={o}>
+                      {ORIGINE_LABELS[o]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="declarant" className={labelCls}>
+                  Déclarant
+                </label>
+                <input id="declarant" type="text" name="declarant" required className={inputCls} />
+              </div>
+
+              <div>
+                <label htmlFor="chantier" className={labelCls}>
+                  Chantier
+                </label>
+                <input id="chantier" type="text" name="chantier" required className={inputCls} />
+              </div>
+            </div>
+
+            <ChampFichier
+              name="enregistrement"
+              nomFichierName="enregistrementNom"
+              label="Enregistrement"
+              accepteDocuments
+              libelleAjouter="Ajouter un enregistrement"
+              libelleRemplacer="Remplacer l'enregistrement"
+              libelleRetirer="Retirer l'enregistrement"
+              libelleVide="Aucun enregistrement"
             />
-          </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Origine</label>
-            <select name="origine" required className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
-              {Object.values(Origine).map((o) => (
-                <option key={o} value={o}>
-                  {ORIGINE_LABELS[o]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Déclarant</label>
-            <input
-              type="text"
-              name="declarant"
-              required
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Chantier</label>
-            <input
-              type="text"
-              name="chantier"
-              required
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-            />
-          </div>
-
-          <ChampFichier
-            name="enregistrement"
-            nomFichierName="enregistrementNom"
-            label="Enregistrement"
-            accepteDocuments
-            libelleAjouter="Ajouter un enregistrement"
-            libelleRemplacer="Remplacer l'enregistrement"
-            libelleRetirer="Retirer l'enregistrement"
-            libelleVide="Aucun enregistrement"
-          />
-
-          <div className="flex justify-end gap-3 pt-2">
-            <BoutonCreer>Créer le dossier</BoutonCreer>
+            <div className="flex justify-end gap-3 border-t pt-5">
+              <BoutonCreer>Créer le dossier</BoutonCreer>
+            </div>
           </div>
         </ZoneTraitement>
       </form>
-    </div>
+    </ConteneurPage>
   );
 }

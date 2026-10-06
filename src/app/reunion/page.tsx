@@ -366,10 +366,10 @@ export default async function ReunionPage({
     !!params.au;
 
   return (
-    <div className="mx-auto max-w-[100rem] px-6 py-8">
+    <div className="mx-auto max-w-[100rem] px-4 py-10 lg:px-8">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Réunion QHSE</h1>
+          <h1 className="font-display text-4xl font-semibold tracking-tight">Réunion QHSE</h1>
           <p className="mt-1 text-sm text-slate-500">
             {tout ? "Tout l'historique, toutes dates" : `Période du ${fr(depuis)} au ${fr(jusqua)}`}
           </p>
@@ -426,7 +426,7 @@ export default async function ReunionPage({
               Réinitialiser
             </Link>
           )}
-          <BoutonExportPDF />
+          <BoutonExportPDF className="" />
         </div>
       </div>
 

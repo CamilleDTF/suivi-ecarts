@@ -7,6 +7,7 @@ import { creerRex } from "@/app/rex/actions";
 import type { NatureREX } from "@/generated/prisma/enums";
 import { AvertissementNonEnregistre } from "@/components/avertissement-non-enregistre";
 import { BoutonRetour } from "@/components/bouton-retour";
+import { buttonVariants } from "@/components/ui/button";
 import {
   IconAlertTriangle,
   IconFileText,
@@ -63,8 +64,9 @@ const NATURE_ICON_BG: Record<string, string> = {
   EVOLUTION_METHODE: "bg-amber-100 text-amber-700",
 };
 
-const inputCls = "w-full rounded-md border border-slate-300 px-3 py-2 text-sm";
-const labelCls = "mb-1 block text-sm font-medium text-slate-700";
+const inputCls =
+  "w-full rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
+const labelCls = "mb-1.5 block text-sm font-medium";
 
 const ETAPES = [
   { titre: "Sélection des éléments sources", detail: "Choisissez les écarts / évènements" },
@@ -83,8 +85,8 @@ function CaseACocher({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex items-center gap-2 text-sm text-slate-700">
-      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    <label className="flex items-center gap-2 text-sm text-foreground">
+      <input type="checkbox" className="accent-primary" checked={checked} onChange={(e) => onChange(e.target.checked)} />
       {label}
     </label>
   );
@@ -328,25 +330,25 @@ export function RexWizard({
   return (
     <form
       onSubmit={(e) => e.preventDefault()}
-      className="mx-auto max-w-5xl px-6 py-8"
+      className="mx-auto max-w-5xl px-4 py-10 lg:px-8"
     >
       <AvertissementNonEnregistre />
 
       <BoutonRetour href="/rex" label="Retour aux REX" />
-      <h1 className="mb-1 text-2xl font-bold text-slate-900">Nouveau REX</h1>
-      <p className="mb-6 text-sm text-slate-500">
+      <h1 className="font-display text-4xl font-semibold tracking-tight">Nouveau REX</h1>
+      <p className="mb-8 mt-2 max-w-2xl text-sm text-muted-foreground">
         Créez un retour d&apos;expérience pour capitaliser et partager un enseignement.
       </p>
 
       {erreur && (
-        <div className="mb-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</div>
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{erreur}</div>
       )}
 
       {/* Sélecteur de mode — carte complète à l'étape 0, résumé condensé ensuite. */}
       {!parentImpose && step === 0 && (
-        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-6">
-          <h2 className="text-base font-semibold text-slate-900">Comment voulez-vous créer ce REX ?</h2>
-          <p className="mb-4 text-sm text-slate-500">Sélectionnez la situation qui correspond à votre besoin.</p>
+        <div className="mb-6 rounded-xl border bg-card p-6">
+          <h2 className="text-base font-semibold text-foreground">Comment voulez-vous créer ce REX ?</h2>
+          <p className="mb-4 text-sm text-muted-foreground">Sélectionnez la situation qui correspond à votre besoin.</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <ModeCard
               actif={mode === "unique"}
@@ -376,8 +378,8 @@ export function RexWizard({
         </div>
       )}
       {!parentImpose && step > 0 && step < 3 && (
-        <div className="mb-6 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm">
-          <span className="text-slate-500">Mode :</span>
+        <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border bg-card px-4 py-2.5 text-sm">
+          <span className="text-muted-foreground">Mode :</span>
           {(
             [
               ["unique", "À partir d'un écart / événement"],
@@ -388,7 +390,7 @@ export function RexWizard({
             <span
               key={m}
               className={`rounded-full px-3 py-1 text-xs font-medium ${
-                mode === m ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-500"
+                mode === m ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
               }`}
             >
               {libelle}
@@ -397,7 +399,7 @@ export function RexWizard({
           <button
             type="button"
             onClick={() => allerA(0)}
-            className="ml-auto text-xs font-medium text-blue-700 hover:underline"
+            className="ml-auto text-xs font-medium text-primary hover:underline"
           >
             Modifier
           </button>
@@ -405,7 +407,7 @@ export function RexWizard({
       )}
 
       {/* Stepper */}
-      <div className="mb-6 flex items-center overflow-x-auto rounded-lg border border-slate-200 bg-white px-5 py-4">
+      <div className="mb-6 flex items-center overflow-x-auto rounded-xl border bg-card px-5 py-4">
         {ETAPES.map((e, i) => (
           <div key={e.titre} className="flex items-center">
             <button
@@ -417,22 +419,22 @@ export function RexWizard({
               <span
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
                   i < step
-                    ? "bg-blue-600 text-white"
+                    ? "bg-primary text-primary-foreground"
                     : i === step
-                      ? "bg-blue-600 text-white"
-                      : "bg-slate-200 text-slate-500"
+                      ? "bg-primary text-primary-foreground ring-4 ring-primary/15"
+                      : "bg-muted text-muted-foreground"
                 }`}
               >
                 {i < step ? <IconCheck className="h-3.5 w-3.5" /> : i + 1}
               </span>
               <span className="hidden sm:block">
-                <span className={`block text-sm font-medium ${i <= step ? "text-blue-700" : "text-slate-400"}`}>
+                <span className={`block text-sm font-medium ${i <= step ? "text-foreground" : "text-muted-foreground"}`}>
                   {e.titre}
                 </span>
-                <span className="block text-xs text-slate-400">{e.detail}</span>
+                <span className="block text-xs text-muted-foreground">{e.detail}</span>
               </span>
             </button>
-            {i < ETAPES.length - 1 && <span className="mx-3 h-px w-8 shrink-0 bg-slate-200 sm:w-12" />}
+            {i < ETAPES.length - 1 && <span className="mx-3 h-px w-8 shrink-0 bg-border sm:w-12" />}
           </div>
         ))}
       </div>
@@ -441,22 +443,22 @@ export function RexWizard({
       {step === 0 && (
         <div className="space-y-4">
           {parentImpose ? (
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-3 text-base font-semibold text-slate-900">Élément source</h2>
-              <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+            <div className="rounded-xl border bg-card p-6">
+              <h2 className="mb-3 text-base font-semibold text-foreground">Élément source</h2>
+              <p className="rounded-lg border bg-muted/50 px-3 py-2 text-sm text-foreground">
                 {parentImpose.libelle}
               </p>
             </div>
           ) : mode === "spontane" ? (
-            <div className="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
-              <h2 className="mb-2 text-base font-semibold text-slate-900">Aucun élément source nécessaire</h2>
+            <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
+              <h2 className="mb-2 text-base font-semibold text-foreground">Aucun élément source nécessaire</h2>
               Un REX spontané ou une bonne pratique se rédige directement, sans écart, évènement ou remontée
               d&apos;origine.
             </div>
           ) : mode === "unique" ? (
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-3 text-base font-semibold text-slate-900">Sélection de l&apos;élément source</h2>
-              <div className="mb-3 flex flex-wrap gap-4 text-sm text-slate-700">
+            <div className="rounded-xl border bg-card p-6">
+              <h2 className="mb-3 text-base font-semibold text-foreground">Sélection de l&apos;élément source</h2>
+              <div className="mb-3 flex flex-wrap gap-4 text-sm text-foreground">
                 {(
                   [
                     ["ecart", "Écart"],
@@ -466,7 +468,7 @@ export function RexWizard({
                   ] as [TypeUnique, string][]
                 ).map(([t, libelle]) => (
                   <label key={t} className="flex items-center gap-1.5">
-                    <input type="radio" checked={typeUnique === t} onChange={() => setTypeUnique(t)} />
+                    <input type="radio" className="accent-primary" checked={typeUnique === t} onChange={() => setTypeUnique(t)} />
                     {libelle}
                   </label>
                 ))}
@@ -505,15 +507,15 @@ export function RexWizard({
               )}
             </div>
           ) : (
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
+            <div className="rounded-xl border bg-card p-6">
               <div className="mb-3 flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-base font-semibold text-slate-900">Sélection des éléments sources</h2>
-                  <p className="text-sm text-slate-500">
+                  <h2 className="text-base font-semibold text-foreground">Sélection des éléments sources</h2>
+                  <p className="text-sm text-muted-foreground">
                     Cochez les écarts qui sont à l&apos;origine de ce REX. Au moins un élément est requis.
                   </p>
                 </div>
-                <span className="whitespace-nowrap rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                <span className="whitespace-nowrap rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
                   {ecartsRecurrents.length} élément(s) sélectionné(s)
                 </span>
               </div>
@@ -523,9 +525,9 @@ export function RexWizard({
                 placeholder="Filtrer par référence, intitulé, chantier…"
                 className={`${inputCls} mb-3`}
               />
-              <div className="overflow-x-auto rounded-lg border border-slate-200">
+              <div className="overflow-x-auto rounded-lg border">
                 <table className="w-full text-left text-sm">
-                  <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
+                  <thead className="border-b bg-muted/50 text-muted-foreground">
                     <tr>
                       <th className="w-10 px-3 py-2" />
                       <th className="px-3 py-2 font-medium">Référence</th>
@@ -540,27 +542,27 @@ export function RexWizard({
                       <tr
                         key={e.id}
                         onClick={() => setEcartsRecurrents(toggleValeur(ecartsRecurrents, e.id))}
-                        className="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                        className="cursor-pointer border-b last:border-0 hover:bg-muted/50"
                       >
                         <td className="px-3 py-2">
-                          <input type="checkbox" checked={ecartsRecurrents.includes(e.id)} readOnly />
+                          <input type="checkbox" className="accent-primary" checked={ecartsRecurrents.includes(e.id)} readOnly />
                         </td>
-                        <td className="px-3 py-2 font-medium text-slate-700">{e.reference}</td>
+                        <td className="px-3 py-2 font-medium text-foreground">{e.reference}</td>
                         <td className="px-3 py-2">
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                             <IconAlertTriangle className="h-3 w-3" /> Écart
                           </span>
                         </td>
-                        <td className="max-w-xs truncate px-3 py-2 text-slate-700">{e.libelle}</td>
-                        <td className="whitespace-nowrap px-3 py-2 text-slate-500">
+                        <td className="max-w-xs truncate px-3 py-2 text-foreground">{e.libelle}</td>
+                        <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
                           {e.date ? new Date(e.date).toLocaleDateString("fr-FR") : "—"}
                         </td>
-                        <td className="px-3 py-2 text-slate-700">{e.chantier ?? "—"}</td>
+                        <td className="px-3 py-2 text-foreground">{e.chantier ?? "—"}</td>
                       </tr>
                     ))}
                     {ecartsFiltres.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="px-3 py-6 text-center text-slate-400">
+                        <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
                           Aucun écart ne correspond à ce filtre.
                         </td>
                       </tr>
@@ -580,15 +582,15 @@ export function RexWizard({
             {!parentImpose && (
               <RecapCard titre="Éléments sources sélectionnés" onModifier={() => allerA(0)}>
                 {mode === "spontane" ? (
-                  <p className="text-sm text-slate-500">Aucun — REX spontané / bonne pratique.</p>
+                  <p className="text-sm text-muted-foreground">Aucun — REX spontané / bonne pratique.</p>
                 ) : mode === "recurrents" ? (
-                  <ul className="space-y-1 text-sm text-slate-700">
+                  <ul className="space-y-1 text-sm text-foreground">
                     {ecartsRecurrents.map((id) => (
                       <li key={id}>{ecartsParId.get(id)?.reference} — {ecartsParId.get(id)?.libelle}</li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-sm text-slate-700">
+                  <p className="text-sm text-foreground">
                     {typeUnique === "ecart" && ecarts.find((e) => e.id === ecartUniqueId)?.libelle}
                     {typeUnique === "evenement" && evenements.find((e) => e.id === evenementId)?.libelle}
                     {typeUnique === "amiante" && amiantes.find((e) => e.id === amianteId)?.libelle}
@@ -598,8 +600,8 @@ export function RexWizard({
               </RecapCard>
             )}
 
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
-              <h2 className="mb-4 text-base font-semibold text-slate-900">Synthèse / enseignement</h2>
+            <div className="rounded-xl border bg-card p-6">
+              <h2 className="mb-4 text-base font-semibold text-foreground">Synthèse / enseignement</h2>
 
               <div className="mb-4">
                 <label className={labelCls}>Titre du REX *</label>
@@ -628,7 +630,7 @@ export function RexWizard({
                   placeholder="Ex : Le contrôle du balisage doit être réalisé avant démarrage, y compris sur les chantiers courts."
                   className={inputCls}
                 />
-                <p className="mt-1 text-right text-xs text-slate-400">{enseignementPrincipal.length}/500</p>
+                <p className="mt-1 text-right text-xs text-muted-foreground">{enseignementPrincipal.length}/500</p>
               </div>
 
               {mode === "recurrents" && (
@@ -643,13 +645,13 @@ export function RexWizard({
                       placeholder="Ex : Ce type d'écart se répète sur plusieurs chantiers et expose à des risques importants pour les intervenants et le public."
                       className={inputCls}
                     />
-                    <p className="mt-1 text-right text-xs text-slate-400">{raisonDiffusion.length}/500</p>
+                    <p className="mt-1 text-right text-xs text-muted-foreground">{raisonDiffusion.length}/500</p>
                   </div>
 
                   <fieldset className="mb-4">
                     <legend className={labelCls}>
                       Points communs observés *
-                      <span className="ml-2 font-normal text-slate-400">
+                      <span className="ml-2 font-normal text-muted-foreground">
                         Sélectionnez les facteurs récurrents identifiés dans les éléments sources.
                       </span>
                     </legend>
@@ -687,18 +689,18 @@ export function RexWizard({
             </div>
           </div>
 
-          <div className="h-fit rounded-xl border border-blue-100 bg-blue-50/60 p-5">
-            <div className="mb-3 flex items-center gap-2 text-blue-900">
-              <IconLightbulb className="h-5 w-5" />
+          <div className="h-fit rounded-xl border border-primary/20 bg-primary/5 p-5">
+            <div className="mb-3 flex items-center gap-2 text-foreground">
+              <IconLightbulb className="h-5 w-5 text-primary" />
               <h3 className="text-sm font-semibold">Aide à la rédaction</h3>
             </div>
-            <p className="mb-3 text-xs text-blue-800/80">Quelques conseils pour une synthèse efficace.</p>
-            <ol className="space-y-3 text-sm text-blue-950">
-              <li><span className="font-semibold">1. Soyez synthétique</span><br /><span className="text-xs text-blue-800/80">Allez à l&apos;essentiel : quel est l&apos;enseignement clé ?</span></li>
-              <li><span className="font-semibold">2. Appuyez-vous sur les faits</span><br /><span className="text-xs text-blue-800/80">Basez votre analyse sur les éléments observés dans les cas sélectionnés.</span></li>
-              <li><span className="font-semibold">3. Expliquez la valeur ajoutée</span><br /><span className="text-xs text-blue-800/80">Précisez pourquoi ce REX est utile et doit être diffusé à d&apos;autres équipes.</span></li>
-              <li><span className="font-semibold">4. Identifiez les facteurs récurrents</span><br /><span className="text-xs text-blue-800/80">Ciblez les causes profondes ou les conditions qui se répètent.</span></li>
-              <li><span className="font-semibold">5. Restez factuel et opérationnel</span><br /><span className="text-xs text-blue-800/80">Formulez des enseignements concrets et applicables sur le terrain.</span></li>
+            <p className="mb-3 text-xs text-muted-foreground">Quelques conseils pour une synthèse efficace.</p>
+            <ol className="space-y-3 text-sm text-foreground">
+              <li><span className="font-semibold">1. Soyez synthétique</span><br /><span className="text-xs text-muted-foreground">Allez à l&apos;essentiel : quel est l&apos;enseignement clé ?</span></li>
+              <li><span className="font-semibold">2. Appuyez-vous sur les faits</span><br /><span className="text-xs text-muted-foreground">Basez votre analyse sur les éléments observés dans les cas sélectionnés.</span></li>
+              <li><span className="font-semibold">3. Expliquez la valeur ajoutée</span><br /><span className="text-xs text-muted-foreground">Précisez pourquoi ce REX est utile et doit être diffusé à d&apos;autres équipes.</span></li>
+              <li><span className="font-semibold">4. Identifiez les facteurs récurrents</span><br /><span className="text-xs text-muted-foreground">Ciblez les causes profondes ou les conditions qui se répètent.</span></li>
+              <li><span className="font-semibold">5. Restez factuel et opérationnel</span><br /><span className="text-xs text-muted-foreground">Formulez des enseignements concrets et applicables sur le terrain.</span></li>
             </ol>
           </div>
         </div>
@@ -709,22 +711,22 @@ export function RexWizard({
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <RecapCard titre="Éléments sources" onModifier={() => allerA(0)} compact>
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-muted-foreground">
                 {mode === "spontane" && "Aucun — REX spontané"}
                 {mode === "recurrents" && `${ecartsRecurrents.length} écart(s) sélectionné(s)`}
                 {mode === "unique" && "1 élément sélectionné"}
               </p>
             </RecapCard>
             <RecapCard titre="Synthèse renseignée" onModifier={() => allerA(1)} compact>
-              <p className="line-clamp-2 text-sm text-slate-600">{enseignementPrincipal || "—"}</p>
+              <p className="line-clamp-2 text-sm text-muted-foreground">{enseignementPrincipal || "—"}</p>
             </RecapCard>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-6">
-            <h2 className="mb-3 text-base font-semibold text-slate-900">Type de REX et diffusion</h2>
+          <div className="rounded-xl border bg-card p-6">
+            <h2 className="mb-3 text-base font-semibold text-foreground">Type de REX et diffusion</h2>
 
             <fieldset className="mb-5">
-              <legend className="mb-2 text-sm font-medium text-slate-700">Nature du REX *</legend>
+              <legend className="mb-2 text-sm font-medium text-foreground">Nature du REX *</legend>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {Object.entries(NATURE_REX_LABELS).map(([valeur, libelle]) => {
                   const Icone = NATURE_ICONS[valeur];
@@ -743,15 +745,15 @@ export function RexWizard({
                           setModalite("immediate");
                         }
                       }}
-                      className={`rounded-lg border p-4 text-left transition ${
-                        nature === valeur ? "border-blue-500 ring-1 ring-blue-500" : "border-slate-200 hover:border-slate-300"
+                      className={`rounded-xl border p-4 text-left transition ${
+                        nature === valeur ? "border-primary ring-2 ring-primary/15" : "hover:border-primary/40"
                       }`}
                     >
                       <span className={`mb-2 flex h-9 w-9 items-center justify-center rounded-full ${NATURE_ICON_BG[valeur]}`}>
                         <Icone className="h-4.5 w-4.5" />
                       </span>
-                      <p className="text-sm font-semibold text-slate-900">{libelle}</p>
-                      <p className="mt-1 text-xs text-slate-500">{NATURE_REX_DESCRIPTIONS[valeur]}</p>
+                      <p className="text-sm font-semibold text-foreground">{libelle}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{NATURE_REX_DESCRIPTIONS[valeur]}</p>
                     </button>
                   );
                 })}
@@ -759,9 +761,9 @@ export function RexWizard({
             </fieldset>
 
             {natureRequiertDescription && (
-              <fieldset className="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <legend className="mb-1 px-1 text-sm font-medium text-slate-800">{configPratique.label} *</legend>
-                <p className="mb-3 text-xs text-slate-500">{configPratique.aide}</p>
+              <fieldset className="mb-5 rounded-lg border bg-muted/50 p-4">
+                <legend className="mb-1 px-1 text-sm font-medium text-foreground">{configPratique.label} *</legend>
+                <p className="mb-3 text-xs text-muted-foreground">{configPratique.aide}</p>
                 <textarea
                   value={pratiqueDescription}
                   onChange={(e) => setPratiqueDescription(e.target.value)}
@@ -782,11 +784,11 @@ export function RexWizard({
                     {actionsPreventives.map((a, i) => (
                       <li
                         key={i}
-                        className="flex items-start justify-between gap-3 rounded-md border border-amber-200 bg-white px-3 py-2 text-sm"
+                        className="flex items-start justify-between gap-3 rounded-lg border border-amber-200 bg-card px-3 py-2 text-sm"
                       >
                         <div className="min-w-0">
-                          <p className="text-slate-700">{a.action}</p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-foreground">{a.action}</p>
+                          <p className="text-xs text-muted-foreground">
                             {a.responsable}
                             {a.echeance && ` · échéance ${new Date(a.echeance).toLocaleDateString("fr-FR")}`}
                           </p>
@@ -843,7 +845,7 @@ export function RexWizard({
                         !nouvelleActionResponsable ||
                         (configActionPreventive.avecRefDoc && !nouvelleActionRefDoc.trim())
                       }
-                      className="whitespace-nowrap rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:cursor-not-allowed disabled:opacity-40"
+                      className={buttonVariants({ size: "lg" })}
                     >
                       Ajouter
                     </button>
@@ -853,7 +855,7 @@ export function RexWizard({
             )}
 
             <fieldset className="mb-5">
-              <legend className="mb-2 text-sm font-medium text-slate-700">Thèmes concernés *</legend>
+              <legend className="mb-2 text-sm font-medium text-foreground">Thèmes concernés *</legend>
               <div className="flex flex-wrap gap-x-4 gap-y-2">
                 {THEMES_REX_OPTIONS.map((t) => (
                   <CaseACocher key={t} label={t} checked={themes.includes(t)} onChange={() => setThemes(toggleValeur(themes, t))} />
@@ -863,7 +865,7 @@ export function RexWizard({
 
             <div className="mb-5 grid grid-cols-1 gap-6 sm:grid-cols-2">
               <fieldset>
-                <legend className="mb-2 text-sm font-medium text-slate-700">Qui doit recevoir ce REX ? *</legend>
+                <legend className="mb-2 text-sm font-medium text-foreground">Qui doit recevoir ce REX ? *</legend>
                 <div className="flex flex-col gap-2">
                   {DESTINATAIRES_ROLES_REX_OPTIONS.map((d) => (
                     <CaseACocher
@@ -876,7 +878,7 @@ export function RexWizard({
                 </div>
               </fieldset>
               <fieldset>
-                <legend className="mb-2 text-sm font-medium text-slate-700">Canaux de diffusion *</legend>
+                <legend className="mb-2 text-sm font-medium text-foreground">Canaux de diffusion *</legend>
                 <div className="flex flex-col gap-2">
                   {CANAUX_DIFFUSION_REX_OPTIONS.map((c) => (
                     <CaseACocher
@@ -891,7 +893,7 @@ export function RexWizard({
             </div>
 
             <fieldset>
-              <legend className="mb-2 text-sm font-medium text-slate-700">Modalités de diffusion</legend>
+              <legend className="mb-2 text-sm font-medium text-foreground">Modalités de diffusion</legend>
               <div className={`grid grid-cols-1 gap-3 ${natureRequiertAction ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
                 <ModaliteCard
                   actif={modalite === "immediate"}
@@ -969,15 +971,15 @@ export function RexWizard({
           <div className="space-y-4">
             <RecapCard titre="Éléments sources" onModifier={() => allerA(0)}>
               {mode === "spontane" ? (
-                <p className="text-sm text-slate-500">Aucun — REX spontané / bonne pratique.</p>
+                <p className="text-sm text-muted-foreground">Aucun — REX spontané / bonne pratique.</p>
               ) : mode === "recurrents" ? (
-                <ul className="space-y-1 text-sm text-slate-700">
+                <ul className="space-y-1 text-sm text-foreground">
                   {ecartsRecurrents.map((id) => (
                     <li key={id}>{ecartsParId.get(id)?.reference} — {ecartsParId.get(id)?.libelle}</li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-foreground">
                   {typeUnique === "ecart" && ecarts.find((e) => e.id === ecartUniqueId)?.libelle}
                   {typeUnique === "evenement" && evenements.find((e) => e.id === evenementId)?.libelle}
                   {typeUnique === "amiante" && amiantes.find((e) => e.id === amianteId)?.libelle}
@@ -987,8 +989,8 @@ export function RexWizard({
             </RecapCard>
 
             <RecapCard titre="Synthèse / enseignement" onModifier={() => allerA(1)}>
-              <p className="mb-2 text-sm font-medium text-slate-900">{titre}</p>
-              <p className="text-sm text-slate-600">{enseignementPrincipal}</p>
+              <p className="mb-2 text-sm font-medium text-foreground">{titre}</p>
+              <p className="text-sm text-muted-foreground">{enseignementPrincipal}</p>
             </RecapCard>
 
             <RecapCard titre="Type de REX et diffusion" onModifier={() => allerA(2)}>
@@ -999,16 +1001,16 @@ export function RexWizard({
                   </span>
                 )}
                 {themes.map((t) => (
-                  <span key={t} className="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600">{t}</span>
+                  <span key={t} className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">{t}</span>
                 ))}
               </div>
               {natureRequiertDescription && pratiqueDescription && (
-                <p className="mb-2 text-sm text-slate-600">{pratiqueDescription}</p>
+                <p className="mb-2 text-sm text-muted-foreground">{pratiqueDescription}</p>
               )}
               {natureRequiertAction && actionsPreventives.length > 0 && (
                 <ul className="mb-2 space-y-1">
                   {actionsPreventives.map((a, i) => (
-                    <li key={i} className="text-sm text-slate-600">
+                    <li key={i} className="text-sm text-muted-foreground">
                       • {a.action} — {a.responsable}
                       {a.echeance && ` (éch. ${new Date(a.echeance).toLocaleDateString("fr-FR")})`}
                     </li>
@@ -1017,13 +1019,13 @@ export function RexWizard({
               )}
               <div className="mb-2 flex flex-wrap gap-1.5">
                 {destinatairesRoles.map((d) => (
-                  <span key={d} className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs text-blue-700">{d}</span>
+                  <span key={d} className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary">{d}</span>
                 ))}
                 {canaux.map((c) => (
-                  <span key={c} className="rounded-full bg-slate-50 px-2.5 py-0.5 text-xs text-slate-600">{c}</span>
+                  <span key={c} className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">{c}</span>
                 ))}
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {modalite === "immediate" && "Diffusion immédiate à l'enregistrement."}
                 {modalite === "planifiee" &&
                   (dateDiffusionPlanifiee
@@ -1033,7 +1035,7 @@ export function RexWizard({
               </p>
             </RecapCard>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-6">
+            <div className="rounded-xl border bg-card p-6">
               <label className={labelCls}>Commentaire interne / note QHSE (optionnel)</label>
               <textarea
                 value={noteInterne}
@@ -1043,56 +1045,56 @@ export function RexWizard({
                 placeholder="Ajoutez une note ou un commentaire destiné uniquement à l'équipe QHSE…"
                 className={inputCls}
               />
-              <p className="mt-1 text-right text-xs text-slate-400">{noteInterne.length}/500</p>
+              <p className="mt-1 text-right text-xs text-muted-foreground">{noteInterne.length}/500</p>
             </div>
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
-              <h3 className="mb-3 text-sm font-semibold text-slate-900">Aperçu du REX</h3>
+            <div className="rounded-xl border bg-card p-5">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">Aperçu du REX</h3>
               {nature && (
                 <span className={`mb-2 inline-block rounded-full px-3 py-1 text-xs font-medium ${NATURE_REX_COLORS[nature]}`}>
                   {NATURE_REX_LABELS[nature]}
                 </span>
               )}
-              <p className="mb-1 font-semibold text-slate-900">{titre || "—"}</p>
-              <p className="mb-3 line-clamp-3 text-sm text-slate-600">{enseignementPrincipal || "—"}</p>
+              <p className="mb-1 font-semibold text-foreground">{titre || "—"}</p>
+              <p className="mb-3 line-clamp-3 text-sm text-muted-foreground">{enseignementPrincipal || "—"}</p>
               <div className="mb-3 flex flex-wrap gap-1.5">
                 {themes.map((t) => (
-                  <span key={t} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600">{t}</span>
+                  <span key={t} className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">{t}</span>
                 ))}
               </div>
-              <p className="mb-3 text-xs text-slate-500">
+              <p className="mb-3 text-xs text-muted-foreground">
                 {mode === "recurrents"
                   ? `${ecartsRecurrents.length} écart(s) sources`
                   : mode === "unique"
                     ? "1 élément source"
                     : "REX spontané"}
               </p>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Diffusion prévue</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Diffusion prévue</p>
               <div className="flex flex-wrap gap-1.5">
                 {destinatairesRoles.map((d) => (
-                  <span key={d} className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs text-blue-700">{d}</span>
+                  <span key={d} className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs text-primary">{d}</span>
                 ))}
                 {canaux.map((c) => (
-                  <span key={c} className="rounded-full bg-slate-50 px-2.5 py-0.5 text-xs text-slate-600">{c}</span>
+                  <span key={c} className="rounded-full bg-muted px-2.5 py-0.5 text-xs text-muted-foreground">{c}</span>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
-              <h3 className="mb-3 text-sm font-semibold text-slate-900">Checklist de validation</h3>
+            <div className="rounded-xl border bg-card p-5">
+              <h3 className="mb-3 text-sm font-semibold text-foreground">Checklist de validation</h3>
               <ul className="space-y-2">
                 {checklist.map((c) => (
                   <li key={c.label} className="flex items-center gap-2 text-sm">
                     <span
                       className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
-                        c.ok ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-400"
+                        c.ok ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
                       }`}
                     >
                       <IconCheck className="h-3 w-3" />
                     </span>
-                    <span className={c.ok ? "text-slate-700" : "text-slate-400"}>{c.label}</span>
+                    <span className={c.ok ? "text-foreground" : "text-muted-foreground"}>{c.label}</span>
                   </li>
                 ))}
               </ul>
@@ -1106,7 +1108,7 @@ export function RexWizard({
         <button
           type="button"
           onClick={() => (step === 0 ? router.push("/rex") : allerA(step - 1))}
-          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          className={buttonVariants({ variant: "outline", size: "lg" })}
         >
           {step === 0 ? "Annuler" : "Retour"}
         </button>
@@ -1116,7 +1118,7 @@ export function RexWizard({
             type="button"
             onClick={() => allerA(step + 1)}
             disabled={(step === 0 && !sourcesOk) || (step === 1 && !step2Ok) || (step === 2 && !step3Ok)}
-            className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+            className={buttonVariants({ size: "lg" })}
           >
             {step === 2 ? "Continuer vers la validation" : "Suivant →"}
           </button>
@@ -1126,7 +1128,7 @@ export function RexWizard({
               type="submit"
               disabled={isPending || !sourcesOk || !step2Ok}
               onClick={() => soumettre(false)}
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className={buttonVariants({ variant: "outline", size: "lg" })}
             >
               Enregistrer en brouillon
             </button>
@@ -1134,7 +1136,7 @@ export function RexWizard({
               type="submit"
               disabled={isPending || !toutOk}
               onClick={() => soumettre(true)}
-              className="rounded-md bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+              className={buttonVariants({ size: "lg" })}
             >
               {isPending ? "Enregistrement…" : "Enregistrer et publier le REX"}
             </button>
@@ -1164,14 +1166,14 @@ function ModeCard({
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-start gap-3 rounded-lg border p-4 text-left transition ${
-        actif ? "border-blue-500 bg-blue-50/60 ring-1 ring-blue-500" : "border-slate-200 hover:border-slate-300"
+      className={`flex items-start gap-3 rounded-xl border p-4 text-left transition ${
+        actif ? "border-primary bg-primary/5 ring-2 ring-primary/15" : "hover:border-primary/40"
       }`}
     >
       <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${iconeBg}`}>{icone}</span>
       <span>
-        <span className="block text-sm font-semibold text-slate-900">{titre}</span>
-        <span className="block text-xs text-slate-500">{description}</span>
+        <span className="block text-sm font-semibold text-foreground">{titre}</span>
+        <span className="block text-xs text-muted-foreground">{description}</span>
       </span>
     </button>
   );
@@ -1194,14 +1196,14 @@ function ModaliteCard({
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-start gap-2.5 rounded-lg border p-3.5 text-left transition ${
-        actif ? "border-blue-500 bg-blue-50/60 ring-1 ring-blue-500" : "border-slate-200 hover:border-slate-300"
+      className={`flex items-start gap-2.5 rounded-xl border p-3.5 text-left transition ${
+        actif ? "border-primary bg-primary/5 ring-2 ring-primary/15" : "hover:border-primary/40"
       }`}
     >
-      <span className="mt-0.5 text-slate-500">{icone}</span>
+      <span className="mt-0.5 text-muted-foreground">{icone}</span>
       <span>
-        <span className="block text-sm font-medium text-slate-900">{titre}</span>
-        <span className="block text-xs text-slate-500">{description}</span>
+        <span className="block text-sm font-medium text-foreground">{titre}</span>
+        <span className="block text-xs text-muted-foreground">{description}</span>
       </span>
     </button>
   );
@@ -1219,10 +1221,10 @@ function RecapCard({
   children: ReactNode;
 }) {
   return (
-    <div className={`rounded-xl border border-slate-200 bg-white ${compact ? "p-4" : "p-5"}`}>
+    <div className={`rounded-xl border bg-card ${compact ? "p-4" : "p-5"}`}>
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-900">{titre}</h3>
-        <button type="button" onClick={onModifier} className="text-xs font-medium text-blue-700 hover:underline">
+        <h3 className="text-sm font-semibold text-foreground">{titre}</h3>
+        <button type="button" onClick={onModifier} className="text-xs font-medium text-primary hover:underline">
           Modifier
         </button>
       </div>
