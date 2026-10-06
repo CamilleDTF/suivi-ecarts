@@ -232,6 +232,12 @@ export default async function SynthesePage({
     (a) => a.statut === "EN_RETARD" || (a.echeance !== null && a.echeance.getTime() < maintenant.getTime()),
   );
   const retardsAffiches = enRetard.slice(0, 6);
+  // Une action dont l'échéance est passée est en retard même si son statut enregistré
+  // dit encore « À faire » ou « En cours » : l'anneau suit la même règle que l'indicateur.
+  const statutsActions: Record<string, number> = { ...actionsStatutCounts, EN_RETARD: enRetard.length };
+  for (const a of enRetard) {
+    if (a.statut !== "EN_RETARD") statutsActions[a.statut] = (statutsActions[a.statut] ?? 0) - 1;
+  }
   const parResponsable = compterOccurrences(actionsOuvertes.map((a) => a.responsable));
   const topResponsables = parResponsable.slice(0, 8);
   const resteResponsables = parResponsable.slice(8).reduce((s, r) => s + r.valeur, 0);
@@ -487,11 +493,11 @@ export default async function SynthesePage({
 
       <TitreSection>Plan d&apos;action</TitreSection>
       <div className="grid gap-4 lg:grid-cols-2">
-        <Bloc titre="Actions par statut">
+        <Bloc titre="Actions par statut" complement="retard : échéance dépassée">
           <Anneau
             segments={STATUT_ACTION.map((s) => ({
               label: STATUT_ACTION_LABELS[s],
-              valeur: actionsStatutCounts[s] ?? 0,
+              valeur: statutsActions[s] ?? 0,
               ton: TON_STATUT_ACTION[s],
             }))}
           />
