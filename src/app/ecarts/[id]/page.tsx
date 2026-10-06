@@ -227,7 +227,12 @@ export default async function EcartDetailPage({
               <BadgeStatut label={`Criticité ${ecart.criticite.toLowerCase()}`} ton={TON_CRITICITE[ecart.criticite] ?? "neutre"} />
             )}
           </div>
-          <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight">
+          {/* Une description longue en grand titre occuperait la moitié de l'écran. */}
+          <h1
+            className={`font-display font-semibold tracking-tight ${
+              (ecart.description?.length ?? 0) > 140 ? "text-xl leading-snug" : "text-3xl leading-tight"
+            }`}
+          >
             {ecart.description?.trim() || "Écart sans description"}
           </h1>
         </div>
