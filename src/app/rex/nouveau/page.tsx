@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { RexWizard } from "@/components/rex-wizard";
 import { libelleRattachement } from "@/lib/labels";
+import { lirePeriodeProposition, prefillDepuisProposition } from "@/lib/propositions-rex";
 
 export default async function NouveauRexPage({
   searchParams,
@@ -10,9 +11,21 @@ export default async function NouveauRexPage({
     ficheSSEId?: string;
     ecartAmianteId?: string;
     remonteeId?: string;
+    // Venue de l'outil de propositions : un sujet et la période analysée.
+    proposition?: string;
+    periode?: string;
   }>;
 }) {
-  const { ecartId, ficheSSEId, ecartAmianteId, remonteeId } = await searchParams;
+  const params = await searchParams;
+  const prefill = params.proposition
+    ? await prefillDepuisProposition(params.proposition, lirePeriodeProposition(params.periode))
+    : null;
+  // Sans assez d'écarts pour un REX « récurrent », la proposition se fixe sur son fait principal.
+  const parent = prefill?.parent ?? null;
+  const ecartId = parent?.parametre === "ecartId" ? parent.id : params.ecartId;
+  const ficheSSEId = parent?.parametre === "ficheSSEId" ? parent.id : params.ficheSSEId;
+  const ecartAmianteId = parent?.parametre === "ecartAmianteId" ? parent.id : params.ecartAmianteId;
+  const remonteeId = parent?.parametre === "remonteeId" ? parent.id : params.remonteeId;
 
   const [fiche, ecartAmiante, remontee] = await Promise.all([
     ficheSSEId ? prisma.ficheSSE.findUnique({ where: { id: ficheSSEId } }) : null,
@@ -64,6 +77,19 @@ export default async function NouveauRexPage({
   return (
     <RexWizard
       parentImpose={parentImpose}
+      depart={
+        prefill
+          ? {
+              mode: prefill.mode,
+              ecartIds: prefill.ecartIds,
+              titre: prefill.titre,
+              raisonDiffusion: prefill.raisonDiffusion,
+              pointsCommuns: prefill.pointsCommuns,
+              themes: prefill.themes,
+              noteInterne: prefill.noteInterne,
+            }
+          : null
+      }
       ecarts={ecarts.map((e) => ({
         id: e.id,
         reference: e.reference,

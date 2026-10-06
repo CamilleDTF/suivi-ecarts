@@ -52,6 +52,17 @@ export type ParentImpose = {
   libelle: string;
 };
 
+/** Valeurs de départ, quand le REX naît d'une proposition de l'outil de propositions. */
+export type DepartRex = {
+  mode?: "unique" | "recurrents";
+  ecartIds?: string[];
+  titre?: string;
+  raisonDiffusion?: string;
+  pointsCommuns?: string[];
+  themes?: string[];
+  noteInterne?: string;
+};
+
 const NATURE_ICONS: Record<string, ComponentType<{ className?: string }>> = {
   BONNE_PRATIQUE: IconThumbsUp,
   PRATIQUE_A_EVITER: IconBan,
@@ -102,19 +113,21 @@ export function RexWizard({
   amiantes,
   remontees,
   parentImpose,
+  depart,
 }: {
   ecarts: SourceOption[];
   evenements: SourceOption[];
   amiantes: SourceOption[];
   remontees: SourceOption[];
   parentImpose?: ParentImpose | null;
+  depart?: DepartRex | null;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [erreur, setErreur] = useState<string | null>(null);
 
   const [step, setStep] = useState(0);
-  const [mode, setMode] = useState<Mode>("unique");
+  const [mode, setMode] = useState<Mode>(depart?.mode ?? "unique");
 
   // Étape 1 — sélection des sources.
   const [typeUnique, setTypeUnique] = useState<TypeUnique>(parentImpose?.type ?? "ecart");
@@ -122,15 +135,15 @@ export function RexWizard({
   const [evenementId, setEvenementId] = useState(parentImpose?.type === "evenement" ? parentImpose.id : "");
   const [amianteId, setAmianteId] = useState(parentImpose?.type === "amiante" ? parentImpose.id : "");
   const [remonteeId, setRemonteeId] = useState(parentImpose?.type === "remontee" ? parentImpose.id : "");
-  const [ecartsRecurrents, setEcartsRecurrents] = useState<string[]>([]);
+  const [ecartsRecurrents, setEcartsRecurrents] = useState<string[]>(depart?.ecartIds ?? []);
   const [filtreEcarts, setFiltreEcarts] = useState("");
 
   // Étape 2 — synthèse.
-  const [titre, setTitre] = useState("");
+  const [titre, setTitre] = useState(depart?.titre ?? "");
   const [sousTypeSSE, setSousTypeSSE] = useState("");
   const [enseignementPrincipal, setEnseignementPrincipal] = useState("");
-  const [raisonDiffusion, setRaisonDiffusion] = useState("");
-  const [pointsCommuns, setPointsCommuns] = useState<string[]>([]);
+  const [raisonDiffusion, setRaisonDiffusion] = useState(depart?.raisonDiffusion ?? "");
+  const [pointsCommuns, setPointsCommuns] = useState<string[]>(depart?.pointsCommuns ?? []);
   const [causeRacine, setCauseRacine] = useState("");
 
   // Étape 3 — type et diffusion.
@@ -138,7 +151,7 @@ export function RexWizard({
   // La bonne pratique elle-même (BONNE_PRATIQUE) ou la pratique observée
   // (PRATIQUE_A_EVITER) — indépendant de l'action éventuellement requise.
   const [pratiqueDescription, setPratiqueDescription] = useState("");
-  const [themes, setThemes] = useState<string[]>([]);
+  const [themes, setThemes] = useState<string[]>(depart?.themes ?? []);
   const [destinatairesRoles, setDestinatairesRoles] = useState<string[]>([]);
   const [canaux, setCanaux] = useState<string[]>([]);
   const [modalite, setModalite] = useState<ModaliteDiffusion>("immediate");
@@ -160,7 +173,7 @@ export function RexWizard({
   const [nouvelleActionRefDoc, setNouvelleActionRefDoc] = useState("");
 
   // Étape 4 — validation.
-  const [noteInterne, setNoteInterne] = useState("");
+  const [noteInterne, setNoteInterne] = useState(depart?.noteInterne ?? "");
 
   const ecartIdsFinal = mode === "recurrents" ? ecartsRecurrents : mode === "unique" && typeUnique === "ecart" ? (ecartUniqueId ? [ecartUniqueId] : []) : [];
   const ficheSSEIdFinal = mode === "unique" && typeUnique === "evenement" ? evenementId : "";
@@ -317,15 +330,20 @@ export function RexWizard({
     });
   }
 
-  const ecartsFiltres = ecarts.filter((e) => {
-    if (!filtreEcarts.trim()) return true;
-    const q = filtreEcarts.toLowerCase();
-    return (
-      e.reference.toLowerCase().includes(q) ||
-      e.libelle.toLowerCase().includes(q) ||
-      (e.chantier ?? "").toLowerCase().includes(q)
-    );
-  });
+  // Les écarts pré-sélectionnés par une proposition passent en tête, une fois pour toutes :
+  // l'ordre ne bouge pas quand on coche ou décoche ensuite.
+  const departIds = useMemo(() => new Set(depart?.ecartIds ?? []), [depart]);
+  const ecartsFiltres = ecarts
+    .filter((e) => {
+      if (!filtreEcarts.trim()) return true;
+      const q = filtreEcarts.toLowerCase();
+      return (
+        e.reference.toLowerCase().includes(q) ||
+        e.libelle.toLowerCase().includes(q) ||
+        (e.chantier ?? "").toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => Number(departIds.has(b.id)) - Number(departIds.has(a.id)));
 
   return (
     <form
