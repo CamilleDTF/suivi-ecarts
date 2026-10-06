@@ -1,3 +1,4 @@
+import { dateHeureParis, dateParis } from "@/lib/date-paris";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRightIcon, FileTextIcon, PlusIcon } from "lucide-react";
@@ -72,7 +73,7 @@ export default async function DossierDetailPage({
   const lienNouvelEcart = `/ecarts/nouveau?dossierId=${dossier.id}`;
 
   return (
-    <div className="mx-auto max-w-[80rem] px-4 py-8 lg:px-8">
+    <div className="mx-auto max-w-[100rem] px-4 py-8 lg:px-8">
       <nav data-no-print aria-label="Fil d'Ariane" className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/dossiers" className="hover:text-foreground hover:underline">
           Dossiers
@@ -211,9 +212,9 @@ export default async function DossierDetailPage({
             />
           </div>
           <p className="px-1 text-xs text-muted-foreground">
-            Créé le {dossier.createdAt.toLocaleDateString("fr-FR")}
+            Créé le {dateParis(dossier.createdAt)}
             {dossier.modifieLe &&
-              ` · modifié le ${dossier.modifieLe.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}${
+              ` · modifié le ${dateHeureParis(dossier.modifieLe)}${
                 dossier.modifiePar ? ` par ${dossier.modifiePar}` : ""
               }`}
           </p>

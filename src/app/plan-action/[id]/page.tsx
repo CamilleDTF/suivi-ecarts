@@ -1,3 +1,4 @@
+import { dateHeureParis, dateParis } from "@/lib/date-paris";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
@@ -402,9 +403,9 @@ export default async function ActionDetailPage({
             />
           </div>
           <p className="px-1 text-xs text-muted-foreground">
-            Créée le {action.createdAt.toLocaleDateString("fr-FR")}
+            Créée le {dateParis(action.createdAt)}
             {action.modifieLe &&
-              ` · modifiée le ${action.modifieLe.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}${
+              ` · modifiée le ${dateHeureParis(action.modifieLe)}${
                 action.modifiePar ? ` par ${action.modifiePar}` : ""
               }`}
           </p>

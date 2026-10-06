@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { dateParis, heureParis, memeJourParis } from "@/lib/date-paris";
 
 export type ActiviteItem = {
   label: string;
@@ -12,10 +13,7 @@ export type ActiviteItem = {
 };
 
 function formatDateActivite(date: Date) {
-  const maintenant = new Date();
-  const estAujourdhui = date.toDateString() === maintenant.toDateString();
-  const heure = date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  return { ligne1: estAujourdhui ? "Aujourd'hui" : date.toLocaleDateString("fr-FR"), ligne2: heure };
+  return { ligne1: memeJourParis(date, new Date()) ? "Aujourd'hui" : dateParis(date), ligne2: heureParis(date) };
 }
 
 export function ActiviteRecente({ items }: { items: ActiviteItem[] }) {

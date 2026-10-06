@@ -1,3 +1,4 @@
+import { dateParis } from "@/lib/date-paris";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { BadgeBrouillon, BadgeNatureRex, BadgeStatutRex } from "@/components/badges-rex";
@@ -169,7 +170,7 @@ export default async function RexPage({
                   </Link>
                 </TableCell>
                 <TableCell className="tabular-nums text-muted-foreground">
-                  {r.createdAt.toLocaleDateString("fr-FR")}
+                  {dateParis(r.createdAt)}
                 </TableCell>
                 <TableCell className="max-w-sm truncate">{r.titre}</TableCell>
                 <TableCell>

@@ -1,3 +1,4 @@
+import { dateHeureParis, dateParis } from "@/lib/date-paris";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckIcon, ChevronRightIcon, LockIcon, PlusIcon } from "lucide-react";
@@ -238,7 +239,7 @@ export default async function RemonteeDetailPage({
   const lienAjout = buttonVariants({ variant: "outline", size: "sm" });
 
   return (
-    <div className="mx-auto max-w-[80rem] px-4 py-8 lg:px-8">
+    <div className="mx-auto max-w-[100rem] px-4 py-8 lg:px-8">
       <nav data-no-print aria-label="Fil d'Ariane" className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/remontees" className="hover:text-foreground hover:underline">
           Remontées
@@ -525,9 +526,9 @@ export default async function RemonteeDetailPage({
             )}
           </div>
           <p className="px-1 text-xs text-muted-foreground">
-            Créée le {remontee.createdAt.toLocaleDateString("fr-FR")}
+            Créée le {dateParis(remontee.createdAt)}
             {remontee.modifieLe &&
-              ` · modifiée le ${remontee.modifieLe.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}${
+              ` · modifiée le ${dateHeureParis(remontee.modifieLe)}${
                 remontee.modifiePar ? ` par ${remontee.modifiePar}` : ""
               }`}
           </p>

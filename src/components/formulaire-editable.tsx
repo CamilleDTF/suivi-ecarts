@@ -1,5 +1,6 @@
 "use client";
 
+import { dateHeureParis } from "@/lib/date-paris";
 import { createContext, useContext, useState, useRef, useEffect, type ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
@@ -109,7 +110,7 @@ export function FormulaireEditable({
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-slate-400">
           {modifieLe
-            ? `Modifié le ${modifieLe.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}${modifiePar ? ` par ${modifiePar}` : ""}`
+            ? `Modifié le ${dateHeureParis(modifieLe)}${modifiePar ? ` par ${modifiePar}` : ""}`
             : "Aucune modification enregistrée."}
         </p>
         {!editMode && (

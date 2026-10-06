@@ -21,12 +21,12 @@ export async function NavBar() {
 
   return (
     <header className="sticky top-0 z-20 bg-sidebar text-sidebar-foreground shadow-sm">
-      <div className="mx-auto flex h-14 max-w-[100rem] items-center gap-6 px-4 lg:px-8">
-        <Link href="/" className="flex shrink-0 items-center gap-2.5">
+      <div className="mx-auto flex h-14 max-w-[100rem] items-center gap-3 px-4 lg:gap-6 lg:px-8">
+        <Link href="/" className="flex shrink-0 items-center gap-2.5" title="Suivi des écarts">
           <span className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
             <ShieldCheckIcon className="size-[18px]" />
           </span>
-          <span className="hidden font-display text-lg font-semibold tracking-tight text-sidebar-accent-foreground sm:inline">
+          <span className="hidden font-display text-lg font-semibold tracking-tight text-sidebar-accent-foreground xl:inline">
             Suivi des écarts
           </span>
         </Link>

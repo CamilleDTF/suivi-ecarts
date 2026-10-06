@@ -108,9 +108,11 @@ export default async function EcartsPage({
     groupes.get(cle)!.lignes.push(e);
   }
   const restants = (g: Groupe) => g.lignes.filter((l) => l.statut !== "CLOTURE").length;
-  const liste = [...groupes.values()].sort(
-    (a, b) => Number(a.cle === "aucun") - Number(b.cle === "aucun") || restants(b) - restants(a),
-  );
+  // D'abord les groupes où il reste des écarts à traiter (le plus chargé en tête),
+  // « Sans dossier » compris ; ensuite les dossiers soldés ; « Sans dossier » ferme
+  // la liste seulement quand tous ses écarts sont clôturés.
+  const rang = (g: Groupe) => (restants(g) > 0 ? 0 : g.cle === "aucun" ? 2 : 1);
+  const liste = [...groupes.values()].sort((a, b) => rang(a) - rang(b) || restants(b) - restants(a));
 
   const filtreActif = !!q || !!origine;
   const lienTuile = (s: string) => ({
@@ -119,7 +121,7 @@ export default async function EcartsPage({
   });
 
   return (
-    <div className="mx-auto max-w-[80rem] px-4 py-10 lg:px-8">
+    <div className="mx-auto max-w-[100rem] px-4 py-10 lg:px-8">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-4xl font-semibold tracking-tight">

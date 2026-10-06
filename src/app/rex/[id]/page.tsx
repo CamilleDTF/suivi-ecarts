@@ -1,3 +1,4 @@
+import { dateHeureParis, dateParis } from "@/lib/date-paris";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRightIcon, CircleDashedIcon, FileTextIcon, PlusIcon, SendIcon } from "lucide-react";
@@ -78,7 +79,7 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
     !!rex.pratiqueDescription?.trim() || NATURES_REX_REQUERANT_DESCRIPTION.includes(rex.nature);
 
   return (
-    <div className="mx-auto max-w-[80rem] px-4 py-8 lg:px-8">
+    <div className="mx-auto max-w-[100rem] px-4 py-8 lg:px-8">
       <nav data-no-print aria-label="Fil d'Ariane" className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/rex" className="hover:text-foreground hover:underline">
           Retours d&apos;expérience
@@ -283,9 +284,9 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
             />
           </div>
           <p className="px-1 text-xs text-muted-foreground">
-            Créé le {rex.createdAt.toLocaleDateString("fr-FR")}
+            Créé le {dateParis(rex.createdAt)}
             {rex.modifieLe
-              ? ` · modifié le ${rex.modifieLe.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}${
+              ? ` · modifié le ${dateHeureParis(rex.modifieLe)}${
                   rex.modifiePar ? ` par ${rex.modifiePar}` : ""
                 }`
               : " · aucune modification enregistrée"}

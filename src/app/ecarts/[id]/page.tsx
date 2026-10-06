@@ -1,3 +1,4 @@
+import { dateHeureParis, dateParis } from "@/lib/date-paris";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckCircle2Icon, ChevronRightIcon, CircleDashedIcon, PlusIcon } from "lucide-react";
@@ -199,7 +200,7 @@ export default async function EcartDetailPage({
   const lienAjout = buttonVariants({ variant: "outline", size: "sm" });
 
   return (
-    <div className="mx-auto max-w-[80rem] px-4 py-8 lg:px-8">
+    <div className="mx-auto max-w-[100rem] px-4 py-8 lg:px-8">
       <nav data-no-print aria-label="Fil d'Ariane" className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/ecarts" className="hover:text-foreground hover:underline">
           Écarts
@@ -467,9 +468,9 @@ export default async function EcartDetailPage({
             />
           </div>
           <p className="px-1 text-xs text-muted-foreground">
-            Créé le {ecart.createdAt.toLocaleDateString("fr-FR")}
+            Créé le {dateParis(ecart.createdAt)}
             {ecart.modifieLe &&
-              ` · modifié le ${ecart.modifieLe.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}${
+              ` · modifié le ${dateHeureParis(ecart.modifieLe)}${
                 ecart.modifiePar ? ` par ${ecart.modifiePar}` : ""
               }`}
           </p>

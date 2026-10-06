@@ -36,7 +36,7 @@ export function Chronologie({ evenements }: { evenements: EvenementChrono[] }) {
             aria-hidden
           />
           <p className="text-xs tabular-nums text-muted-foreground">
-            {e.date.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+            {e.date.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Paris" })}
           </p>
           <p className="mt-0.5 text-sm font-medium">
             {e.href ? (

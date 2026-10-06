@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 
 /** Largeurs de contenu : liste/tableau, fiche, formulaire de création. */
 const LARGEURS = {
-  liste: "max-w-[80rem]",
-  fiche: "max-w-[80rem]",
+  liste: "max-w-[100rem]",
+  fiche: "max-w-[100rem]",
   formulaire: "max-w-3xl",
 } as const;
 

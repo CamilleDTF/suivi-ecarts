@@ -1,3 +1,4 @@
+import { dateHeureParis, dateParis } from "@/lib/date-paris";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { referenceActionDU } from "@/lib/labels";
@@ -96,9 +97,9 @@ export default async function ActionDUDetailPage({ params }: { params: Promise<{
       </div>
 
       <p className="mt-4 px-1 text-xs text-muted-foreground">
-        Créée le {action.createdAt.toLocaleDateString("fr-FR")}
+        Créée le {dateParis(action.createdAt)}
         {action.modifieLe &&
-          ` · modifiée le ${action.modifieLe.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}${
+          ` · modifiée le ${dateHeureParis(action.modifieLe)}${
             action.modifiePar ? ` par ${action.modifiePar}` : ""
           }`}
       </p>

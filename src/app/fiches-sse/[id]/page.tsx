@@ -1,3 +1,4 @@
+import { dateHeureParis, dateParis } from "@/lib/date-paris";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
@@ -224,7 +225,7 @@ export default async function FicheSSEDetailPage({
   const lienAjout = buttonVariants({ variant: "outline", size: "sm" });
 
   return (
-    <div className="mx-auto max-w-[80rem] px-4 py-8 lg:px-8">
+    <div className="mx-auto max-w-[100rem] px-4 py-8 lg:px-8">
       <nav data-no-print aria-label="Fil d'Ariane" className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/fiches-sse" className="hover:text-foreground hover:underline">
           Évènements SSE
@@ -586,9 +587,9 @@ export default async function FicheSSEDetailPage({
             />
           </div>
           <p className="px-1 text-xs text-muted-foreground">
-            Créé le {fiche.createdAt.toLocaleDateString("fr-FR")}
+            Créé le {dateParis(fiche.createdAt)}
             {fiche.modifieLe &&
-              ` · modifié le ${fiche.modifieLe.toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" })}${
+              ` · modifié le ${dateHeureParis(fiche.modifieLe)}${
                 fiche.modifiePar ? ` par ${fiche.modifiePar}` : ""
               }`}
           </p>

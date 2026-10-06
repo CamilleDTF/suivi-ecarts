@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Libellés courts : dix entrées doivent tenir sur la barre du haut.
+// Libellés courts : dix entrées doivent tenir sur une seule ligne dans la barre du haut.
 const LIENS = [
   { href: "/dossiers", label: "Dossiers" },
   { href: "/ecarts", label: "Écarts" },
@@ -17,11 +17,14 @@ const LIENS = [
   { href: "/reunion", label: "Réunion", titre: "Réunion QHSE" },
 ];
 
+// Le soulignement du lien actif reste dans la hauteur de la barre : s'il dépassait,
+// le défilement horizontal ferait apparaître une barre verticale (les petites flèches).
+// Sur écran très étroit la barre défile sans afficher d'ascenseur.
 export function NavLinks() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-0.5 overflow-x-auto">
+    <nav className="flex h-14 items-stretch overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {LIENS.map((lien) => {
         const actif = pathname === lien.href || pathname.startsWith(`${lien.href}/`);
         return (
@@ -30,14 +33,20 @@ export function NavLinks() {
             href={lien.href}
             title={lien.titre ?? lien.label}
             aria-current={actif ? "page" : undefined}
-            className={`relative whitespace-nowrap rounded-md px-3 py-2 text-sm transition-colors ${
-              actif
-                ? "font-medium text-sidebar-accent-foreground"
-                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
-            }`}
+            className="group relative flex shrink-0 items-center whitespace-nowrap"
           >
-            {lien.label}
-            {actif && <span className="absolute inset-x-3 -bottom-[9px] h-[3px] rounded-full bg-sidebar-primary" aria-hidden />}
+            <span
+              className={`rounded-md px-1.5 py-2 text-sm transition-colors lg:px-2 xl:px-3 ${
+                actif
+                  ? "font-medium text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground/70 group-hover:bg-sidebar-accent/60 group-hover:text-sidebar-accent-foreground"
+              }`}
+            >
+              {lien.label}
+            </span>
+            {actif && (
+              <span className="absolute inset-x-1.5 bottom-0 h-[3px] rounded-t-full bg-sidebar-primary lg:inset-x-2 xl:inset-x-3" aria-hidden />
+            )}
           </Link>
         );
       })}
