@@ -2,58 +2,42 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ActivityIcon,
-  ChartColumnIcon,
-  ClipboardListIcon,
-  FolderIcon,
-  LightbulbIcon,
-  ListChecksIcon,
-  MessageSquareIcon,
-  ShieldAlertIcon,
-  TriangleAlertIcon,
-  UsersIcon,
-} from "lucide-react";
 
-// `court` : libellé sous l'icône, la barre ne faisant que 88 px de large.
+// Libellés courts : dix entrées doivent tenir sur la barre du haut.
 const LIENS = [
-  { href: "/dossiers", label: "Dossiers", court: "Dossiers", icone: FolderIcon },
-  { href: "/ecarts", label: "Écarts", court: "Écarts", icone: TriangleAlertIcon },
-  { href: "/fiches-sse", label: "Évènements SSE", court: "SSE", icone: ActivityIcon },
-  { href: "/ecart-amiante", label: "Écart amiante", court: "Amiante", icone: ShieldAlertIcon },
-  { href: "/remontees", label: "Remontées", court: "Remontées", icone: MessageSquareIcon },
-  { href: "/rex", label: "REX", court: "REX", icone: LightbulbIcon },
-  { href: "/plan-action", label: "Plan d'action", court: "Actions", icone: ListChecksIcon },
-  { href: "/plan-action-du", label: "Plan d'action DU", court: "Actions DU", icone: ClipboardListIcon },
-  { href: "/synthese", label: "Synthèse", court: "Synthèse", icone: ChartColumnIcon },
-  { href: "/reunion", label: "Réunion QHSE", court: "Réunion", icone: UsersIcon },
+  { href: "/dossiers", label: "Dossiers" },
+  { href: "/ecarts", label: "Écarts" },
+  { href: "/fiches-sse", label: "SSE", titre: "Évènements SSE" },
+  { href: "/ecart-amiante", label: "Amiante", titre: "Écart amiante" },
+  { href: "/remontees", label: "Remontées" },
+  { href: "/rex", label: "REX" },
+  { href: "/plan-action", label: "Actions", titre: "Plan d'action" },
+  { href: "/plan-action-du", label: "Actions DU", titre: "Plan d'action DU" },
+  { href: "/synthese", label: "Synthèse" },
+  { href: "/reunion", label: "Réunion", titre: "Réunion QHSE" },
 ];
 
 export function NavLinks() {
   const pathname = usePathname();
 
   return (
-    // Rangée défilante sous la barre du haut en petit écran ; colonne d'icônes
-    // dans la barre latérale à partir de lg.
-    <nav className="flex gap-1 overflow-x-auto lg:flex-col lg:overflow-visible">
+    <nav className="flex items-center gap-0.5 overflow-x-auto">
       {LIENS.map((lien) => {
         const actif = pathname === lien.href || pathname.startsWith(`${lien.href}/`);
-        const Icone = lien.icone;
         return (
           <Link
             key={lien.href}
             href={lien.href}
-            title={lien.label}
-            aria-label={lien.label}
+            title={lien.titre ?? lien.label}
             aria-current={actif ? "page" : undefined}
-            className={`flex shrink-0 flex-col items-center gap-1 rounded-md px-3 py-2 text-[11px] font-medium leading-none transition-colors lg:w-full ${
+            className={`relative whitespace-nowrap rounded-md px-3 py-2 text-sm transition-colors ${
               actif
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground/60 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+                ? "font-medium text-sidebar-accent-foreground"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
             }`}
           >
-            <Icone className={`size-5 ${actif ? "text-sidebar-primary" : ""}`} aria-hidden />
-            {lien.court}
+            {lien.label}
+            {actif && <span className="absolute inset-x-3 -bottom-[9px] h-[3px] rounded-full bg-sidebar-primary" aria-hidden />}
           </Link>
         );
       })}

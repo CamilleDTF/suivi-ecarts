@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Geist, Geist_Mono } from "next/font/google";
+import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { NavBar } from "@/components/nav-bar";
 
@@ -8,10 +8,9 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
   subsets: ["latin"],
-  axes: ["opsz"],
 });
 
 const geistMono = Geist_Mono({
@@ -32,13 +31,13 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
-      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${bricolage.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background">
         <NavBar />
         {/* Décalé de la largeur de la barre latérale à partir de lg ; en
             dessous, la barre reste en haut et le contenu suit normalement. */}
-        <main className="flex-1 lg:pl-[88px]">{children}</main>
+        <main className="flex-1">{children}</main>
       </body>
     </html>
   );
