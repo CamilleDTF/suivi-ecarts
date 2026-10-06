@@ -112,7 +112,6 @@ export default async function RemonteesPage({
         objet: true,
         categories: true,
         statut: true,
-        suiteDonnee: true,
         ecarts: { orderBy: { reference: "asc" }, select: { id: true, reference: true } },
         ficheSSE: { select: { id: true, reference: true } },
       },
@@ -266,11 +265,10 @@ export default async function RemonteesPage({
               <EnteteTriable colonne="date" libelle="Date" triActuel={tri} sensActuel={sens} params={paramsEntete} />
               <TableHead>Origine</TableHead>
               <TableHead>Chantier / Service</TableHead>
-              <TableHead>Objet</TableHead>
+              <TableHead className="w-full">Objet</TableHead>
               <TableHead>Catégorie</TableHead>
               <TableHead>Rattachée à</TableHead>
               <TableHead>Statut</TableHead>
-              <TableHead>Suite</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -288,7 +286,9 @@ export default async function RemonteesPage({
                   </TableCell>
                   <TableCell className="text-muted-foreground">{ORIGINE_REMONTEE_LABELS[r.origine]}</TableCell>
                   <TableCell className="max-w-[9rem] truncate" title={r.chantierService}>{r.chantierService}</TableCell>
-                  <TableCell className="max-w-[12rem] truncate" title={r.objet}>
+                  {/* w-full + max-w-0 : l'objet prend toute la largeur laissée par les autres
+                      colonnes, et se coupe par « … » au-delà ; min-w garde un minimum lisible. */}
+                  <TableCell className="w-full min-w-[12rem] max-w-0 truncate" title={r.objet}>
                     {r.objet}
                   </TableCell>
                   <TableCell className="max-w-[10rem] truncate text-muted-foreground" title={categories || undefined}>
@@ -314,19 +314,18 @@ export default async function RemonteesPage({
                     )}
                   </TableCell>
                   <TableCell>
-                    <BadgeStatut label={STATUT_REMONTEE_LABELS[r.statut]} ton={TON_STATUT[r.statut]} />
-                  </TableCell>
-                  {/* L'écart a désormais sa propre colonne : « Suite » redit ce
-                      qu'elle annonce, la suite donnée. */}
-                  <TableCell className="max-w-[10rem] truncate text-muted-foreground" title={r.suiteDonnee || undefined}>
-                    {r.suiteDonnee || "—"}
+                    {/* Libellé court dans la liste, pour garder la colonne étroite. */}
+                    <BadgeStatut
+                      label={r.statut === "TRANSFORMEE_EN_ECART" ? "Transformée" : STATUT_REMONTEE_LABELS[r.statut]}
+                      ton={TON_STATUT[r.statut]}
+                    />
                   </TableCell>
                 </TableRow>
               );
             })}
             {remontees.length === 0 && (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
                   {filtreActif
                     ? "Aucune remontée ne correspond à ces filtres."
                     : "Aucune remontée d’information pour l’instant."}
