@@ -101,6 +101,38 @@ function LigneGrave({ p }: { p: Proposition }) {
   );
 }
 
+/** Mot seul : trop vague pour un REX précis, présenté avec les mots qui l'accompagnent pour en faire un groupe. */
+function LigneMotSeul({ p, lienRecherche }: { p: Proposition; lienRecherche: (mots: string[]) => string }) {
+  const priorite = PRIORITE[p.priorite];
+  const mot = p.titre.replace(/[«»]/g, "").trim();
+  return (
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 text-sm">
+      <span className="font-display text-lg font-semibold tracking-tight">{p.titre}</span>
+      <span className="tabular-nums text-muted-foreground">
+        {p.faits.length} faits · {p.chantiers.length} chantier{p.chantiers.length > 1 ? "s" : ""}
+      </span>
+      <span className={cn("rounded-full px-2.5 py-1 text-xs font-medium", priorite.classe)}>{priorite.label}</span>
+      <span className="flex min-w-0 flex-1 basis-72 flex-wrap items-center gap-1.5">
+        {p.compagnons.length > 0 && <span className="text-xs text-muted-foreground">Souvent avec :</span>}
+        {p.compagnons.map((c) => (
+          <Link
+            key={c.mot}
+            href={lienRecherche([mot, c.mot])}
+            title={`Chercher les faits qui contiennent « ${mot} » et « ${c.mot} »`}
+            className="rounded-full border px-2.5 py-0.5 text-xs hover:bg-muted"
+          >
+            {c.mot} <span className="tabular-nums text-muted-foreground">{c.n}</span>
+          </Link>
+        ))}
+        <Link href={lienRecherche([mot])} className="text-xs text-muted-foreground underline-offset-4 hover:underline">
+          Voir les faits
+        </Link>
+      </span>
+      <BoutonCreer href={p.lienCreation} compact />
+    </li>
+  );
+}
+
 /** Motif ou sujet : un titre, ce qui le justifie, les faits à l'appui. */
 function CarteProposition({ p, libelleSujet }: { p: Proposition; libelleSujet: (cle: string) => string }) {
   const priorite = PRIORITE[p.priorite];
@@ -194,10 +226,17 @@ export default async function PropositionsRexPage({
     return qs ? `/rex/propositions?${qs}` : "/rex/propositions";
   };
   const graves = propositions.filter((p) => p.genre === "grave");
-  const motifs = propositions.filter((p) => p.genre === "motif");
+  const motifs = propositions.filter((p) => p.genre === "motif" && p.nbMots >= 2);
+  const motsSeuls = propositions.filter((p) => p.genre === "motif" && p.nbMots === 1);
+  const lienRecherche = (liste: string[]) => {
+    const params = new URLSearchParams();
+    if (periode !== PERIODE_PAR_DEFAUT) params.set("periode", periode);
+    params.set("mots", liste.join(" "));
+    return `/rex/propositions?${params}`;
+  };
   const sujets = propositions.filter((p) => p.genre === "sujet");
   const libelleSujet = (cle: string) => libelles.get(cle)?.label ?? cle;
-  const nbActionnables = graves.length + motifs.length;
+  const nbActionnables = graves.length + motifs.length + motsSeuls.length;
 
   return (
     <ConteneurPage>
@@ -265,23 +304,28 @@ export default async function PropositionsRexPage({
 
       <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="rounded-xl border bg-card p-4">
-          <p className="text-sm text-muted-foreground">Faits analysés</p>
+          <p className="text-sm text-muted-foreground">Constats analysés</p>
           <p className="mt-2 font-display text-4xl font-semibold tabular-nums leading-none">{stats.total}</p>
           <p className="mt-3 text-xs text-muted-foreground">
             {(Object.keys(stats.parType) as TypeFait[]).map((t) => `${stats.parType[t]} ${TYPES_FAIT[t].pluriel}`).join(" · ")}
           </p>
+          {stats.nbLies > 0 && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {stats.nbLies} évènement{stats.nbLies > 1 ? "s" : ""} ou remontée{stats.nbLies > 1 ? "s" : ""} liés à un autre fait : même constat, compté une seule fois.
+            </p>
+          )}
         </div>
         <div className="rounded-xl border bg-card p-4">
           <p className="text-sm text-muted-foreground">Propositions</p>
           <p className="mt-2 font-display text-4xl font-semibold tabular-nums leading-none">{nbActionnables}</p>
           <p className="mt-3 text-xs text-muted-foreground">
-            {graves.length} fait{graves.length > 1 ? "s" : ""} grave{graves.length > 1 ? "s" : ""} · {motifs.length} motif{motifs.length > 1 ? "s" : ""}
+            {graves.length} fait{graves.length > 1 ? "s" : ""} grave{graves.length > 1 ? "s" : ""} · {motifs.length} groupe{motifs.length > 1 ? "s" : ""} de mots · {motsSeuls.length} mot{motsSeuls.length > 1 ? "s" : ""} seul{motsSeuls.length > 1 ? "s" : ""}
           </p>
         </div>
         <div className="rounded-xl border bg-card p-4">
           <p className="text-sm text-muted-foreground">Déjà couverts par un REX</p>
           <p className="mt-2 font-display text-4xl font-semibold tabular-nums leading-none">{stats.nbCouverts}</p>
-          <p className="mt-3 text-xs text-muted-foreground">faits exclus des propositions</p>
+          <p className="mt-3 text-xs text-muted-foreground">constats exclus des propositions</p>
         </div>
       </div>
 
@@ -308,14 +352,27 @@ export default async function PropositionsRexPage({
 
       {motifs.length > 0 && (
         <Section
-          titre="Motifs qui reviennent"
-          aide="Des mots qui reviennent ensemble dans les descriptions et les causes de plusieurs faits, sur plusieurs chantiers ou plusieurs sources : un bon candidat pour un REX précis."
+          titre="Groupes de mots qui reviennent"
+          aide="Des groupes de mots qui reviennent ensemble dans les descriptions et les causes de plusieurs faits, sur plusieurs chantiers ou plusieurs sources : un bon candidat pour un REX précis."
         >
           <div className="space-y-4">
             {motifs.map((p) => (
               <CarteProposition key={p.cle} p={p} libelleSujet={libelleSujet} />
             ))}
           </div>
+        </Section>
+      )}
+
+      {motsSeuls.length > 0 && (
+        <Section
+          titre="Mots seuls fréquents"
+          aide="Un mot seul est rarement assez précis pour un REX. Cliquez sur un mot qui l'accompagne pour chercher les faits qui contiennent les deux et créer un REX plus ciblé."
+        >
+          <ul className="divide-y overflow-hidden rounded-xl border bg-card">
+            {motsSeuls.map((p) => (
+              <LigneMotSeul key={p.cle} p={p} lienRecherche={lienRecherche} />
+            ))}
+          </ul>
         </Section>
       )}
 
@@ -352,10 +409,15 @@ export default async function PropositionsRexPage({
               exposition accidentelle ou FIE en amiante, écart « non-conformité critique ». Proposé seul, même sans récurrence.
             </li>
             <li>
-              <strong className="text-foreground">Motif</strong> : une combinaison de mots significatifs (jusqu&apos;à 4) qui reviennent ensemble dans au moins 3
-              faits (descriptions et causes), sans être du vocabulaire courant, sur au moins 2 chantiers ou 2 sources, ou avec un fait grave. Une
-              combinaison de plusieurs mots passe avant un mot seul, qui complète la liste s&apos;il ne recoupe aucune combinaison. Les
-              motifs qui désignent presque les mêmes faits sont regroupés.
+              <strong className="text-foreground">Groupe de mots</strong> : une combinaison de mots significatifs (jusqu&apos;à 4) qui reviennent ensemble dans au moins 3
+              faits (descriptions et causes), sans être du vocabulaire courant, sur au moins 2 chantiers ou 2 sources, ou avec un fait grave. Les
+              groupes qui désignent presque les mêmes faits sont regroupés. Un mot qui revient seul, sans compagnon constant, est présenté à part
+              avec les mots qui l&apos;accompagnent le plus souvent : un clic cherche les faits qui contiennent les deux.
+            </li>
+            <li>
+              <strong className="text-foreground">Même constat, compté une fois</strong> : un évènement créé depuis un écart, une remontée transformée en
+              écart ou rattachée à un écart ou à un évènement forment un seul constat. Il ne pèse qu&apos;une fois dans les effectifs et les priorités,
+              et un REX sur l&apos;un d&apos;eux couvre les autres. Deux saisies identiques sans lien ne sont pas reconnues : rattachez-les l&apos;une à l&apos;autre.
             </li>
             <li>
               <strong className="text-foreground">Recherche libre</strong> : saisissez vos propres mots (par exemple « filtre sale ») pour voir tous les

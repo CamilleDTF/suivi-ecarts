@@ -56,7 +56,13 @@ export type Fait = {
   texte: string;
   gravite: Gravite;
   ouvert: boolean;
-  /** Clé du fait dont celui-ci est le prolongement (évènement créé depuis un écart, remontée transformée en écart). */
+  /**
+   * Faits dont celui-ci est le prolongement, du plus au moins fiable : écart d'origine, écarts rattachés,
+   * évènement rattaché (évènement créé depuis un écart, remontée transformée en écart ou rattachée).
+   * C'est le même constat saisi à plusieurs endroits : il ne compte qu'une fois.
+   */
+  liens: string[];
+  /** Le premier de ces faits présent dans l'analyse : le parent qui absorbe celui-ci. */
   lieA: string | null;
 };
 
@@ -66,6 +72,10 @@ export type Proposition = {
   titre: string;
   /** Pour un motif : les mots voisins regroupés avec lui. */
   motsAssocies: string[];
+  /** Nombre de mots du motif (1 = mot seul, trop vague pour un REX précis ; 0 hors motif). */
+  nbMots: number;
+  /** Pour un mot seul : les mots qui l'accompagnent le plus souvent, avec le nombre de faits où ils apparaissent. */
+  compagnons: { mot: string; n: number }[];
   /** Sujets les plus présents parmi les faits, du plus au moins fréquent. */
   sujetCles: string[];
   /** Faits non encore couverts par un REX, les plus graves puis les plus récents d'abord. */
@@ -215,7 +225,8 @@ type Analyse = {
   /** Résultat de la recherche libre (les mots saisis), si elle a été demandée. */
   recherche: Proposition | null;
   libelles: Map<string, Sujet>;
-  stats: { total: number; parType: Record<TypeFait, number>; nbCouverts: number };
+  /** `total` et `parType` comptent les constats distincts ; `nbLies` : faits absorbés par un autre (même constat). */
+  stats: { total: number; parType: Record<TypeFait, number>; nbCouverts: number; nbLies: number };
   du: Date | null;
   au: Date;
 };
@@ -232,8 +243,8 @@ const MIN_FAITS = 3;
 const MAX_MOTIFS = 12;
 /** Nombre maximal de mots d'une combinaison, et de mots montrés dans le titre d'un motif. */
 const MAX_MOTS_MOTIF = 4;
-/** Places gardées, dans la liste des motifs, pour des mots seuls qui ne recoupent aucune combinaison. */
-const MIN_PLACES_MOTS_SEULS = 4;
+/** Mots seuls montrés à part : trop vagues pour un REX précis, mais parfois très fréquents. */
+const MAX_MOTS_SEULS = 6;
 const MAX_ENSEMBLES = 20000;
 
 export async function analyserPropositions(periode: PeriodeProposition, motsRecherche: string[] = []): Promise<Analyse> {
@@ -305,6 +316,8 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
         natures: true,
         categories: true,
         ecartOrigineId: true,
+        ficheSSEId: true,
+        ecarts: { select: { id: true }, orderBy: { reference: "asc" } },
       },
     }),
     prisma.rex.findMany({
@@ -355,6 +368,7 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
       texte: normaliser(`${e.description ?? ""} ${e.cause ?? ""}`),
       gravite: Math.max(graviteCriticite(e.criticite), e.natures.includes("Non-conformité critique") ? 2 : 0) as Gravite,
       ouvert: e.statut !== "CLOTURE",
+      liens: [],
       lieA: null,
     })),
     ...fiches.map<Fait>((f) => ({
@@ -371,7 +385,8 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
       texte: normaliser(f.descriptionFactuelle ?? ""),
       gravite: Math.max(graviteCriticite(f.criticite), /accident/i.test(f.typeEvenement ?? "") ? 2 : 0) as Gravite,
       ouvert: f.statutFiche !== "FINALISEE",
-      lieA: f.ecartId ? `ecart:${f.ecartId}` : f.ecartAmianteId ? `amiante:${f.ecartAmianteId}` : null,
+      liens: [f.ecartId && `ecart:${f.ecartId}`, f.ecartAmianteId && `amiante:${f.ecartAmianteId}`].filter((k): k is string => !!k),
+      lieA: null,
     })),
     ...amiantes.map<Fait>((a) => ({
       type: "amiante",
@@ -391,6 +406,7 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
       // reste au moins à noter.
       gravite: a.expositionAccidentelle || a.fie ? 2 : 1,
       ouvert: a.statut !== "CLOTURE",
+      liens: [],
       lieA: null,
     })),
     ...remontees.map<Fait>((r) => ({
@@ -407,19 +423,48 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
       texte: normaliser(`${r.objet} ${r.description ?? ""}`),
       gravite: r.natures.includes("Point sensible") ? 1 : 0,
       ouvert: r.statut === "A_TRAITER" || r.statut === "EN_COURS",
-      lieA: r.ecartOrigineId ? `ecart:${r.ecartOrigineId}` : null,
+      // L'écart né de la remontée d'abord, puis les écarts auxquels elle se rapporte, puis l'évènement.
+      liens: [
+        ...(r.ecartOrigineId ? [`ecart:${r.ecartOrigineId}`] : []),
+        ...r.ecarts.map((e) => `ecart:${e.id}`),
+        ...(r.ficheSSEId ? [`evenement:${r.ficheSSEId}`] : []),
+      ],
+      lieA: null,
     })),
   ];
 
   const parTypeVide = (): Record<TypeFait, number> => ({ ecart: 0, evenement: 0, amiante: 0, remontee: 0 });
-  const stats = { total: faits.length, parType: parTypeVide(), nbCouverts: 0 };
-  for (const f of faits) stats.parType[f.type]++;
+  const cleFait = (f: Fait) => `${f.type}:${f.id}`;
+
+  // Un même constat peut être saisi à plusieurs endroits : un évènement créé depuis un écart, une
+  // remontée transformée en écart ou rattachée à un écart ou à un évènement. Ces faits forment une
+  // famille, comptée une seule fois : sans cela, un incident saisi trois fois pèserait trois fois
+  // dans les effectifs, les priorités et les REX déjà couverts.
+  const indexFait = new Map(faits.map((f) => [cleFait(f), f]));
+  for (const f of faits) f.lieA = f.liens.find((k) => k !== cleFait(f) && indexFait.has(k)) ?? null;
+  const racineDe = new Map<string, string>();
+  for (const f of faits) {
+    let courant = f;
+    for (let profondeur = 0; courant.lieA && profondeur < 5; profondeur++) courant = indexFait.get(courant.lieA) ?? courant;
+    racineDe.set(cleFait(f), cleFait(courant));
+  }
+  const racine = (f: Fait) => racineDe.get(cleFait(f)) ?? cleFait(f);
+  const familles = new Map<string, Fait[]>();
+  for (const f of faits) familles.set(racine(f), [...(familles.get(racine(f)) ?? []), f]);
+
+  const stats = { total: familles.size, parType: parTypeVide(), nbCouverts: 0, nbLies: faits.length - familles.size };
+  for (const [cle] of familles) stats.parType[indexFait.get(cle)!.type]++;
 
   const limiteRecent = maintenant.getTime() - 90 * JOUR;
-  const cleFait = (f: Fait) => `${f.type}:${f.id}`;
-  const rexDe = (f: Fait) => [...(couverture.get(cleFait(f)) ?? []), ...(f.lieA ? (couverture.get(f.lieA) ?? []) : [])];
+  // Un REX sur un membre de la famille couvre tout le constat, même si le fait lié est hors période.
+  const rexParFamille = new Map<string, string[]>();
+  for (const f of faits) {
+    const refs = [...(couverture.get(cleFait(f)) ?? []), ...f.liens.flatMap((k) => couverture.get(k) ?? [])];
+    if (refs.length > 0) rexParFamille.set(racine(f), [...new Set([...(rexParFamille.get(racine(f)) ?? []), ...refs])]);
+  }
+  const rexDe = (f: Fait) => rexParFamille.get(racine(f)) ?? [];
   const estCouvert = (f: Fait) => rexDe(f).length > 0;
-  stats.nbCouverts = faits.filter(estCouvert).length;
+  stats.nbCouverts = [...familles.keys()].filter((cle) => rexParFamille.has(cle)).length;
   const trier = (liste: Fait[]) =>
     [...liste].sort((a, b) => b.gravite - a.gravite || b.date.getTime() - a.date.getTime());
 
@@ -431,9 +476,11 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
     lienCreation: string,
     motsAssocies: string[] = [],
   ): Proposition {
-    // Un évènement créé depuis un écart, une remontée devenue écart : le même fait, compté une fois.
-    const dansLot = new Set(lot.map(cleFait));
-    const distincts = lot.filter((f) => !(f.lieA && dansLot.has(f.lieA)));
+    // Le même constat saisi plusieurs fois (écart, évènement, remontée liés) ne compte qu'une fois : on
+    // garde le fait racine de la famille s'il est dans le lot, sinon le premier.
+    const groupes = new Map<string, Fait[]>();
+    for (const f of lot) groupes.set(racine(f), [...(groupes.get(racine(f)) ?? []), f]);
+    const distincts = [...groupes.entries()].map(([cle, membres]) => membres.find((f) => cleFait(f) === cle) ?? membres[0]);
     const nbDoublons = lot.length - distincts.length;
     const nonCouverts = trier(distincts.filter((f) => !estCouvert(f)));
     const couverts = distincts.filter(estCouvert);
@@ -487,7 +534,7 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
       if (nbTypes >= 2) raisons.push(`Signalé par ${nbTypes} sources différentes.`);
       if (nbDoublons > 0) {
         raisons.push(
-          `${nbDoublons} évènement${nbDoublons > 1 ? "s ou remontées liés" : " ou remontée lié"} à un écart de la liste, compté${nbDoublons > 1 ? "s" : ""} avec lui.`,
+          `${nbDoublons} fait${nbDoublons > 1 ? "s liés" : " lié"} (évènement ou remontée du même constat), compté${nbDoublons > 1 ? "s" : ""} une seule fois.`,
         );
       }
     }
@@ -514,6 +561,8 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
       genre,
       titre,
       motsAssocies,
+      nbMots: 0,
+      compagnons: [],
       sujetCles,
       faits: nonCouverts,
       rexCouvrants,
@@ -540,11 +589,15 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
   const rang = { haute: 0, moyenne: 1, a_surveiller: 2 } as const;
 
   // 1. Faits graves : un REX à eux seuls, même isolés.
+  // Un seul par constat : l'écart racine s'il est grave, sinon le premier fait grave de la famille.
   const graves: Proposition[] = [];
-  const gravesParCle = new Set(faits.filter((f) => f.gravite === 2).map(cleFait));
+  const graveDeFamille = new Map<string, Fait>();
   for (const f of faits) {
     if (f.gravite < 2 || estCouvert(f)) continue;
-    if (f.lieA && gravesParCle.has(f.lieA)) continue;
+    const dejaChoisi = graveDeFamille.get(racine(f));
+    if (!dejaChoisi || cleFait(f) === racine(f)) graveDeFamille.set(racine(f), f);
+  }
+  for (const f of graveDeFamille.values()) {
     graves.push(
       construire(`grave:${f.type}:${f.id}`, "grave", `${TYPES_FAIT[f.type].label} ${f.reference}`, [f], `/rex/nouveau?${parametreCreation[f.type]}=${f.id}`),
     );
@@ -559,12 +612,9 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
   //    parlant qu'un mot seul (« stockage · déchets · clé » plutôt que « stockage »).
   //    Les faits jumeaux (évènement créé depuis un écart) sont écartés du calcul puis
   //    rattachés à leur écart, pour ne pas gonfler les effectifs.
-  const indexFait = new Map(faits.map((f) => [cleFait(f), f]));
-  const distinctsGlobaux = faits.filter((f) => !(f.lieA && indexFait.has(f.lieA)));
+  const distinctsGlobaux = [...familles.keys()].map((cle) => indexFait.get(cle)!);
   const jumeauxDe = new Map<string, Fait[]>();
-  for (const f of faits) {
-    if (f.lieA && indexFait.has(f.lieA)) jumeauxDe.set(f.lieA, [...(jumeauxDe.get(f.lieA) ?? []), f]);
-  }
+  for (const [cle, membres] of familles) jumeauxDe.set(cle, membres.filter((f) => cleFait(f) !== cle));
   const parTerme = new Map<string, { affichage: string; ids: number[] }>();
   distinctsGlobaux.forEach((f, i) => {
     for (const [cle, affichage] of f.termes) {
@@ -613,6 +663,23 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
   const motsDe = (g: { termes: Set<string> }) =>
     [...g.termes].sort((a, b) => (parTerme.get(b)?.ids.length ?? 0) - (parTerme.get(a)?.ids.length ?? 0));
   const affichage = (cle: string) => parTerme.get(cle)?.affichage ?? cle;
+  // Les mots qui accompagnent le plus souvent un mot seul : de quoi en faire un groupe en un clic.
+  const compagnonsDe = (p: Proposition, exclus: Set<string>) => {
+    const compte = new Map<string, { mot: string; n: number }>();
+    for (const f of p.faits) {
+      for (const [cle, mot] of f.termes) {
+        if (exclus.has(cle)) continue;
+        const courant = compte.get(cle) ?? { mot, n: 0 };
+        courant.n++;
+        compte.set(cle, courant);
+      }
+    }
+    const seuil = Math.max(2, Math.ceil(p.faits.length * 0.2));
+    return [...compte.values()]
+      .filter((c) => c.n >= seuil)
+      .sort((a, b) => b.n - a.n || a.mot.localeCompare(b.mot))
+      .slice(0, 5);
+  };
   const construireMotif = (g: { ids: number[]; termes: Set<string> }) => {
     const mots = motsDe(g);
     const lot = g.ids.flatMap((i) => {
@@ -630,35 +697,41 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
     );
     // À effectif voisin, une combinaison de plusieurs mots est plus parlante qu'un mot seul.
     p.score += 3 * (mots.length - 1);
+    p.nbMots = mots.length;
+    if (mots.length === 1) p.compagnons = compagnonsDe(p, g.termes);
     return p;
   };
   const classer = (liste: Proposition[]) =>
     liste.filter(suffisant).sort((a, b) => rang[a.priorite] - rang[b.priorite] || b.score - a.score);
   // Deux motifs qui désignent en gros les mêmes faits n'en font qu'un : le mieux classé garde la
   // place et reprend les mots de l'autre.
-  const motifs: Proposition[] = [];
-  const retenir = (liste: Proposition[], fusionner: boolean, plafond: number) => {
-    for (const p of liste) {
-      const cles = new Set(p.faits.map(cleFait));
-      const voisin = motifs.find((m) => {
-        const commun = m.faits.filter((x) => cles.has(cleFait(x))).length;
-        return commun / (cles.size + m.faits.length - commun) >= 0.5;
-      });
-      if (voisin) {
-        if (!fusionner) continue;
-        const motsVoisin = p.titre.replace(/[«»]/g, "").split("·").map((x) => x.trim());
-        const nouveaux = motsVoisin.filter((x) => x && !voisin.titre.includes(x) && !voisin.motsAssocies.includes(x));
-        voisin.motsAssocies = [...voisin.motsAssocies, ...nouveaux].slice(0, 6);
-      } else if (motifs.length < plafond) {
-        motifs.push(p);
-      }
-    }
+  const voisinDe = (p: Proposition, liste: Proposition[]) => {
+    const cles = new Set(p.faits.map(cleFait));
+    return liste.find((m) => {
+      const commun = m.faits.filter((x) => cles.has(cleFait(x))).length;
+      return commun / (cles.size + m.faits.length - commun) >= 0.5;
+    });
   };
-  // Les combinaisons n'occupent pas toute la liste : il reste de la place pour les mots seuls.
-  retenir(classer(candidats.map(construireMotif)), true, MAX_MOTIFS - MIN_PLACES_MOTS_SEULS);
-  // Un mot seul complète la liste s'il ne recoupe pas une combinaison déjà retenue.
-  retenir(classer(candidatsMotSeul.map(construireMotif)), false, MAX_MOTIFS);
+  // Les groupes de mots occupent toute la liste : c'est ce qui est proposé en priorité.
+  const motifs: Proposition[] = [];
+  for (const p of classer(candidats.map(construireMotif))) {
+    const voisin = voisinDe(p, motifs);
+    if (voisin) {
+      const motsVoisin = p.titre.replace(/[«»]/g, "").split("·").map((x) => x.trim());
+      const nouveaux = motsVoisin.filter((x) => x && !voisin.titre.includes(x) && !voisin.motsAssocies.includes(x));
+      voisin.motsAssocies = [...voisin.motsAssocies, ...nouveaux].slice(0, 6);
+    } else if (motifs.length < MAX_MOTIFS) {
+      motifs.push(p);
+    }
+  }
   motifs.sort((a, b) => rang[a.priorite] - rang[b.priorite] || b.score - a.score);
+  // Un mot seul est présenté à part, avec les mots qui l'accompagnent, et seulement s'il ne recoupe
+  // pas un groupe déjà proposé.
+  const motsSeuls: Proposition[] = [];
+  for (const p of classer(candidatsMotSeul.map(construireMotif))) {
+    if (motsSeuls.length >= MAX_MOTS_SEULS) break;
+    if (!voisinDe(p, motifs) && !voisinDe(p, motsSeuls)) motsSeuls.push(p);
+  }
 
   // Recherche libre : les faits dont le texte contient tous les mots saisis (début de mot, sans
   // tenir compte des accents ni des majuscules : « filtre » trouve « filtres »).
@@ -674,6 +747,7 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
       faits.filter((fait) => expressions.every((re) => re.test(fait.texte))),
       lienProposition(cle),
     );
+    recherche.nbMots = motsCherches.length;
   }
 
   // 3. Vue d'ensemble par sujet.
@@ -684,7 +758,7 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
     .filter(suffisant)
     .sort((a, b) => b.faits.length - a.faits.length);
 
-  return { propositions: [...graves, ...motifs, ...sujets], recherche, libelles, stats, du: depuis, au: maintenant };
+  return { propositions: [...graves, ...motifs, ...motsSeuls, ...sujets], recherche, libelles, stats, du: depuis, au: maintenant };
 }
 
 /** Ce que le parcours de création reçoit pour une proposition de motif ou de sujet. */
