@@ -30,6 +30,8 @@ import {
   POINTS_COMMUNS_REX_OPTIONS,
   SOUS_TYPE_SSE_REX_OPTIONS,
   RESPONSABLES,
+  ACTION_A_DEFINIR,
+  RESPONSABLE_A_DEFINIR,
   NATURES_REX_REQUERANT_ACTION,
   NATURES_REX_REQUERANT_DESCRIPTION,
 } from "@/lib/labels";
@@ -284,6 +286,17 @@ export function RexWizard({
     setActionsPreventives([
       ...actionsPreventives,
       { action: texte, responsable: nouvelleActionResponsable, echeance: nouvelleActionEcheance },
+    ]);
+    setNouvelleAction("");
+    setNouvelleActionResponsable("");
+    setNouvelleActionEcheance("");
+    setNouvelleActionRefDoc("");
+  }
+  // Une action exigée mais pas encore décidée : créée sans responsable, à compléter au plan d'action.
+  function ajouterActionADefinir() {
+    setActionsPreventives([
+      ...actionsPreventives,
+      { action: ACTION_A_DEFINIR, responsable: nouvelleActionResponsable || RESPONSABLE_A_DEFINIR, echeance: nouvelleActionEcheance },
     ]);
     setNouvelleAction("");
     setNouvelleActionResponsable("");
@@ -917,6 +930,19 @@ export function RexWizard({
                     >
                       Ajouter
                     </button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={ajouterActionADefinir}
+                      disabled={nouvelleAction.trim().length > 0}
+                      className={buttonVariants({ variant: "outline", size: "lg" })}
+                    >
+                      {ACTION_A_DEFINIR}
+                    </button>
+                    <p className="text-xs text-muted-foreground">
+                      Pas encore décidé ? L&apos;action est créée sans responsable et reste à compléter au plan d&apos;action.
+                    </p>
                   </div>
                 </div>
               </fieldset>

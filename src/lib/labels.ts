@@ -224,6 +224,12 @@ export const RESPONSABLES = [
   "Ibrahim", "Halim", "Jalal", "Youssef", "Soufiane", "Direction",
 ];
 
+// Une action exigée avant d'être décidée : elle est créée telle quelle au plan d'action, sans
+// responsable connu, et se complète ensuite (le formulaire d'une action accepte toute valeur déjà
+// enregistrée, même absente de la liste ci-dessus).
+export const ACTION_A_DEFINIR = "Action à définir";
+export const RESPONSABLE_A_DEFINIR = "À définir";
+
 // Ajoute à une liste d'options toute valeur déjà enregistrée qui n'y figure
 // plus (anciennes valeurs reprises de l'Excel, par exemple) : sans ça, la case
 // n'est pas affichée et la valeur disparaît au prochain enregistrement.
