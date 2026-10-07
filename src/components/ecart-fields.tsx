@@ -40,7 +40,7 @@ function toDateInput(d?: Date | null) {
   return d ? d.toISOString().slice(0, 10) : "";
 }
 
-export function EcartFields({ v = {} }: { v?: EcartValues }) {
+export function EcartFields({ v = {}, identiteSeule = false }: { v?: EcartValues; identiteSeule?: boolean }) {
   const disabled = !useEditMode();
   const [criticite, setCriticite] = useState(v.criticite ?? "");
 
@@ -130,6 +130,8 @@ export function EcartFields({ v = {} }: { v?: EcartValues }) {
         </div>
       </fieldset>
 
+      {!identiteSeule && (
+        <>
       <div className="grid grid-cols-3 gap-4">
         <div>
           <label className={labelCls}>Gravité</label>
@@ -186,6 +188,8 @@ export function EcartFields({ v = {} }: { v?: EcartValues }) {
         <label className={labelCls}>Cause</label>
         <textarea name="cause" defaultValue={v.cause ?? ""} rows={2} className={inputCls} />
       </div>
+        </>
+      )}
     </fieldset>
   );
 }

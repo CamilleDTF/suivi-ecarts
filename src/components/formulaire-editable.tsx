@@ -12,6 +12,15 @@ export function useEditMode() {
   return useContext(EditModeContext);
 }
 
+/**
+ * Montre des champs de formulaire en lecture seule, en dehors de tout formulaire : la
+ * version imprimée d'une fiche reprend ainsi la mise en page des champs (cases cochées,
+ * valeurs sur un filet) que la feuille de styles d'impression sait déjà rendre.
+ */
+export function ModeLecture({ children }: { children: ReactNode }) {
+  return <EditModeContext.Provider value={false}>{children}</EditModeContext.Provider>;
+}
+
 // Permet à un champ de signaler un traitement en cours (conversion d'une photo,
 // par exemple) pour que le bouton Enregistrer attende : sans ça, on enregistre
 // un formulaire dont un champ n'est pas encore rempli.

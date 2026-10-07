@@ -27,6 +27,7 @@ export function StatutParcours({
   courant: string;
 }) {
   return (
+    <>
     <div data-no-print className="inline-flex rounded-lg bg-muted p-0.5" role="group" aria-label="Statut">
       {etapes.map((e) => {
         const actif = e.value === courant;
@@ -52,5 +53,24 @@ export function StatutParcours({
         );
       })}
     </div>
+    {/* Sur papier, les boutons disparaissent : on garde le statut, sans les autres choix cliquables. */}
+    <div className="hidden rounded-lg bg-muted p-0.5 print:inline-flex" aria-hidden>
+      {etapes.map((e) => {
+        const actif = e.value === courant;
+        return (
+          <span
+            key={e.value}
+            className={cn(
+              "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm",
+              actif ? "bg-background font-medium text-foreground shadow-xs" : "text-muted-foreground",
+            )}
+          >
+            <span className={cn("size-1.5 rounded-full", actif ? POINTS[e.ton] : "bg-muted-foreground/40")} />
+            {e.label}
+          </span>
+        );
+      })}
+    </div>
+    </>
   );
 }

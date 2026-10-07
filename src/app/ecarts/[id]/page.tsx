@@ -25,6 +25,7 @@ import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
 import { ChangerRattachement } from "@/components/changer-rattachement";
 import { Chronologie, type EvenementChrono } from "@/components/chronologie";
 import { EcartFields } from "@/components/ecart-fields";
+import { ModeLecture } from "@/components/formulaire-editable";
 import { BoutonModifier, EditionEnPlace, ZoneEdition, ZoneLecture } from "@/components/edition-en-place";
 import { Carte, EtatVide, FicheSection, Pastilles, Propriete, Proprietes } from "@/components/fiche";
 import { MatriceRisque } from "@/components/matrice-risque";
@@ -261,9 +262,18 @@ export default async function EcartDetailPage({
       </ZoneEdition>
 
       <ZoneLecture>
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
-        <div className="space-y-8">
-          <div className="grid gap-4 sm:grid-cols-2">
+      {/* PDF : l'identité de l'écart (date, origine, déclarant, activité, natures, domaines, thèmes)
+          vient juste après le parcours, avant les cartes mesure immédiate et cause. */}
+      <div className="mb-8 hidden print:block">
+        <ModeLecture>
+          <EcartFields v={ecart} identiteSeule />
+        </ModeLecture>
+      </div>
+      {/* Sur papier, la grille devient une colonne et ses deux moitiés se mêlent (display: contents) :
+          chaque bloc prend sa place par « order » — 2 mesure et cause, 3 propriétés, 4 risque, 5 le reste. */}
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem] print:flex print:flex-col print:gap-6">
+        <div className="space-y-8 print:contents">
+          <div className="grid gap-4 sm:grid-cols-2 print:order-2 print:break-inside-avoid">
             {[
               { titre: "Mesure immédiate", valeur: ecart.mesureImmediate, vide: "Aucune mesure immédiate n’est enregistrée." },
               { titre: "Cause", valeur: ecart.cause, vide: "La cause n’a pas encore été analysée." },
@@ -287,7 +297,7 @@ export default async function EcartDetailPage({
           </div>
 
           {(ecart.natures.length > 0 || ecart.domaines.length > 0 || ecart.theme.length > 0) && (
-            <Carte className="grid gap-4 p-5 sm:grid-cols-3">
+            <Carte className="grid gap-4 p-5 sm:grid-cols-3 print:hidden">
               <Pastilles label="Nature" valeurs={ecart.natures} />
               <Pastilles label="Domaine" valeurs={ecart.domaines} />
               <Pastilles label="Thème" valeurs={ecart.theme} />
@@ -295,6 +305,7 @@ export default async function EcartDetailPage({
           )}
 
           <FicheSection
+            className="print:order-5"
             titre="Plan d’action"
             compteur={ecart.actions.length}
             action={
@@ -336,6 +347,7 @@ export default async function EcartDetailPage({
           </FicheSection>
 
           <FicheSection
+            className="print:order-5"
             titre="Évènements SSE"
             compteur={ecart.fichesSSE.length}
             action={
@@ -370,6 +382,7 @@ export default async function EcartDetailPage({
           </FicheSection>
 
           <FicheSection
+            className="print:order-5"
             titre="Retour d’expérience"
             compteur={ecart.rex.length}
             action={
@@ -397,7 +410,7 @@ export default async function EcartDetailPage({
             )}
           </FicheSection>
 
-          <details className="group rounded-xl border bg-card">
+          <details className="group rounded-xl border bg-card print:order-5">
             <summary className="flex cursor-pointer list-none items-center gap-2 px-5 py-4 text-base font-semibold [&::-webkit-details-marker]:hidden">
               <ChevronRightIcon className="size-4 text-muted-foreground transition-transform group-open:rotate-90" aria-hidden />
               Historique
@@ -409,8 +422,8 @@ export default async function EcartDetailPage({
           </details>
         </div>
 
-        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <Carte className="p-5">
+        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start print:contents">
+          <Carte className="p-5 print:order-4 print:max-w-[21rem] print:break-inside-avoid">
             <div className="mb-4 flex items-baseline justify-between">
               <h2 className="font-display text-lg font-semibold">Risque</h2>
               {ecart.criticite ? (
@@ -421,7 +434,7 @@ export default async function EcartDetailPage({
             </div>
             <MatriceRisque gravite={ecart.gravite} frequence={ecart.frequence} />
           </Carte>
-          <Carte>
+          <Carte className="print:order-3 print:max-w-[21rem] print:break-inside-avoid">
             <Proprietes>
               <Propriete label="Origine">{ORIGINE_LABELS[ecart.origine]}</Propriete>
               <Propriete label="Activité">{ecart.typeActivite ? TYPE_ACTIVITE_LABELS[ecart.typeActivite] : "—"}</Propriete>
@@ -471,7 +484,7 @@ export default async function EcartDetailPage({
               className=""
             />
           </div>
-          <p className="px-1 text-xs text-muted-foreground">
+          <p className="px-1 text-xs text-muted-foreground print:order-6">
             Créé le {dateParis(ecart.createdAt)}
             {ecart.modifieLe &&
               ` · modifié le ${dateHeureParis(ecart.modifieLe)}${
