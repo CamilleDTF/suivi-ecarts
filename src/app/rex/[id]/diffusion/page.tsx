@@ -9,7 +9,9 @@ import {
   ORIGINE_REX_LABELS,
   NATURE_REX_LABELS,
   NATURE_REX_COLORS,
+  CRITICITE_COLORS,
 } from "@/lib/labels";
+import { dateParis } from "@/lib/date-paris";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,7 +32,22 @@ export default async function DiffusionRexPage({
   const rex = await prisma.rex.findUnique({
     where: { id },
     include: {
-      ecarts: { orderBy: { reference: "asc" }, include: { dossier: { select: { chantier: true } } } },
+      // Ni le déclarant ni les pièces jointes : la fiche circule auprès de tout le personnel.
+      ecarts: {
+        orderBy: { reference: "asc" },
+        select: {
+          id: true,
+          reference: true,
+          dateDetection: true,
+          criticite: true,
+          natures: true,
+          theme: true,
+          description: true,
+          cause: true,
+          mesureImmediate: true,
+          dossier: { select: { chantier: true } },
+        },
+      },
       ficheSSE: { select: { id: true, reference: true, nomChantier: true } },
       ecartAmiante: { select: { id: true, reference: true, nomChantier: true } },
       remontee: { select: { id: true, reference: true, objet: true } },
@@ -59,18 +76,7 @@ export default async function DiffusionRexPage({
 
       <p className="mb-6 text-sm text-slate-500">
         Origine — {ORIGINE_REX_LABELS[rex.origine]}
-        {rex.ecarts.length > 0 && (
-          <>
-            {" — "}
-            {rex.ecarts.map((e, i) => (
-              <span key={e.id}>
-                {i > 0 && ", "}
-                Écart {e.reference}
-                {e.dossier ? ` (${e.dossier.chantier})` : ""}
-              </span>
-            ))}
-          </>
-        )}
+        {rex.ecarts.length > 0 && ` — ${rex.ecarts.length} écart${rex.ecarts.length > 1 ? "s" : ""}, détaillé${rex.ecarts.length > 1 ? "s" : ""} ci-dessous`}
         {rex.ficheSSE && ` — Évènement SSE ${rex.ficheSSE.reference}${rex.ficheSSE.nomChantier ? ` (${rex.ficheSSE.nomChantier})` : ""}`}
         {rex.ecartAmiante && ` — Écart amiante ${rex.ecartAmiante.reference} (${rex.ecartAmiante.nomChantier})`}
         {rex.remontee && ` — Remontée ${rex.remontee.reference}`}
@@ -102,6 +108,45 @@ export default async function DiffusionRexPage({
                 {a.echeance && ` (échéance ${a.echeance.toLocaleDateString("fr-FR")})`}
               </li>
             ))}
+          </ul>
+        </section>
+      )}
+
+      {rex.ecarts.length > 0 && (
+        <section className="mb-6">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Écarts concernés ({rex.ecarts.length})
+          </h3>
+          <ul className="space-y-3">
+            {rex.ecarts.map((e) => {
+              const classement = [...e.natures, ...e.theme].join(" · ");
+              return (
+                <li key={e.id} className="break-inside-avoid rounded-lg border border-slate-200 bg-white p-4 text-sm">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="font-semibold text-slate-900">{e.reference}</span>
+                    <span className="text-slate-500">{dateParis(e.dateDetection)}</span>
+                    {e.dossier?.chantier && <span className="text-slate-500">{e.dossier.chantier}</span>}
+                    {e.criticite && (
+                      <Badge label={`Criticité ${e.criticite.toLowerCase()}`} colorClass={CRITICITE_COLORS[e.criticite] ?? ""} />
+                    )}
+                  </div>
+                  <p className="mt-2 whitespace-pre-line text-slate-800">{e.description || "Pas de description."}</p>
+                  {e.cause && (
+                    <p className="mt-1.5 whitespace-pre-line text-slate-700">
+                      <span className="font-medium">Cause : </span>
+                      {e.cause}
+                    </p>
+                  )}
+                  {e.mesureImmediate && (
+                    <p className="mt-1.5 whitespace-pre-line text-slate-700">
+                      <span className="font-medium">Mesure immédiate : </span>
+                      {e.mesureImmediate}
+                    </p>
+                  )}
+                  {classement && <p className="mt-1.5 text-xs text-slate-400">{classement}</p>}
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}
