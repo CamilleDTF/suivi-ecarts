@@ -16,7 +16,7 @@ import { dateParis } from "@/lib/date-paris";
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const rex = await prisma.rex.findUnique({ where: { id }, select: { reference: true } });
-  return { title: rex ? `Fiche de diffusion — REX ${rex.reference}` : "Fiche de diffusion" };
+  return { title: rex ? `Fiche de diffusion — ${rex.reference}` : "Fiche de diffusion" };
 }
 
 export default async function DiffusionRexPage({
@@ -48,9 +48,9 @@ export default async function DiffusionRexPage({
           dossier: { select: { chantier: true } },
         },
       },
-      ficheSSE: { select: { id: true, reference: true, nomChantier: true } },
-      ecartAmiante: { select: { id: true, reference: true, nomChantier: true } },
-      remontee: { select: { id: true, reference: true, objet: true } },
+      fichesSSE: { orderBy: { reference: "asc" }, select: { id: true, reference: true, nomChantier: true } },
+      ecartsAmiante: { orderBy: { reference: "asc" }, select: { id: true, reference: true, nomChantier: true } },
+      remontees: { orderBy: { reference: "asc" }, select: { id: true, reference: true, objet: true } },
       actions: {
         orderBy: { createdAt: "asc" },
         select: { id: true, action: true, responsable: true, echeance: true },
@@ -77,9 +77,16 @@ export default async function DiffusionRexPage({
       <p className="mb-6 text-sm text-slate-500">
         Origine — {ORIGINE_REX_LABELS[rex.origine]}
         {rex.ecarts.length > 0 && ` — ${rex.ecarts.length} écart${rex.ecarts.length > 1 ? "s" : ""}, détaillé${rex.ecarts.length > 1 ? "s" : ""} ci-dessous`}
-        {rex.ficheSSE && ` — Évènement SSE ${rex.ficheSSE.reference}${rex.ficheSSE.nomChantier ? ` (${rex.ficheSSE.nomChantier})` : ""}`}
-        {rex.ecartAmiante && ` — Écart amiante ${rex.ecartAmiante.reference} (${rex.ecartAmiante.nomChantier})`}
-        {rex.remontee && ` — Remontée ${rex.remontee.reference}`}
+        {rex.fichesSSE.length > 0 &&
+          ` — ${rex.fichesSSE.length > 1 ? "Évènements SSE" : "Évènement SSE"} ${rex.fichesSSE
+            .map((f) => `${f.reference}${f.nomChantier ? ` (${f.nomChantier})` : ""}`)
+            .join(", ")}`}
+        {rex.ecartsAmiante.length > 0 &&
+          ` — ${rex.ecartsAmiante.length > 1 ? "Écarts amiante" : "Écart amiante"} ${rex.ecartsAmiante
+            .map((a) => `${a.reference} (${a.nomChantier})`)
+            .join(", ")}`}
+        {rex.remontees.length > 0 &&
+          ` — ${rex.remontees.length > 1 ? "Remontées" : "Remontée"} ${rex.remontees.map((r) => r.reference).join(", ")}`}
       </p>
 
       {rex.pratiqueDescription && (
@@ -197,7 +204,7 @@ export default async function DiffusionRexPage({
 
       <p data-no-print className="mt-6 text-sm text-slate-400">
         <Link href={`/rex/${rex.id}`} className="hover:underline">
-          Retour au REX {rex.reference}
+          Retour au {rex.reference}
         </Link>
       </p>
     </div>

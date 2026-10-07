@@ -57,22 +57,27 @@ export default async function NouveauRexPage({
     ? [[], [], [], []]
     : await Promise.all([
         prisma.ecart.findMany({
+          where: { archiveLe: null },
           orderBy: { dateDetection: "desc" },
           select: { id: true, reference: true, description: true, dateDetection: true, dossier: { select: { chantier: true } } },
         }),
         prisma.ficheSSE.findMany({
+          where: { archiveLe: null },
           orderBy: { reference: "asc" },
-          select: { id: true, reference: true, nomChantier: true, descriptionFactuelle: true },
+          select: { id: true, reference: true, nomChantier: true, descriptionFactuelle: true, dateHeure: true, createdAt: true },
         }),
         prisma.ecartAmiante.findMany({
+          where: { archiveLe: null },
           orderBy: { reference: "asc" },
-          select: { id: true, reference: true, nomChantier: true, description: true },
+          select: { id: true, reference: true, nomChantier: true, description: true, date: true },
         }),
         prisma.remonteeInfo.findMany({
+          where: { archiveLe: null },
           orderBy: { reference: "asc" },
-          select: { id: true, reference: true, chantierService: true, objet: true },
+          select: { id: true, reference: true, chantierService: true, objet: true, dateRemontee: true },
         }),
       ]);
+  const court = (texte: string | null | undefined) => texte?.trim().replace(/\s+/g, " ").slice(0, 90) || "—";
 
   return (
     <RexWizard
@@ -81,7 +86,7 @@ export default async function NouveauRexPage({
         prefill
           ? {
               mode: prefill.mode,
-              ecartIds: prefill.ecartIds,
+              elements: prefill.elements,
               titre: prefill.titre,
               raisonDiffusion: prefill.raisonDiffusion,
               pointsCommuns: prefill.pointsCommuns,
@@ -94,6 +99,7 @@ export default async function NouveauRexPage({
         id: e.id,
         reference: e.reference,
         libelle: e.description?.trim().replace(/\s+/g, " ")?.slice(0, 90) ?? "—",
+        intitule: court(e.description),
         date: e.dateDetection.toISOString(),
         chantier: e.dossier?.chantier ?? null,
       }))}
@@ -101,21 +107,24 @@ export default async function NouveauRexPage({
         id: e.id,
         reference: e.reference,
         libelle: libelleRattachement(e.reference, e.nomChantier, e.descriptionFactuelle),
-        date: null,
+        intitule: court(e.descriptionFactuelle),
+        date: (e.dateHeure ?? e.createdAt).toISOString(),
         chantier: e.nomChantier ?? null,
       }))}
       amiantes={amiantes.map((e) => ({
         id: e.id,
         reference: e.reference,
         libelle: libelleRattachement(e.reference, e.nomChantier, e.description),
-        date: null,
+        intitule: court(e.description),
+        date: e.date.toISOString(),
         chantier: e.nomChantier ?? null,
       }))}
       remontees={remontees.map((r) => ({
         id: r.id,
         reference: r.reference,
         libelle: libelleRattachement(r.reference, r.chantierService, r.objet),
-        date: null,
+        intitule: court(r.objet),
+        date: r.dateRemontee.toISOString(),
         chantier: r.chantierService ?? null,
       }))}
     />

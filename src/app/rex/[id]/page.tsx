@@ -51,7 +51,7 @@ const LIEN_ORIGINE = "font-medium underline-offset-4 hover:underline";
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const rex = await prisma.rex.findUnique({ where: { id }, select: { reference: true } });
-  return { title: rex ? `REX ${rex.reference}` : "REX" };
+  return { title: rex ? rex.reference : "REX" };
 }
 
 export default async function RexDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -61,9 +61,9 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
     include: {
       // Chantier seulement, jamais `enregistrement` (photo/PDF en data URL).
       ecarts: { orderBy: { reference: "asc" }, include: { dossier: { select: { chantier: true } } } },
-      ficheSSE: { select: { id: true, reference: true, nomChantier: true } },
-      ecartAmiante: { select: { id: true, reference: true, nomChantier: true } },
-      remontee: { select: { id: true, reference: true, objet: true } },
+      fichesSSE: { orderBy: { reference: "asc" }, select: { id: true, reference: true, nomChantier: true } },
+      ecartsAmiante: { orderBy: { reference: "asc" }, select: { id: true, reference: true, nomChantier: true } },
+      remontees: { orderBy: { reference: "asc" }, select: { id: true, reference: true, objet: true } },
       // `select` : jamais `preuve` (photo/PDF en data URL), inutile ici.
       actions: {
         orderBy: ORDRE_ACTIONS,
@@ -74,6 +74,7 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
 
   if (!rex) notFound();
 
+  const nbSources = rex.ecarts.length + rex.fichesSSE.length + rex.ecartsAmiante.length + rex.remontees.length;
   const lienAjout = buttonVariants({ variant: "outline", size: "sm" });
   const aDiffusion = rex.themes.length > 0 || rex.destinatairesRoles.length > 0 || rex.canaux.length > 0;
   const affichePratique =
@@ -154,7 +155,7 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Origine — {ORIGINE_REX_LABELS[rex.origine]}
             </p>
-            {rex.ecarts.length > 0 ? (
+            {nbSources > 0 ? (
               <ul className="space-y-1 text-sm">
                 {rex.ecarts.map((e) => (
                   <li key={e.id}>
@@ -164,20 +165,29 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
                     </Link>
                   </li>
                 ))}
+                {rex.fichesSSE.map((f) => (
+                  <li key={f.id}>
+                    <Link href={`/fiches-sse/${f.id}`} className={LIEN_ORIGINE}>
+                      Évènement SSE {f.reference}
+                      {f.nomChantier ? ` — ${f.nomChantier}` : ""}
+                    </Link>
+                  </li>
+                ))}
+                {rex.ecartsAmiante.map((a) => (
+                  <li key={a.id}>
+                    <Link href={`/ecart-amiante/${a.id}`} className={LIEN_ORIGINE}>
+                      Écart amiante {a.reference} — {a.nomChantier}
+                    </Link>
+                  </li>
+                ))}
+                {rex.remontees.map((r) => (
+                  <li key={r.id}>
+                    <Link href={`/remontees/${r.id}`} className={LIEN_ORIGINE}>
+                      Remontée {r.reference} — {r.objet}
+                    </Link>
+                  </li>
+                ))}
               </ul>
-            ) : rex.ficheSSE ? (
-              <Link href={`/fiches-sse/${rex.ficheSSE.id}`} className={`text-sm ${LIEN_ORIGINE}`}>
-                Évènement SSE {rex.ficheSSE.reference}
-                {rex.ficheSSE.nomChantier ? ` — ${rex.ficheSSE.nomChantier}` : ""}
-              </Link>
-            ) : rex.ecartAmiante ? (
-              <Link href={`/ecart-amiante/${rex.ecartAmiante.id}`} className={`text-sm ${LIEN_ORIGINE}`}>
-                Écart amiante {rex.ecartAmiante.reference} — {rex.ecartAmiante.nomChantier}
-              </Link>
-            ) : rex.remontee ? (
-              <Link href={`/remontees/${rex.remontee.id}`} className={`text-sm ${LIEN_ORIGINE}`}>
-                Remontée {rex.remontee.reference} — {rex.remontee.objet}
-              </Link>
             ) : (
               <p className="text-sm italic text-muted-foreground">Aucun rattachement — REX spontané / bonne pratique</p>
             )}

@@ -322,7 +322,13 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
     }),
     prisma.rex.findMany({
       where: { archiveLe: null },
-      select: { reference: true, ficheSSEId: true, ecartAmianteId: true, remonteeId: true, ecarts: { select: { id: true } } },
+      select: {
+        reference: true,
+        ecarts: { select: { id: true } },
+        fichesSSE: { select: { id: true } },
+        ecartsAmiante: { select: { id: true } },
+        remontees: { select: { id: true } },
+      },
     }),
   ]);
 
@@ -335,9 +341,9 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
   };
   for (const r of rex) {
     for (const e of r.ecarts) couvrir("ecart", e.id, r.reference);
-    couvrir("evenement", r.ficheSSEId, r.reference);
-    couvrir("amiante", r.ecartAmianteId, r.reference);
-    couvrir("remontee", r.remonteeId, r.reference);
+    for (const f of r.fichesSSE) couvrir("evenement", f.id, r.reference);
+    for (const a of r.ecartsAmiante) couvrir("amiante", a.id, r.reference);
+    for (const m of r.remontees) couvrir("remontee", m.id, r.reference);
   }
 
   const libelles = new Map<string, Sujet>(Object.entries(SUJETS));
@@ -764,17 +770,18 @@ export async function analyserPropositions(periode: PeriodeProposition, motsRech
 /** Ce que le parcours de création reçoit pour une proposition de motif ou de sujet. */
 export type PrefillProposition = {
   mode: "unique" | "recurrents";
-  ecartIds: string[];
+  /** Éléments à pré-sélectionner, de tous types : « type:id » (ecart, evenement, amiante, remontee). */
+  elements: string[];
   titre: string;
   raisonDiffusion: string;
   pointsCommuns: string[];
   themes: string[];
   noteInterne: string;
-  /** Source unique à fixer quand il n'y a pas assez d'écarts pour un REX « récurrent ». */
+  /** Source unique à fixer quand la proposition ne compte qu'un fait. */
   parent: { parametre: "ecartId" | "ficheSSEId" | "ecartAmianteId" | "remonteeId"; id: string } | null;
 };
 
-const PLAFOND_ECARTS_PREREMPLIS = 15;
+const PLAFOND_ELEMENTS_PREREMPLIS = 15;
 
 export async function prefillDepuisProposition(
   cle: string,
@@ -787,7 +794,6 @@ export async function prefillDepuisProposition(
 
   // Point commun et thème : ceux du sujet dominant qui en propose un.
   const info = p.sujetCles.map((s) => libelles.get(s)).find((s) => s?.pointCommun || s?.theme);
-  const ecarts = p.faits.filter((f) => f.type === "ecart");
   const references = p.faits.map((f) => f.reference).join(", ");
   const nature = p.genre === "motif" ? `Motif ${p.titre}` : `Sujet « ${p.titre} »`;
   const raison = `${nature} récurrent : ${p.faits.length} faits (${detail(p.parType)})${
@@ -795,18 +801,18 @@ export async function prefillDepuisProposition(
   }.`.slice(0, 500);
   const note = `Proposition automatique — faits analysés : ${references}.`;
 
-  const recurrents = ecarts.length >= 2;
+  const recurrents = p.faits.length >= 2;
   const principal = p.faits[0];
   return {
     mode: recurrents ? "recurrents" : "unique",
-    ecartIds: recurrents ? ecarts.slice(0, PLAFOND_ECARTS_PREREMPLIS).map((f) => f.id) : [],
+    elements: recurrents ? p.faits.slice(0, PLAFOND_ELEMENTS_PREREMPLIS).map((f) => `${f.type}:${f.id}`) : [],
     titre: `${p.genre === "motif" ? "Motif récurrent" : "Sujet récurrent"} : ${p.titre}`,
     raisonDiffusion: raison,
     pointsCommuns: info?.pointCommun ? [info.pointCommun] : [],
     themes: info?.theme ? [info.theme] : [],
     noteInterne:
-      recurrents && ecarts.length > PLAFOND_ECARTS_PREREMPLIS
-        ? `${note} Seuls les ${PLAFOND_ECARTS_PREREMPLIS} écarts les plus graves puis les plus récents sont pré-sélectionnés.`
+      recurrents && p.faits.length > PLAFOND_ELEMENTS_PREREMPLIS
+        ? `${note} Seuls les ${PLAFOND_ELEMENTS_PREREMPLIS} éléments les plus graves puis les plus récents sont pré-sélectionnés.`
         : recurrents
           ? note
           : `${note} ${raison}`,

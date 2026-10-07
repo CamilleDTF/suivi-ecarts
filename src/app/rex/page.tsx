@@ -65,9 +65,9 @@ export default async function RexPage({
       orderBy: construireTri(tri, sens, COLONNES_TRI, { createdAt: "desc" as const }),
       include: {
         ecarts: { select: { id: true, reference: true } },
-        ficheSSE: { select: { id: true, reference: true } },
-        ecartAmiante: { select: { id: true, reference: true } },
-        remontee: { select: { id: true, reference: true } },
+        fichesSSE: { select: { id: true, reference: true } },
+        ecartsAmiante: { select: { id: true, reference: true } },
+        remontees: { select: { id: true, reference: true } },
       },
       skip: (page - 1) * taillePage,
       take: taillePage,
@@ -210,29 +210,32 @@ export default async function RexPage({
                   <BadgeNatureRex nature={r.nature} />
                 </TableCell>
                 <TableCell>
-                  {r.ecarts.length > 0 ? (
-                    <span className="flex flex-wrap gap-x-2 gap-y-0.5">
-                      {r.ecarts.map((e) => (
-                        <Link key={e.id} href={`/ecarts/${e.id}`} className={LIEN_RATTACHEMENT}>
-                          {e.reference}
-                        </Link>
-                      ))}
-                    </span>
-                  ) : r.ficheSSE ? (
-                    <Link href={`/fiches-sse/${r.ficheSSE.id}`} className={LIEN_RATTACHEMENT}>
-                      {r.ficheSSE.reference}
-                    </Link>
-                  ) : r.ecartAmiante ? (
-                    <Link href={`/ecart-amiante/${r.ecartAmiante.id}`} className={LIEN_RATTACHEMENT}>
-                      {r.ecartAmiante.reference}
-                    </Link>
-                  ) : r.remontee ? (
-                    <Link href={`/remontees/${r.remontee.id}`} className={LIEN_RATTACHEMENT}>
-                      {r.remontee.reference}
-                    </Link>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
+                  {(() => {
+                    // Tous les types mêlés : un REX d'éléments récurrents en lie souvent plusieurs.
+                    const sources = [
+                      ...r.ecarts.map((e) => ({ id: e.id, reference: e.reference, href: `/ecarts/${e.id}` })),
+                      ...r.fichesSSE.map((e) => ({ id: e.id, reference: e.reference, href: `/fiches-sse/${e.id}` })),
+                      ...r.ecartsAmiante.map((e) => ({ id: e.id, reference: e.reference, href: `/ecart-amiante/${e.id}` })),
+                      ...r.remontees.map((e) => ({ id: e.id, reference: e.reference, href: `/remontees/${e.id}` })),
+                    ];
+                    if (sources.length === 0) return <span className="text-muted-foreground">—</span>;
+                    const visibles = sources.slice(0, 4);
+                    const autres = sources.slice(4);
+                    return (
+                      <span className="flex flex-wrap gap-x-2 gap-y-0.5">
+                        {visibles.map((e) => (
+                          <Link key={e.id} href={e.href} className={LIEN_RATTACHEMENT}>
+                            {e.reference}
+                          </Link>
+                        ))}
+                        {autres.length > 0 && (
+                          <span className="text-muted-foreground" title={autres.map((e) => e.reference).join(", ")}>
+                            +{autres.length}
+                          </span>
+                        )}
+                      </span>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1.5">

@@ -219,7 +219,7 @@ export default async function RemonteeDetailPage({
       })),
     ...remontee.rex.map<EvenementChrono>((r) => ({
       date: r.createdAt,
-      titre: `REX ${r.reference} créé`,
+      titre: `${r.reference} créé`,
       detail: r.titre,
       href: `/rex/${r.id}`,
       ton: "violet",

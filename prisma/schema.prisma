@@ -94,6 +94,8 @@ enum OrigineREX {
   // REX spontané ou bonne pratique : aucun écart, évènement ou remontée
   // source, capitalisé hors de toute non-conformité constatée.
   SPONTANE
+  // Éléments récurrents de plusieurs types à la fois (écarts et évènements, par exemple).
+  PLUSIEURS_SOURCES
 }
 
 enum StatutREX {
@@ -381,16 +383,17 @@ model Action {
 }
 
 // Retour d'expérience MASE : capitalise un enseignement transverse, distinct du plan
-// d'action existant qui reste scopé à un écart précis. Rattachement polymorphe repris
-// tel quel du modèle Action (ecarts[] + ficheSSEId + ecartAmianteId + remonteeId), plus
-// le cas "aucun rattachement" (origine SPONTANE) pour un REX spontané / bonne pratique.
+// d'action existant qui reste scopé à un écart précis. Ses sources sont un mélange libre
+// d'écarts, d'évènements SSE, d'écarts amiante et de remontées (un seul élément, ou
+// plusieurs éléments récurrents), ou aucune (origine SPONTANE) pour un REX spontané /
+// bonne pratique.
 // `origine` est déduite du rattachement choisi à la création, jamais saisie
 // indépendamment, pour ne jamais pouvoir contredire le rattachement réel. La diffusion
 // se fait par groupes de rôles + canaux (destinatairesRoles / canaux), pas nominative :
 // pas de preuve de lecture individuelle, seulement la preuve qu'elle a été programmée.
 model Rex {
-  id                         String        @id @default(cuid())
-  reference                  String        @unique
+  id                         String         @id @default(cuid())
+  reference                  String         @unique
   titre                      String
   origine                    OrigineREX
   // Rempli seulement si origine = EVENEMENT_SSE. Texte libre (comme typeEvenement sur
@@ -411,31 +414,28 @@ model Rex {
   // Coché parmi une liste suggérée (mode plusieurs éléments récurrents
   // uniquement) : cf. RemonteeInfo.categories pour le choix texte libre + suggestions
   // plutôt qu'un enum.
-  pointsCommuns              String[]      @default([])
+  pointsCommuns              String[]       @default([])
   enseignementsTires         String?
   raisonDiffusion            String?
-  themes                     String[]      @default([])
-  destinatairesRoles         String[]      @default([])
-  canaux                     String[]      @default([])
+  themes                     String[]       @default([])
+  destinatairesRoles         String[]       @default([])
+  canaux                     String[]       @default([])
   noteInterne                String?
   // Un REX en brouillon n'a pas encore été publié : il n'est pas compté dans
   // les indicateurs de diffusion tant qu'il reste à cet état.
-  brouillon                  Boolean       @default(false)
-  statut                     StatutREX     @default(REDIGE)
+  brouillon                  Boolean        @default(false)
+  statut                     StatutREX      @default(REDIGE)
   dateDiffusion              DateTime?
   dateDiffusionPlanifiee     DateTime?
   dateVerificationEfficacite DateTime?
   ecarts                     Ecart[]
-  ficheSSE                   FicheSSE?     @relation(fields: [ficheSSEId], references: [id])
-  ficheSSEId                 String?
-  ecartAmiante               EcartAmiante? @relation(fields: [ecartAmianteId], references: [id])
-  ecartAmianteId             String?
-  remontee                   RemonteeInfo? @relation(fields: [remonteeId], references: [id])
-  remonteeId                 String?
+  fichesSSE                  FicheSSE[]
+  ecartsAmiante              EcartAmiante[]
+  remontees                  RemonteeInfo[]
   // Les actions préventives du REX sont des actions du plan d'action.
   actions                    Action[]
-  createdAt                  DateTime      @default(now())
-  updatedAt                  DateTime      @updatedAt
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
   modifiePar                 String?
   modifieLe                  DateTime?
   archiveLe                  DateTime?

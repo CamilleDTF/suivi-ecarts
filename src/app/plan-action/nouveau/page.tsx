@@ -123,7 +123,7 @@ export default async function NouvelleActionPage({
             <input type="hidden" name="rexId" value={rex.id} />
             <label className={labelCls}>Rattachée à</label>
             <p className={parentCls}>
-              REX {rex.reference} — {rex.titre}
+              {rex.reference} — {rex.titre}
             </p>
           </div>
         ) : (

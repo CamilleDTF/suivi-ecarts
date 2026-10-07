@@ -41,9 +41,22 @@ type ModaliteDiffusion = "immediate" | "planifiee" | "action";
 export type SourceOption = {
   id: string;
   reference: string;
+  /** Libellé complet, pour les listes déroulantes du mode « un seul élément ». */
   libelle: string;
+  /** Description seule, pour le tableau des éléments récurrents (la référence et le chantier ont leur colonne). */
+  intitule: string;
   date: string | null;
   chantier: string | null;
+};
+
+/** Un élément récurrent, repéré par son type et son identifiant : « ecart:ID », « evenement:ID »… */
+type Source = SourceOption & { type: TypeUnique; cle: string };
+
+const TYPES_SOURCE: Record<TypeUnique, { label: string; classe: string }> = {
+  ecart: { label: "Écart", classe: "bg-orange-100 text-orange-800" },
+  evenement: { label: "Évènement SSE", classe: "bg-blue-100 text-blue-800" },
+  amiante: { label: "Écart amiante", classe: "bg-teal-100 text-teal-800" },
+  remontee: { label: "Remontée", classe: "bg-violet-100 text-violet-800" },
 };
 
 export type ParentImpose = {
@@ -55,7 +68,8 @@ export type ParentImpose = {
 /** Valeurs de départ, quand le REX naît d'une proposition de l'outil de propositions. */
 export type DepartRex = {
   mode?: "unique" | "recurrents";
-  ecartIds?: string[];
+  /** Éléments pré-sélectionnés, de tous types : « type:id ». */
+  elements?: string[];
   titre?: string;
   raisonDiffusion?: string;
   pointsCommuns?: string[];
@@ -135,8 +149,9 @@ export function RexWizard({
   const [evenementId, setEvenementId] = useState(parentImpose?.type === "evenement" ? parentImpose.id : "");
   const [amianteId, setAmianteId] = useState(parentImpose?.type === "amiante" ? parentImpose.id : "");
   const [remonteeId, setRemonteeId] = useState(parentImpose?.type === "remontee" ? parentImpose.id : "");
-  const [ecartsRecurrents, setEcartsRecurrents] = useState<string[]>(depart?.ecartIds ?? []);
-  const [filtreEcarts, setFiltreEcarts] = useState("");
+  const [elementsRecurrents, setElementsRecurrents] = useState<string[]>(depart?.elements ?? []);
+  const [filtreSources, setFiltreSources] = useState("");
+  const [filtreType, setFiltreType] = useState<TypeUnique | "tous">("tous");
 
   // Étape 2 — synthèse.
   const [titre, setTitre] = useState(depart?.titre ?? "");
@@ -175,16 +190,30 @@ export function RexWizard({
   // Étape 4 — validation.
   const [noteInterne, setNoteInterne] = useState(depart?.noteInterne ?? "");
 
-  const ecartIdsFinal = mode === "recurrents" ? ecartsRecurrents : mode === "unique" && typeUnique === "ecart" ? (ecartUniqueId ? [ecartUniqueId] : []) : [];
-  const ficheSSEIdFinal = mode === "unique" && typeUnique === "evenement" ? evenementId : "";
-  const ecartAmianteIdFinal = mode === "unique" && typeUnique === "amiante" ? amianteId : "";
-  const remonteeIdFinal = mode === "unique" && typeUnique === "remontee" ? remonteeId : "";
+  // Éléments récurrents, du plus récent au plus ancien : tous les types sont mêlés dans une seule liste.
+  const toutesSources = useMemo<Source[]>(() => {
+    const avecType = (liste: SourceOption[], type: TypeUnique): Source[] =>
+      liste.map((o) => ({ ...o, type, cle: `${type}:${o.id}` }));
+    return [
+      ...avecType(ecarts, "ecart"),
+      ...avecType(evenements, "evenement"),
+      ...avecType(amiantes, "amiante"),
+      ...avecType(remontees, "remontee"),
+    ].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
+  }, [ecarts, evenements, amiantes, remontees]);
+  const sourcesParCle = useMemo(() => new Map(toutesSources.map((o) => [o.cle, o])), [toutesSources]);
+  const recurrentsDuType = (type: TypeUnique) =>
+    elementsRecurrents.filter((cle) => cle.startsWith(`${type}:`)).map((cle) => cle.slice(type.length + 1));
 
-  const ecartsParId = useMemo(() => new Map(ecarts.map((e) => [e.id, e])), [ecarts]);
+  const unique = (type: TypeUnique, id: string) => (mode === "unique" && typeUnique === type && id ? [id] : []);
+  const ecartIdsFinal = mode === "recurrents" ? recurrentsDuType("ecart") : unique("ecart", ecartUniqueId);
+  const ficheSSEIdsFinal = mode === "recurrents" ? recurrentsDuType("evenement") : unique("evenement", evenementId);
+  const ecartAmianteIdsFinal = mode === "recurrents" ? recurrentsDuType("amiante") : unique("amiante", amianteId);
+  const remonteeIdsFinal = mode === "recurrents" ? recurrentsDuType("remontee") : unique("remontee", remonteeId);
 
   const sourcesOk =
     mode === "spontane" ||
-    (mode === "recurrents" && ecartsRecurrents.length > 0) ||
+    (mode === "recurrents" && elementsRecurrents.length > 0) ||
     (mode === "unique" &&
       ((typeUnique === "ecart" && !!ecartUniqueId) ||
         (typeUnique === "evenement" && !!evenementId) ||
@@ -298,9 +327,9 @@ export function RexWizard({
         await creerRex({
           mode,
           ecartIds: ecartIdsFinal,
-          ficheSSEId: ficheSSEIdFinal || undefined,
-          ecartAmianteId: ecartAmianteIdFinal || undefined,
-          remonteeId: remonteeIdFinal || undefined,
+          ficheSSEIds: ficheSSEIdsFinal,
+          ecartAmianteIds: ecartAmianteIdsFinal,
+          remonteeIds: remonteeIdsFinal,
           titre,
           sousTypeSSE: sousTypeSSE || undefined,
           enseignementsTires: enseignementPrincipal,
@@ -330,20 +359,25 @@ export function RexWizard({
     });
   }
 
-  // Les écarts pré-sélectionnés par une proposition passent en tête, une fois pour toutes :
+  // Les éléments pré-sélectionnés par une proposition passent en tête, une fois pour toutes :
   // l'ordre ne bouge pas quand on coche ou décoche ensuite.
-  const departIds = useMemo(() => new Set(depart?.ecartIds ?? []), [depart]);
-  const ecartsFiltres = ecarts
-    .filter((e) => {
-      if (!filtreEcarts.trim()) return true;
-      const q = filtreEcarts.toLowerCase();
+  const departCles = useMemo(() => new Set(depart?.elements ?? []), [depart]);
+  const sourcesFiltrees = toutesSources
+    .filter((o) => {
+      if (filtreType !== "tous" && o.type !== filtreType) return false;
+      if (!filtreSources.trim()) return true;
+      const q = filtreSources.toLowerCase();
       return (
-        e.reference.toLowerCase().includes(q) ||
-        e.libelle.toLowerCase().includes(q) ||
-        (e.chantier ?? "").toLowerCase().includes(q)
+        o.reference.toLowerCase().includes(q) ||
+        o.intitule.toLowerCase().includes(q) ||
+        (o.chantier ?? "").toLowerCase().includes(q)
       );
     })
-    .sort((a, b) => Number(departIds.has(b.id)) - Number(departIds.has(a.id)));
+    .sort((a, b) => Number(departCles.has(b.cle)) - Number(departCles.has(a.cle)));
+  const resumeSource = (cle: string) => {
+    const o = sourcesParCle.get(cle);
+    return o ? `${o.reference} — ${o.intitule}` : cle;
+  };
 
   return (
     <form
@@ -530,19 +564,35 @@ export function RexWizard({
                 <div>
                   <h2 className="text-base font-semibold text-foreground">Sélection des éléments sources</h2>
                   <p className="text-sm text-muted-foreground">
-                    Cochez les écarts qui sont à l&apos;origine de ce REX. Au moins un élément est requis.
+                    Cochez les écarts, évènements, écarts amiante ou remontées qui sont à l&apos;origine de ce REX, tous types
+                    confondus. Au moins un élément est requis.
                   </p>
                 </div>
                 <span className="whitespace-nowrap rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-                  {ecartsRecurrents.length} élément(s) sélectionné(s)
+                  {elementsRecurrents.length} élément(s) sélectionné(s)
                 </span>
               </div>
-              <input
-                value={filtreEcarts}
-                onChange={(e) => setFiltreEcarts(e.target.value)}
-                placeholder="Filtrer par référence, intitulé, chantier…"
-                className={`${inputCls} mb-3`}
-              />
+              <div className="mb-3 flex flex-wrap gap-2">
+                <input
+                  value={filtreSources}
+                  onChange={(e) => setFiltreSources(e.target.value)}
+                  placeholder="Filtrer par référence, intitulé, chantier…"
+                  className={`${inputCls} min-w-0 flex-1 basis-64`}
+                />
+                <select
+                  value={filtreType}
+                  onChange={(e) => setFiltreType(e.target.value as TypeUnique | "tous")}
+                  aria-label="Type d'élément"
+                  className={`${inputCls} w-auto`}
+                >
+                  <option value="tous">Tous les types</option>
+                  {(Object.keys(TYPES_SOURCE) as TypeUnique[]).map((t) => (
+                    <option key={t} value={t}>
+                      {TYPES_SOURCE[t].label}
+                    </option>
+                  ))}
+                </select>
+              </div>
               <div className="overflow-x-auto rounded-lg border">
                 <table className="w-full text-left text-sm">
                   <thead className="border-b bg-muted/50 text-muted-foreground">
@@ -556,32 +606,32 @@ export function RexWizard({
                     </tr>
                   </thead>
                   <tbody>
-                    {ecartsFiltres.map((e) => (
+                    {sourcesFiltrees.map((o) => (
                       <tr
-                        key={e.id}
-                        onClick={() => setEcartsRecurrents(toggleValeur(ecartsRecurrents, e.id))}
+                        key={o.cle}
+                        onClick={() => setElementsRecurrents(toggleValeur(elementsRecurrents, o.cle))}
                         className="cursor-pointer border-b last:border-0 hover:bg-muted/50"
                       >
                         <td className="px-3 py-2">
-                          <input type="checkbox" className="accent-primary" checked={ecartsRecurrents.includes(e.id)} readOnly />
+                          <input type="checkbox" className="accent-primary" checked={elementsRecurrents.includes(o.cle)} readOnly />
                         </td>
-                        <td className="px-3 py-2 font-medium text-foreground">{e.reference}</td>
+                        <td className="whitespace-nowrap px-3 py-2 font-medium text-foreground">{o.reference}</td>
                         <td className="px-3 py-2">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                            <IconAlertTriangle className="h-3 w-3" /> Écart
+                          <span className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${TYPES_SOURCE[o.type].classe}`}>
+                            {o.type === "ecart" && <IconAlertTriangle className="h-3 w-3" />} {TYPES_SOURCE[o.type].label}
                           </span>
                         </td>
-                        <td className="max-w-xs truncate px-3 py-2 text-foreground">{e.libelle}</td>
+                        <td className="max-w-xs truncate px-3 py-2 text-foreground">{o.intitule}</td>
                         <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">
-                          {e.date ? new Date(e.date).toLocaleDateString("fr-FR") : "—"}
+                          {o.date ? new Date(o.date).toLocaleDateString("fr-FR") : "—"}
                         </td>
-                        <td className="px-3 py-2 text-foreground">{e.chantier ?? "—"}</td>
+                        <td className="px-3 py-2 text-foreground">{o.chantier ?? "—"}</td>
                       </tr>
                     ))}
-                    {ecartsFiltres.length === 0 && (
+                    {sourcesFiltrees.length === 0 && (
                       <tr>
                         <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
-                          Aucun écart ne correspond à ce filtre.
+                          Aucun élément ne correspond à ce filtre.
                         </td>
                       </tr>
                     )}
@@ -603,8 +653,8 @@ export function RexWizard({
                   <p className="text-sm text-muted-foreground">Aucun — REX spontané / bonne pratique.</p>
                 ) : mode === "recurrents" ? (
                   <ul className="space-y-1 text-sm text-foreground">
-                    {ecartsRecurrents.map((id) => (
-                      <li key={id}>{ecartsParId.get(id)?.reference} — {ecartsParId.get(id)?.libelle}</li>
+                    {elementsRecurrents.map((cle) => (
+                      <li key={cle}>{resumeSource(cle)}</li>
                     ))}
                   </ul>
                 ) : (
@@ -731,7 +781,7 @@ export function RexWizard({
             <RecapCard titre="Éléments sources" onModifier={() => allerA(0)} compact>
               <p className="text-sm text-muted-foreground">
                 {mode === "spontane" && "Aucun — REX spontané"}
-                {mode === "recurrents" && `${ecartsRecurrents.length} écart(s) sélectionné(s)`}
+                {mode === "recurrents" && `${elementsRecurrents.length} élément(s) sélectionné(s)`}
                 {mode === "unique" && "1 élément sélectionné"}
               </p>
             </RecapCard>
@@ -992,8 +1042,8 @@ export function RexWizard({
                 <p className="text-sm text-muted-foreground">Aucun — REX spontané / bonne pratique.</p>
               ) : mode === "recurrents" ? (
                 <ul className="space-y-1 text-sm text-foreground">
-                  {ecartsRecurrents.map((id) => (
-                    <li key={id}>{ecartsParId.get(id)?.reference} — {ecartsParId.get(id)?.libelle}</li>
+                  {elementsRecurrents.map((cle) => (
+                    <li key={cle}>{resumeSource(cle)}</li>
                   ))}
                 </ul>
               ) : (
@@ -1084,7 +1134,7 @@ export function RexWizard({
               </div>
               <p className="mb-3 text-xs text-muted-foreground">
                 {mode === "recurrents"
-                  ? `${ecartsRecurrents.length} écart(s) sources`
+                  ? `${elementsRecurrents.length} élément(s) sources`
                   : mode === "unique"
                     ? "1 élément source"
                     : "REX spontané"}

@@ -179,7 +179,7 @@ export default async function EcartDetailPage({
       })),
     ...ecart.rex.map<EvenementChrono>((r) => ({
       date: r.createdAt,
-      titre: `REX ${r.reference} créé`,
+      titre: `${r.reference} créé`,
       detail: r.titre,
       href: `/rex/${r.id}`,
       rang: 5,

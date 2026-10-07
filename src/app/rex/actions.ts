@@ -12,16 +12,20 @@ import { dateFacultative } from "@/lib/validation";
 import { NATURES_REX_REQUERANT_ACTION, NATURES_REX_REQUERANT_DESCRIPTION } from "@/lib/labels";
 
 // Parcours de création du REX : trois façons d'y arriver, qui ne demandent
-// pas les mêmes champs. "unique" reprend le rattachement polymorphe classique
-// (comme Action) ; "recurrents" ne rattache que des écarts, plusieurs à la
-// fois ; "spontane" ne rattache rien du tout (origine SPONTANE).
+// pas les mêmes champs. "unique" rattache un seul élément, de l'un des quatre
+// types ; "recurrents" en rattache plusieurs, de types mêlés (écarts, évènements
+// SSE, écarts amiante, remontées) ; "spontane" ne rattache rien du tout
+// (origine SPONTANE).
+type Sources = { ecartIds: string[]; ficheSSEIds: string[]; ecartAmianteIds: string[]; remonteeIds: string[] };
+const nbSources = (v: Sources) => v.ecartIds.length + v.ficheSSEIds.length + v.ecartAmianteIds.length + v.remonteeIds.length;
+
 const rexWizardSchema = z
   .object({
     mode: z.enum(["unique", "recurrents", "spontane"]),
     ecartIds: z.array(z.string()).default([]),
-    ficheSSEId: z.string().optional(),
-    ecartAmianteId: z.string().optional(),
-    remonteeId: z.string().optional(),
+    ficheSSEIds: z.array(z.string()).default([]),
+    ecartAmianteIds: z.array(z.string()).default([]),
+    remonteeIds: z.array(z.string()).default([]),
 
     titre: z.string().min(1, "Titre requis"),
     sousTypeSSE: z.string().optional(),
@@ -62,18 +66,11 @@ const rexWizardSchema = z
   })
   .refine(
     (v) => {
-      if (v.mode === "spontane") {
-        return v.ecartIds.length === 0 && !v.ficheSSEId && !v.ecartAmianteId && !v.remonteeId;
-      }
-      if (v.mode === "recurrents") {
-        return v.ecartIds.length > 0 && !v.ficheSSEId && !v.ecartAmianteId && !v.remonteeId;
-      }
-      // mode "unique" : exactement un des quatre rattachements, un seul écart
-      // s'il s'agit d'un écart.
-      return (
-        [v.ecartIds.length > 0, !!v.ficheSSEId, !!v.ecartAmianteId, !!v.remonteeId].filter(Boolean)
-          .length === 1 && v.ecartIds.length <= 1
-      );
+      const nb = nbSources(v);
+      if (v.mode === "spontane") return nb === 0;
+      if (v.mode === "recurrents") return nb >= 1;
+      // mode "unique" : exactement un élément, quel que soit son type.
+      return nb === 1;
     },
     { message: "Sélection des éléments source incohérente avec le mode choisi" },
   )
@@ -113,21 +110,24 @@ const rexWizardSchema = z
 
 export type RexWizardInput = z.infer<typeof rexWizardSchema>;
 
-function deduireOrigine(v: { mode: string; ecartIds: string[]; ficheSSEId?: string; ecartAmianteId?: string }): OrigineREX {
+function deduireOrigine(v: Sources & { mode: string }): OrigineREX {
   if (v.mode === "spontane") return "SPONTANE";
-  if (v.ecartIds.length > 0) return "ECART_TERRAIN";
-  if (v.ficheSSEId) return "EVENEMENT_SSE";
-  if (v.ecartAmianteId) return "ECART_AMIANTE";
-  return "REMONTEE";
+  const types: OrigineREX[] = [
+    ...(v.ecartIds.length > 0 ? (["ECART_TERRAIN"] as const) : []),
+    ...(v.ficheSSEIds.length > 0 ? (["EVENEMENT_SSE"] as const) : []),
+    ...(v.ecartAmianteIds.length > 0 ? (["ECART_AMIANTE"] as const) : []),
+    ...(v.remonteeIds.length > 0 ? (["REMONTEE"] as const) : []),
+  ];
+  return types.length === 1 ? types[0] : "PLUSIEURS_SOURCES";
 }
 
-function cheminsParents(p: { ecartIds: string[]; ficheSSEId?: string | null; ecartAmianteId?: string | null; remonteeId?: string | null }) {
+function cheminsParents(p: Sources) {
   return [
     ...p.ecartIds.map((id) => `/ecarts/${id}`),
-    p.ficheSSEId && `/fiches-sse/${p.ficheSSEId}`,
-    p.ecartAmianteId && `/ecart-amiante/${p.ecartAmianteId}`,
-    p.remonteeId && `/remontees/${p.remonteeId}`,
-  ].filter((c): c is string => !!c);
+    ...p.ficheSSEIds.map((id) => `/fiches-sse/${id}`),
+    ...p.ecartAmianteIds.map((id) => `/ecart-amiante/${id}`),
+    ...p.remonteeIds.map((id) => `/remontees/${id}`),
+  ];
 }
 
 export async function creerRex(input: RexWizardInput) {
@@ -167,9 +167,9 @@ export async function creerRex(input: RexWizardInput) {
           ? new Date(parsed.dateDiffusionPlanifiee)
           : undefined,
       ecarts: { connect: parsed.ecartIds.map((id) => ({ id })) },
-      ficheSSEId: parsed.ficheSSEId,
-      ecartAmianteId: parsed.ecartAmianteId,
-      remonteeId: parsed.remonteeId,
+      fichesSSE: { connect: parsed.ficheSSEIds.map((id) => ({ id })) },
+      ecartsAmiante: { connect: parsed.ecartAmianteIds.map((id) => ({ id })) },
+      remontees: { connect: parsed.remonteeIds.map((id) => ({ id })) },
     },
   });
 
@@ -184,7 +184,7 @@ export async function creerRex(input: RexWizardInput) {
     ...(parsed.publier && parsed.modaliteDiffusion === "action" && parsed.actionResponsable
       ? [
           {
-            action: `Diffuser le REX ${reference} — ${parsed.titre}`,
+            action: `Diffuser ${reference} — ${parsed.titre}`,
             responsable: parsed.actionResponsable,
             echeance: parsed.actionEcheance,
           },
@@ -335,9 +335,9 @@ export async function supprimerRex(formData: FormData) {
     where: { id },
     select: {
       ecarts: { select: { id: true } },
-      ficheSSEId: true,
-      ecartAmianteId: true,
-      remonteeId: true,
+      fichesSSE: { select: { id: true } },
+      ecartsAmiante: { select: { id: true } },
+      remontees: { select: { id: true } },
     },
   });
 
@@ -348,9 +348,13 @@ export async function supprimerRex(formData: FormData) {
     prisma.rex.delete({ where: { id } }),
   ]);
 
-  for (const chemin of cheminsParents({ ecartIds: avant.ecarts.map((e) => e.id), ...avant })) {
-    revalidatePath(chemin);
-  }
+  const chemins = cheminsParents({
+    ecartIds: avant.ecarts.map((e) => e.id),
+    ficheSSEIds: avant.fichesSSE.map((e) => e.id),
+    ecartAmianteIds: avant.ecartsAmiante.map((e) => e.id),
+    remonteeIds: avant.remontees.map((e) => e.id),
+  });
+  for (const chemin of chemins) revalidatePath(chemin);
   revalidatePath("/rex");
   revalidatePath("/plan-action");
   revalidatePath("/synthese");
