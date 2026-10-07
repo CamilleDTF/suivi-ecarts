@@ -242,7 +242,7 @@ export function RexWizard({
         }
       : {
           label: "Pratique observée",
-          aide: "Décrivez la pratique observée, pour qu'elle soit reconnue et non reproduite.",
+          aide: "Le geste ou la situation tels qu'ils ont été constatés, pour qu'on les reconnaisse et qu'on ne les reproduise pas. L'enseignement à en tirer est celui de l'étape précédente.",
           placeholder: "Ex : Manipulation des plaques amiante par une seule personne",
         };
 
@@ -798,7 +798,7 @@ export function RexWizard({
                 {mode === "unique" && "1 élément sélectionné"}
               </p>
             </RecapCard>
-            <RecapCard titre="Synthèse renseignée" onModifier={() => allerA(1)} compact>
+            <RecapCard titre="Enseignement principal" onModifier={() => allerA(1)} compact>
               <p className="line-clamp-2 text-sm text-muted-foreground">{enseignementPrincipal || "—"}</p>
             </RecapCard>
           </div>
