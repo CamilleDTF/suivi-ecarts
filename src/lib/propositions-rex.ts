@@ -103,19 +103,19 @@ type Sujet = { label: string; pointCommun?: string; theme?: string };
 // d'être perdues : le vocabulaire des thèmes évolue.
 const SUJETS: Record<string, Sujet> = {
   organisation: { label: "Organisation / coordination de chantier", pointCommun: "Organisation", theme: "Organisation" },
-  documentaire: { label: "Documentaire / procédures", theme: "Méthode de travail" },
+  documentaire: { label: "Documentaire / procédures", pointCommun: "Procédures / documentation", theme: "Méthode de travail" },
   materiel: { label: "Matériel / équipements", pointCommun: "Matériel / équipements", theme: "Sécurité sur chantier" },
-  epi: { label: "EPI / protection individuelle", theme: "Sécurité sur chantier" },
+  epi: { label: "EPI / protection individuelle", pointCommun: "Port des EPI", theme: "Sécurité sur chantier" },
   amiante: { label: "Risque amiante", theme: "Amiante" },
-  dechets: { label: "Gestion des déchets", theme: "Environnement" },
-  comportement: { label: "Comportement / respect des consignes", theme: "Sécurité sur chantier" },
+  dechets: { label: "Gestion des déchets", pointCommun: "Stockage / gestion des déchets", theme: "Environnement" },
+  comportement: { label: "Comportement / respect des consignes", pointCommun: "Respect des consignes", theme: "Sécurité sur chantier" },
   hauteur: { label: "Travaux en hauteur", theme: "Sécurité sur chantier" },
-  formation: { label: "Compétences / formation", theme: "Compétences / formation" },
+  formation: { label: "Compétences / formation", pointCommun: "Formation / compétences", theme: "Compétences / formation" },
   balisage: { label: "Balisage / signalisation", pointCommun: "Balisage", theme: "Balisage / signalisation" },
   environnement: { label: "Environnement", pointCommun: "Conditions environnementales", theme: "Environnement" },
   routier: { label: "Circulation / risque routier", theme: "Sécurité sur chantier" },
   chimique: { label: "Produits chimiques", theme: "Sécurité sur chantier" },
-  proprete: { label: "Propreté / rangement de zone", theme: "Sécurité sur chantier" },
+  proprete: { label: "Propreté / rangement de zone", pointCommun: "Propreté / rangement de zone", theme: "Sécurité sur chantier" },
   relations: { label: "Relations client / fournisseur", pointCommun: "Communication", theme: "Communication" },
 };
 
