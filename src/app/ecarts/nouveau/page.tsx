@@ -1,14 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { creerEcart } from "@/app/ecarts/actions";
-import {
-  ORIGINE_LABELS,
-  TYPE_ACTIVITE_LABELS,
-  NATURES_OPTIONS,
-  DOMAINES_OPTIONS,
-  GRAVITE_FREQUENCE_OPTIONS,
-} from "@/lib/labels";
-import { Origine, TypeActivite } from "@/generated/prisma/enums";
 import { ChoixDossier } from "@/components/choix-dossier";
+import { EcartFields } from "@/components/ecart-fields";
 import { BoutonCreer } from "@/components/bouton-creer";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { ConteneurPage, EntetePage } from "@/components/page-liste";
@@ -23,7 +16,6 @@ export default async function NouvelEcartPage({
     prisma.dossier.findMany({ orderBy: { createdAt: "desc" } }),
     remonteeId ? prisma.remonteeInfo.findUnique({ where: { id: remonteeId } }) : null,
   ]);
-  const today = new Date().toISOString().slice(0, 10);
   const dossierSelectionne = dossierId ? dossiers.find((d) => d.id === dossierId) : undefined;
 
   return (
@@ -46,125 +38,15 @@ export default async function NouvelEcartPage({
           chantierPropose={remontee?.chantierService}
         />
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
-            Date de détection
-          </label>
-          <input
-            type="date"
-            name="dateDetection"
-            defaultValue={remontee ? remontee.dateRemontee.toISOString().slice(0, 10) : today}
-            required
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Origine</label>
-          <select
-            name="origine"
-            required
-            defaultValue={dossierSelectionne?.origine ?? ""}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-          >
-            {Object.values(Origine).map((o) => (
-              <option key={o} value={o}>
-                {ORIGINE_LABELS[o]}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Déclarant</label>
-          <input
-            type="text"
-            name="declarant"
-            defaultValue={remontee?.personneRemontant ?? ""}
-            required
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Type d&apos;activité</label>
-          <select name="typeActivite" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
-            <option value="">—</option>
-            {Object.values(TypeActivite).map((t) => (
-              <option key={t} value={t}>
-                {TYPE_ACTIVITE_LABELS[t]}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <fieldset>
-          <legend className="mb-1 text-sm font-medium text-slate-700">Nature(s)</legend>
-          <div className="grid grid-cols-2 gap-1">
-            {NATURES_OPTIONS.map((n) => (
-              <label key={n} className="flex items-center gap-2 text-sm text-slate-700">
-                <input type="checkbox" name="natures" value={n} />
-                {n}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend className="mb-1 text-sm font-medium text-slate-700">Domaine(s)</legend>
-          <div className="grid grid-cols-2 gap-1">
-            {DOMAINES_OPTIONS.map((d) => (
-              <label key={d} className="flex items-center gap-2 text-sm text-slate-700">
-                <input type="checkbox" name="domaines" value={d} />
-                {d}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Description</label>
-          <textarea
-            name="description"
-            rows={3}
-            defaultValue={remontee ? [remontee.objet, remontee.description].filter(Boolean).join("\n\n") : ""}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">Mesure immédiate</label>
-          <textarea
-            name="mesureImmediate"
-            rows={2}
-            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Gravité</label>
-            <select name="gravite" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
-              <option value="">—</option>
-              {GRAVITE_FREQUENCE_OPTIONS.map((o) => (
-                <option key={o} value={o}>
-                  {o}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Fréquence</label>
-            <select name="frequence" className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm">
-              <option value="">—</option>
-              {GRAVITE_FREQUENCE_OPTIONS.map((o) => (
-                <option key={o} value={o}>
-                  {o}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        {/* Les mêmes champs que la fiche : thèmes, gravité × fréquence = criticité, cause. */}
+        <EcartFields
+          v={{
+            dateDetection: remontee ? remontee.dateRemontee : new Date(),
+            origine: dossierSelectionne?.origine ?? "",
+            declarant: remontee?.personneRemontant ?? "",
+            description: remontee ? [remontee.objet, remontee.description].filter(Boolean).join("\n\n") : "",
+          }}
+        />
 
         <div className="flex justify-end gap-3 pt-2">
           <BoutonCreer>Créer l&apos;écart</BoutonCreer>

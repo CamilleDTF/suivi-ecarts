@@ -1,3 +1,4 @@
+import { ORDRE_ACTIONS } from "@/lib/ordre-actions";
 import { dateHeureParis, dateParis } from "@/lib/date-paris";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -83,7 +84,7 @@ export default async function EcartAmianteDetailPage({
       // `select` : jamais la preuve (photo/PDF en data URL) d'une action, qui
       // serait téléchargée en entier pour une simple ligne de tableau.
       actions: {
-        orderBy: { createdAt: "desc" },
+        orderBy: ORDRE_ACTIONS,
         select: {
           id: true,
           reference: true,

@@ -24,6 +24,9 @@ const actionSchema = z
     responsable: z.string().min(1, "Responsable requis"),
     echeance: dateFacultative,
     realiseeLe: dateFacultative,
+    preuve: z.string().optional(),
+    verifiePar: z.string().optional(),
+    verifieLe: dateFacultative,
   })
   // Un seul TYPE de rattachement, mais autant d'écarts qu'on veut : une même
   // correction couvre souvent plusieurs constats. Mélanger les types, en
@@ -54,6 +57,9 @@ export async function creerAction(formData: FormData) {
     responsable: formData.get("responsable"),
     echeance: formData.get("echeance") || undefined,
     realiseeLe: formData.get("realiseeLe") || undefined,
+    preuve: formData.get("preuve") || undefined,
+    verifiePar: formData.get("verifiePar") || undefined,
+    verifieLe: formData.get("verifieLe") || undefined,
   });
 
   const reference = await generateReference("Action", "ACT");
@@ -73,6 +79,9 @@ export async function creerAction(formData: FormData) {
       realiseeLe: parsed.realiseeLe ? new Date(parsed.realiseeLe) : null,
       // Une date de réalisation vaut déclaration : l'action est réalisée.
       statut: parsed.realiseeLe ? StatutAction.REALISEE : undefined,
+      preuve: parsed.preuve,
+      verifiePar: parsed.verifiePar,
+      verifieLe: parsed.verifieLe ? new Date(parsed.verifieLe) : undefined,
     },
   });
 

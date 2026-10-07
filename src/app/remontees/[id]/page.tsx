@@ -1,3 +1,4 @@
+import { ORDRE_ACTIONS } from "@/lib/ordre-actions";
 import { dateHeureParis, dateParis } from "@/lib/date-paris";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -131,7 +132,7 @@ export default async function RemonteeDetailPage({
         ...(idsAmianteHerites.length ? [{ ecartAmianteId: { in: idsAmianteHerites } }] : []),
       ],
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: ORDRE_ACTIONS,
     // `select` : jamais la preuve (photo/PDF en data URL) d'une action, qui
     // serait téléchargée en entier pour une simple ligne de tableau.
     select: {
@@ -205,18 +206,17 @@ export default async function RemonteeDetailPage({
           },
         ]
       : []),
-    ...actionsPropresListe.flatMap<EvenementChrono>((a) => [
-      {
-        date: a.createdAt,
-        titre: `Action ${a.reference} créée`,
+    // La création d'une action n'entre pas à l'historique : seule sa réalisation compte, avec
+    // l'action elle-même et son responsable.
+    ...actionsPropresListe
+      .filter((a) => a.realiseeLe)
+      .map<EvenementChrono>((a) => ({
+        date: a.realiseeLe!,
+        titre: `Action ${a.reference} réalisée`,
         detail: `${a.action} — ${a.responsable}`,
         href: `/plan-action/${a.id}`,
-        ton: "bleu",
-      },
-      ...(a.realiseeLe
-        ? [{ date: a.realiseeLe, titre: `Action ${a.reference} réalisée`, href: `/plan-action/${a.id}`, ton: "vert" as const }]
-        : []),
-    ]),
+        ton: "vert",
+      })),
     ...remontee.rex.map<EvenementChrono>((r) => ({
       date: r.createdAt,
       titre: `REX ${r.reference} créé`,

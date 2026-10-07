@@ -25,6 +25,7 @@ const ecartSchema = z.object({
   mesureImmediate: z.string().optional(),
   gravite: z.string().optional(),
   frequence: z.string().optional(),
+  cause: z.string().optional(),
 });
 
 export async function creerEcart(formData: FormData) {
@@ -41,10 +42,12 @@ export async function creerEcart(formData: FormData) {
     mesureImmediate: formData.get("mesureImmediate") || undefined,
     gravite: formData.get("gravite") || undefined,
     frequence: formData.get("frequence") || undefined,
+    cause: formData.get("cause") || undefined,
   });
 
   const natures = formData.getAll("natures").map(String);
   const domaines = formData.getAll("domaines").map(String);
+  const theme = formData.getAll("theme").map(String);
 
   const reference = await generateReference("Ecart", "EC");
   const remonteeId = texte(formData.get("remonteeId"));
@@ -100,8 +103,10 @@ export async function creerEcart(formData: FormData) {
         typeActivite: parsed.typeActivite ? (parsed.typeActivite as TypeActivite) : undefined,
         natures,
         domaines,
+        theme,
         description: parsed.description,
         mesureImmediate: parsed.mesureImmediate,
+        cause: parsed.cause,
         gravite: parsed.gravite,
         frequence: parsed.frequence,
         criticite: calculerCriticite(parsed.gravite ?? "", parsed.frequence ?? "") || undefined,

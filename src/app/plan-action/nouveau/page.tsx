@@ -4,7 +4,9 @@ import { TYPE_ACTION_LABELS, RESPONSABLES } from "@/lib/labels";
 import { TypeAction } from "@/generated/prisma/enums";
 import { BoutonCreer } from "@/components/bouton-creer";
 import { BoutonRetour } from "@/components/bouton-retour";
+import { ChampFichier } from "@/components/champ-fichier";
 import { ChoixRattachementAction } from "@/components/choix-rattachement-action";
+import { ZoneTraitement } from "@/components/formulaire-editable";
 import { ConteneurPage, EntetePage } from "@/components/page-liste";
 import { libelleRattachement } from "@/lib/labels";
 
@@ -90,6 +92,9 @@ export default async function NouvelleActionPage({
       <EntetePage titre="Nouvelle action" />
 
       <form action={creerAction} className="space-y-4 rounded-xl border bg-card p-6">
+        {/* ZoneTraitement ne rend aucun élément : elle relaie « photo en cours de conversion » au
+            bouton de création, qui doit attendre — sinon l'action est créée sans sa preuve. */}
+        <ZoneTraitement>
         {fiche ? (
           <div>
             <input type="hidden" name="ficheSSEId" value={fiche.id} />
@@ -215,9 +220,38 @@ export default async function NouvelleActionPage({
           <p className="mt-1 text-xs text-muted-foreground">Une date fait passer l&apos;action à « Réalisée ».</p>
         </div>
 
+        <div className="border-t pt-4">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">Validation</h2>
+          <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelCls}>Vérifié par</label>
+              <select name="verifiePar" defaultValue="" className={inputCls}>
+                <option value="">—</option>
+                {RESPONSABLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Le</label>
+              <input type="date" name="verifieLe" className={inputCls} />
+            </div>
+          </div>
+
+          <ChampFichier
+            name="preuve"
+            label="Preuve"
+            libelleRetirer="Retirer la preuve"
+            libelleVide="Aucune preuve"
+          />
+        </div>
+
         <div className="flex justify-end gap-3 pt-2">
           <BoutonCreer>Créer l&apos;action</BoutonCreer>
         </div>
+        </ZoneTraitement>
       </form>
     </ConteneurPage>
   );

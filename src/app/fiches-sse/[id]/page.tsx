@@ -1,3 +1,4 @@
+import { ORDRE_ACTIONS } from "@/lib/ordre-actions";
 import { dateHeureParis, dateParis } from "@/lib/date-paris";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -95,7 +96,7 @@ export default async function FicheSSEDetailPage({
 
   const actions = await prisma.action.findMany({
     where: { OR: rattachements },
-    orderBy: { createdAt: "desc" },
+    orderBy: ORDRE_ACTIONS,
     // `select` : jamais la preuve (photo/PDF en data URL) d'une action, qui
     // serait téléchargée en entier pour une simple ligne de tableau.
     select: {
@@ -186,19 +187,18 @@ export default async function FicheSSEDetailPage({
       rang: 1,
       ton: "violet",
     })),
-    ...actions.flatMap<EvenementChrono>((a) => [
-      {
-        date: a.createdAt,
-        titre: `Action ${a.reference} créée`,
+    // La création d'une action n'entre pas à l'historique : seule sa réalisation compte, avec
+    // l'action elle-même et son responsable.
+    ...actions
+      .filter((a) => a.realiseeLe)
+      .map<EvenementChrono>((a) => ({
+        date: a.realiseeLe!,
+        titre: `Action ${a.reference} réalisée`,
         detail: `${a.action} — ${a.responsable}`,
         href: `/plan-action/${a.id}`,
-        rang: 3,
-        ton: "bleu",
-      },
-      ...(a.realiseeLe
-        ? [{ date: a.realiseeLe, titre: `Action ${a.reference} réalisée`, href: `/plan-action/${a.id}`, rang: 4, ton: "vert" as const }]
-        : []),
-    ]),
+        rang: 4,
+        ton: "vert",
+      })),
     ...fiche.rex.map<EvenementChrono>((r) => ({
       date: r.createdAt,
       titre: `REX ${r.reference} créé`,

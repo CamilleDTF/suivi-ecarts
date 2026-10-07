@@ -1,3 +1,4 @@
+import { ORDRE_ACTIONS } from "@/lib/ordre-actions";
 import { dateHeureParis, dateParis } from "@/lib/date-paris";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -65,7 +66,7 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
       remontee: { select: { id: true, reference: true, objet: true } },
       // `select` : jamais `preuve` (photo/PDF en data URL), inutile ici.
       actions: {
-        orderBy: { createdAt: "desc" },
+        orderBy: ORDRE_ACTIONS,
         select: { id: true, reference: true, type: true, action: true, responsable: true, echeance: true, statut: true },
       },
     },
