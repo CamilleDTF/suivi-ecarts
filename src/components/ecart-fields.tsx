@@ -55,8 +55,8 @@ export function EcartFields({ v = {}, identiteSeule = false }: { v?: EcartValues
   const domaines = avecValeursExistantes(DOMAINES_OPTIONS, v.domaines);
 
   return (
-    <fieldset disabled={disabled} className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
+    <fieldset disabled={disabled} className={identiteSeule ? "grid grid-cols-4 gap-x-6 gap-y-4" : "space-y-6"}>
+      <div className={identiteSeule ? "col-span-4 grid grid-cols-2 gap-4" : "grid grid-cols-2 gap-4"}>
         <div>
           <label className={labelCls}>Date de détection</label>
           <input
@@ -94,11 +94,11 @@ export function EcartFields({ v = {}, identiteSeule = false }: { v?: EcartValues
         </div>
       </div>
 
-      <fieldset>
+      <fieldset className={identiteSeule ? "col-span-1" : undefined}>
         <legend className={labelCls}>Nature(s)</legend>
-        <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+        <div className={identiteSeule ? "grid grid-cols-1 gap-y-1" : "grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2"}>
           {natures.map((n) => (
-            <label key={n} className="flex items-center gap-2 text-sm">
+            <label key={n} className={identiteSeule ? "flex items-center gap-2 text-xs" : "flex items-center gap-2 text-sm"}>
               <input type="checkbox" name="natures" value={n} defaultChecked={(v.natures ?? []).includes(n)} />
               {n}
             </label>
@@ -106,11 +106,11 @@ export function EcartFields({ v = {}, identiteSeule = false }: { v?: EcartValues
         </div>
       </fieldset>
 
-      <fieldset>
+      <fieldset className={identiteSeule ? "col-span-1" : undefined}>
         <legend className={labelCls}>Domaine(s)</legend>
-        <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+        <div className={identiteSeule ? "grid grid-cols-1 gap-y-1" : "grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2"}>
           {domaines.map((d) => (
-            <label key={d} className="flex items-center gap-2 text-sm">
+            <label key={d} className={identiteSeule ? "flex items-center gap-2 text-xs" : "flex items-center gap-2 text-sm"}>
               <input type="checkbox" name="domaines" value={d} defaultChecked={(v.domaines ?? []).includes(d)} />
               {d}
             </label>
@@ -118,11 +118,11 @@ export function EcartFields({ v = {}, identiteSeule = false }: { v?: EcartValues
         </div>
       </fieldset>
 
-      <fieldset>
+      <fieldset className={identiteSeule ? "col-span-2" : undefined}>
         <legend className={labelCls}>Thème(s)</legend>
-        <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+        <div className={identiteSeule ? "grid grid-cols-2 gap-x-4 gap-y-1" : "grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2"}>
           {THEME_OPTIONS.map((t) => (
-            <label key={t} className="flex items-center gap-2 text-sm">
+            <label key={t} className={identiteSeule ? "flex items-center gap-2 text-xs" : "flex items-center gap-2 text-sm"}>
               <input type="checkbox" name="theme" value={t} defaultChecked={(v.theme ?? []).includes(t)} />
               {t}
             </label>

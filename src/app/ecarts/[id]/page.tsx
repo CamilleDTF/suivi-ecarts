@@ -434,7 +434,7 @@ export default async function EcartDetailPage({
             </div>
             <MatriceRisque gravite={ecart.gravite} frequence={ecart.frequence} />
           </Carte>
-          <Carte className="print:order-3 print:max-w-[21rem] print:break-inside-avoid">
+          <Carte className="print:hidden">
             <Proprietes>
               <Propriete label="Origine">{ORIGINE_LABELS[ecart.origine]}</Propriete>
               <Propriete label="Activité">{ecart.typeActivite ? TYPE_ACTIVITE_LABELS[ecart.typeActivite] : "—"}</Propriete>
