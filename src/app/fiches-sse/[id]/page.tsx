@@ -26,7 +26,7 @@ import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { ChangerRattachement } from "@/components/changer-rattachement";
 import { Chronologie, type EvenementChrono } from "@/components/chronologie";
-import { EditionPanneau } from "@/components/edition-panneau";
+import { BoutonModifier, EditionEnPlace, ZoneEdition, ZoneLecture } from "@/components/edition-en-place";
 import { Carte, EtatVide, FicheSection, Pastilles, Propriete, Proprietes, TexteLong } from "@/components/fiche";
 import { FicheSSEFields } from "@/components/fiche-sse-fields";
 import { MatriceRisque } from "@/components/matrice-risque";
@@ -225,6 +225,7 @@ export default async function FicheSSEDetailPage({
   const lienAjout = buttonVariants({ variant: "outline", size: "sm" });
 
   return (
+    <EditionEnPlace>
     <div className="mx-auto max-w-[100rem] px-4 py-8 lg:px-8">
       <nav data-no-print aria-label="Fil d'Ariane" className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/fiches-sse" className="hover:text-foreground hover:underline">
@@ -265,18 +266,7 @@ export default async function FicheSSEDetailPage({
           {sousTitre && <p className="text-sm text-muted-foreground">{sousTitre}</p>}
         </div>
         <div data-no-print className="flex flex-wrap items-center gap-2">
-          <EditionPanneau
-            titre={`Modifier ${fiche.reference}`}
-            description={
-              estBrouillon
-                ? "L'évènement reste en brouillon tant qu'il n'est pas finalisé."
-                : "Les changements sont enregistrés pour tous."
-            }
-            action={mettreAJourFicheSSE}
-            hiddenFields={{ id: fiche.id }}
-          >
-            <FicheSSEFields v={fiche} apresTypeAnalyse={<ArbreCauses ficheSSEId={fiche.id} causes={fiche.causes} />} />
-          </EditionPanneau>
+          <BoutonModifier />
           <Link
             href={`/plan-action/nouveau?ficheSSEId=${fiche.id}`}
             className={buttonVariants({ variant: estBrouillon ? "outline" : "default", size: "lg" })}
@@ -298,6 +288,20 @@ export default async function FicheSSEDetailPage({
         <ParcoursTraitement etapes={parcours} />
       </div>
 
+      <ZoneEdition
+        titre={`Modifier ${fiche.reference}`}
+        description={
+          estBrouillon
+            ? "L'évènement reste en brouillon tant qu'il n'est pas finalisé."
+            : "Les changements sont enregistrés pour tous."
+        }
+        action={mettreAJourFicheSSE}
+        hiddenFields={{ id: fiche.id }}
+      >
+        <FicheSSEFields v={fiche} apresTypeAnalyse={<ArbreCauses ficheSSEId={fiche.id} causes={fiche.causes} />} />
+      </ZoneEdition>
+
+      <ZoneLecture>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="space-y-8">
           <FicheSection titre="1. Déclaration">
@@ -595,6 +599,8 @@ export default async function FicheSSEDetailPage({
           </p>
         </aside>
       </div>
+      </ZoneLecture>
     </div>
+    </EditionEnPlace>
   );
 }

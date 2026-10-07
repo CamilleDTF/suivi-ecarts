@@ -21,7 +21,7 @@ import {
 import { archiver, desarchiver } from "@/app/archivage/actions";
 import { compterImpactSuppressionEcartAmiante } from "@/lib/suppression";
 import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
-import { EditionPanneau } from "@/components/edition-panneau";
+import { BoutonModifier, EditionEnPlace, ZoneEdition, ZoneLecture } from "@/components/edition-en-place";
 import { Carte, EtatVide, FicheSection, Propriete, Proprietes, TexteLong } from "@/components/fiche";
 import { StatutParcours } from "@/components/statut-parcours";
 import { BoutonArchiver } from "@/components/bouton-archiver";
@@ -109,6 +109,7 @@ export default async function EcartAmianteDetailPage({
   const lienAjout = buttonVariants({ variant: "outline", size: "sm" });
 
   return (
+    <EditionEnPlace>
     <div className="mx-auto max-w-[100rem] px-4 py-8 lg:px-8">
       <nav data-no-print aria-label="Fil d'Ariane" className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/ecart-amiante" className="hover:text-foreground hover:underline">
@@ -140,14 +141,7 @@ export default async function EcartAmianteDetailPage({
           </p>
         </div>
         <div data-no-print className="flex items-center gap-2">
-          <EditionPanneau
-            titre={`Modifier ${ecartAmiante.reference}`}
-            description="Les changements sont enregistrés pour tous."
-            action={mettreAJourEcartAmiante}
-            hiddenFields={{ id: ecartAmiante.id }}
-          >
-            <EcartAmianteFields v={ecartAmiante} />
-          </EditionPanneau>
+          <BoutonModifier />
           <Link href={`/plan-action/nouveau?ecartAmianteId=${ecartAmiante.id}`} className={buttonVariants({ size: "lg" })}>
             <PlusIcon /> Action
           </Link>
@@ -163,6 +157,16 @@ export default async function EcartAmianteDetailPage({
         />
       </div>
 
+      <ZoneEdition
+        titre={`Modifier ${ecartAmiante.reference}`}
+        description="Les changements sont enregistrés pour tous."
+        action={mettreAJourEcartAmiante}
+        hiddenFields={{ id: ecartAmiante.id }}
+      >
+        <EcartAmianteFields v={ecartAmiante} />
+      </ZoneEdition>
+
+      <ZoneLecture>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="space-y-8">
           <FicheSection titre="Analyse">
@@ -377,6 +381,8 @@ export default async function EcartAmianteDetailPage({
           </p>
         </aside>
       </div>
+      </ZoneLecture>
     </div>
+    </EditionEnPlace>
   );
 }

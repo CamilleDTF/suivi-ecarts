@@ -25,7 +25,7 @@ import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
 import { ChangerRattachement } from "@/components/changer-rattachement";
 import { Chronologie, type EvenementChrono } from "@/components/chronologie";
 import { EcartFields } from "@/components/ecart-fields";
-import { EditionPanneau } from "@/components/edition-panneau";
+import { BoutonModifier, EditionEnPlace, ZoneEdition, ZoneLecture } from "@/components/edition-en-place";
 import { Carte, EtatVide, FicheSection, Pastilles, Propriete, Proprietes } from "@/components/fiche";
 import { MatriceRisque } from "@/components/matrice-risque";
 import { ParcoursTraitement, type EtapeParcours } from "@/components/parcours-traitement";
@@ -200,6 +200,7 @@ export default async function EcartDetailPage({
   const lienAjout = buttonVariants({ variant: "outline", size: "sm" });
 
   return (
+    <EditionEnPlace>
     <div className="mx-auto max-w-[100rem] px-4 py-8 lg:px-8">
       <nav data-no-print aria-label="Fil d'Ariane" className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/ecarts" className="hover:text-foreground hover:underline">
@@ -238,14 +239,7 @@ export default async function EcartDetailPage({
           </h1>
         </div>
         <div data-no-print className="flex items-center gap-2">
-          <EditionPanneau
-            titre={`Modifier ${ecart.reference}`}
-            description="Les changements sont enregistrés pour tous."
-            action={mettreAJourEcart}
-            hiddenFields={{ id: ecart.id }}
-          >
-            <EcartFields v={ecart} />
-          </EditionPanneau>
+          <BoutonModifier />
           <Link href={`/plan-action/nouveau?ecartId=${ecart.id}`} className={buttonVariants({ size: "lg" })}>
             <PlusIcon /> Action
           </Link>
@@ -257,6 +251,16 @@ export default async function EcartDetailPage({
         <StatutParcours action={mettreAJourStatutEcart} id={ecart.id} etapes={ETAPES_STATUT} courant={ecart.statut} />
       </div>
 
+      <ZoneEdition
+        titre={`Modifier ${ecart.reference}`}
+        description="Les changements sont enregistrés pour tous."
+        action={mettreAJourEcart}
+        hiddenFields={{ id: ecart.id }}
+      >
+        <EcartFields v={ecart} />
+      </ZoneEdition>
+
+      <ZoneLecture>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="space-y-8">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -476,6 +480,8 @@ export default async function EcartDetailPage({
           </p>
         </aside>
       </div>
+      </ZoneLecture>
     </div>
+    </EditionEnPlace>
   );
 }

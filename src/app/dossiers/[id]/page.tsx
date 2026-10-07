@@ -10,7 +10,7 @@ import { compterImpactSuppressionDossier } from "@/lib/suppression";
 import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
 import { DossierEnregistrement } from "@/components/dossier-enregistrement";
 import { DossierFields } from "@/components/dossier-fields";
-import { EditionPanneau } from "@/components/edition-panneau";
+import { BoutonModifier, EditionEnPlace, ZoneEdition, ZoneLecture } from "@/components/edition-en-place";
 import { Carte, EtatVide, FicheSection, Propriete, Proprietes } from "@/components/fiche";
 import { StatutParcours } from "@/components/statut-parcours";
 import { BoutonArchiver } from "@/components/bouton-archiver";
@@ -73,6 +73,7 @@ export default async function DossierDetailPage({
   const lienNouvelEcart = `/ecarts/nouveau?dossierId=${dossier.id}`;
 
   return (
+    <EditionEnPlace>
     <div className="mx-auto max-w-[100rem] px-4 py-8 lg:px-8">
       <nav data-no-print aria-label="Fil d'Ariane" className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/dossiers" className="hover:text-foreground hover:underline">
@@ -93,14 +94,7 @@ export default async function DossierDetailPage({
           <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight">{dossier.chantier}</h1>
         </div>
         <div data-no-print className="flex items-center gap-2">
-          <EditionPanneau
-            titre={`Modifier ${dossier.reference}`}
-            description="Les changements sont enregistrés pour tous."
-            action={mettreAJourDossier}
-            hiddenFields={{ id: dossier.id }}
-          >
-            <DossierFields v={dossier} />
-          </EditionPanneau>
+          <BoutonModifier />
           <Link href={lienNouvelEcart} className={buttonVariants({ size: "lg" })}>
             <PlusIcon /> Nouvel écart
           </Link>
@@ -111,6 +105,16 @@ export default async function DossierDetailPage({
         <StatutParcours action={mettreAJourStatutDossier} id={dossier.id} etapes={ETAPES_STATUT} courant={dossier.statut} />
       </div>
 
+      <ZoneEdition
+        titre={`Modifier ${dossier.reference}`}
+        description="Les changements sont enregistrés pour tous."
+        action={mettreAJourDossier}
+        hiddenFields={{ id: dossier.id }}
+      >
+        <DossierFields v={dossier} />
+      </ZoneEdition>
+
+      <ZoneLecture>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="space-y-8">
           <FicheSection
@@ -220,6 +224,8 @@ export default async function DossierDetailPage({
           </p>
         </aside>
       </div>
+      </ZoneLecture>
     </div>
+    </EditionEnPlace>
   );
 }

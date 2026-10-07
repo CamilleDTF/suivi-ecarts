@@ -10,7 +10,7 @@ import { BoutonArchiver } from "@/components/bouton-archiver";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
-import { EditionPanneau } from "@/components/edition-panneau";
+import { BoutonModifier, EditionEnPlace, ZoneEdition, ZoneLecture } from "@/components/edition-en-place";
 import { Carte, Propriete, Proprietes, TexteLong } from "@/components/fiche";
 import { ConteneurPage } from "@/components/page-liste";
 
@@ -38,6 +38,7 @@ export default async function ActionDUDetailPage({ params }: { params: Promise<{
   const reference = referenceActionDU(action.numero);
 
   return (
+    <EditionEnPlace>
     <ConteneurPage largeur="formulaire">
       <BoutonRetour href="/plan-action-du" label="Plan d'action DU" />
 
@@ -54,17 +55,20 @@ export default async function ActionDUDetailPage({ params }: { params: Promise<{
           </h1>
         </div>
         <div data-no-print className="flex items-center gap-2">
-          <EditionPanneau
-            titre={`Modifier ${reference}`}
-            description="Les changements sont enregistrés pour tous."
-            action={mettreAJourActionDU}
-            hiddenFields={{ id: action.id }}
-          >
-            <ActionDUFields v={action} responsablesConnus={responsables.map((r) => r.responsable!)} />
-          </EditionPanneau>
+          <BoutonModifier />
         </div>
       </header>
 
+      <ZoneEdition
+        titre={`Modifier ${reference}`}
+        description="Les changements sont enregistrés pour tous."
+        action={mettreAJourActionDU}
+        hiddenFields={{ id: action.id }}
+      >
+        <ActionDUFields v={action} responsablesConnus={responsables.map((r) => r.responsable!)} />
+      </ZoneEdition>
+
+      <ZoneLecture>
       <div className="space-y-4">
         <Carte>
           <Proprietes>
@@ -103,6 +107,8 @@ export default async function ActionDUDetailPage({ params }: { params: Promise<{
             action.modifiePar ? ` par ${action.modifiePar}` : ""
           }`}
       </p>
+      </ZoneLecture>
     </ConteneurPage>
+    </EditionEnPlace>
   );
 }

@@ -24,7 +24,7 @@ import { archiver, desarchiver } from "@/app/archivage/actions";
 import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
 import { ChangerRattachement } from "@/components/changer-rattachement";
 import { Chronologie, type EvenementChrono } from "@/components/chronologie";
-import { EditionPanneau } from "@/components/edition-panneau";
+import { BoutonModifier, EditionEnPlace, ZoneEdition, ZoneLecture } from "@/components/edition-en-place";
 import { Carte, EtatVide, FicheSection, Pastilles, Propriete, Proprietes, TexteLong } from "@/components/fiche";
 import { RemonteeFields } from "@/components/remontee-fields";
 import { StatutParcours } from "@/components/statut-parcours";
@@ -239,6 +239,7 @@ export default async function RemonteeDetailPage({
   const lienAjout = buttonVariants({ variant: "outline", size: "sm" });
 
   return (
+    <EditionEnPlace>
     <div className="mx-auto max-w-[100rem] px-4 py-8 lg:px-8">
       <nav data-no-print aria-label="Fil d'Ariane" className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/remontees" className="hover:text-foreground hover:underline">
@@ -262,14 +263,7 @@ export default async function RemonteeDetailPage({
           <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight">{remontee.objet}</h1>
         </div>
         <div data-no-print className="flex flex-wrap items-center gap-2">
-          <EditionPanneau
-            titre={`Modifier ${remontee.reference}`}
-            description="Les changements sont enregistrés pour tous."
-            action={mettreAJourRemontee}
-            hiddenFields={{ id: remontee.id }}
-          >
-            <RemonteeFields v={remontee} chantiersConnus={chantiersConnus} />
-          </EditionPanneau>
+          <BoutonModifier />
           {remontee.statut !== "TRAITEE" && !dejaTransformee && (
             <form action={marquerRemonteeTraitee}>
               <input type="hidden" name="id" value={remontee.id} />
@@ -307,6 +301,16 @@ export default async function RemonteeDetailPage({
         )}
       </div>
 
+      <ZoneEdition
+        titre={`Modifier ${remontee.reference}`}
+        description="Les changements sont enregistrés pour tous."
+        action={mettreAJourRemontee}
+        hiddenFields={{ id: remontee.id }}
+      >
+        <RemonteeFields v={remontee} chantiersConnus={chantiersConnus} />
+      </ZoneEdition>
+
+      <ZoneLecture>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="space-y-8">
           <div className="grid gap-4 sm:grid-cols-2">
@@ -534,6 +538,8 @@ export default async function RemonteeDetailPage({
           </p>
         </aside>
       </div>
+      </ZoneLecture>
     </div>
+    </EditionEnPlace>
   );
 }

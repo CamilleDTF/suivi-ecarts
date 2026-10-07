@@ -20,7 +20,7 @@ import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonSupprimer } from "@/components/bouton-supprimer";
 import { ChangerRattachement } from "@/components/changer-rattachement";
-import { EditionPanneau } from "@/components/edition-panneau";
+import { BoutonModifier, EditionEnPlace, ZoneEdition, ZoneLecture } from "@/components/edition-en-place";
 import { Carte, EtatVide, FicheSection, Propriete, Proprietes } from "@/components/fiche";
 import { ConteneurPage } from "@/components/page-liste";
 import { PreuveAction } from "@/components/preuve-plan-action";
@@ -205,6 +205,7 @@ export default async function ActionDetailPage({
   const verifiee = !!(action.verifiePar || action.verifieLe);
 
   return (
+    <EditionEnPlace>
     <ConteneurPage largeur="fiche">
       <BoutonRetour href={retourHref} label={retourLabel} />
 
@@ -227,14 +228,7 @@ export default async function ActionDetailPage({
           </h1>
         </div>
         <div data-no-print className="flex items-center gap-2">
-          <EditionPanneau
-            titre={`Modifier ${action.reference}`}
-            description="Les changements sont enregistrés pour tous."
-            action={mettreAJourAction}
-            hiddenFields={{ id: action.id }}
-          >
-            <ActionFields v={action} />
-          </EditionPanneau>
+          <BoutonModifier />
         </div>
       </header>
 
@@ -242,6 +236,16 @@ export default async function ActionDetailPage({
         <StatutParcours action={mettreAJourStatutAction} id={action.id} etapes={ETAPES_STATUT} courant={action.statut} />
       </div>
 
+      <ZoneEdition
+        titre={`Modifier ${action.reference}`}
+        description="Les changements sont enregistrés pour tous."
+        action={mettreAJourAction}
+        hiddenFields={{ id: action.id }}
+      >
+        <ActionFields v={action} />
+      </ZoneEdition>
+
+      <ZoneLecture>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="space-y-8">
           <Carte className="grid grid-cols-2 gap-x-4 gap-y-5 p-5 md:grid-cols-4">
@@ -411,6 +415,8 @@ export default async function ActionDetailPage({
           </p>
         </aside>
       </div>
+      </ZoneLecture>
     </ConteneurPage>
+    </EditionEnPlace>
   );
 }

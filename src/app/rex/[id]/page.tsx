@@ -17,7 +17,7 @@ import { StatutREX } from "@/generated/prisma/enums";
 import { archiver, desarchiver } from "@/app/archivage/actions";
 import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
 import { BadgeBrouillon, BadgeNatureRex, BadgeStatutRex, TON_STATUT_REX } from "@/components/badges-rex";
-import { EditionPanneau } from "@/components/edition-panneau";
+import { BoutonModifier, EditionEnPlace, ZoneEdition, ZoneLecture } from "@/components/edition-en-place";
 import { Carte, EtatVide, FicheSection, Pastilles, Propriete, Proprietes, TexteLong } from "@/components/fiche";
 import { RexFields } from "@/components/rex-fields";
 import { StatutParcours } from "@/components/statut-parcours";
@@ -80,6 +80,7 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
     !!rex.pratiqueDescription?.trim() || NATURES_REX_REQUERANT_DESCRIPTION.includes(rex.nature);
 
   return (
+    <EditionEnPlace>
     <div className="mx-auto max-w-[100rem] px-4 py-8 lg:px-8">
       <nav data-no-print aria-label="Fil d'Ariane" className="mb-5 flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
         <Link href="/rex" className="hover:text-foreground hover:underline">
@@ -102,14 +103,7 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
           <h1 className="font-display text-3xl font-semibold leading-tight tracking-tight">{rex.titre}</h1>
         </div>
         <div data-no-print className="flex flex-wrap items-center gap-2">
-          <EditionPanneau
-            titre={`Modifier ${rex.reference}`}
-            description="Les changements sont enregistrés pour tous."
-            action={mettreAJourRex}
-            hiddenFields={{ id: rex.id }}
-          >
-            <RexFields v={rex} />
-          </EditionPanneau>
+          <BoutonModifier />
           <Link href={`/rex/${rex.id}/diffusion`} className={buttonVariants({ variant: "outline", size: "lg" })}>
             <FileTextIcon /> Fiche de diffusion
           </Link>
@@ -144,6 +138,16 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
         )}
       </div>
 
+      <ZoneEdition
+        titre={`Modifier ${rex.reference}`}
+        description="Les changements sont enregistrés pour tous."
+        action={mettreAJourRex}
+        hiddenFields={{ id: rex.id }}
+      >
+        <RexFields v={rex} />
+      </ZoneEdition>
+
+      <ZoneLecture>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <div className="space-y-8">
           <Carte className="p-5">
@@ -294,6 +298,8 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
           </p>
         </aside>
       </div>
+      </ZoneLecture>
     </div>
+    </EditionEnPlace>
   );
 }
