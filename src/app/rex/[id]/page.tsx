@@ -2,7 +2,7 @@ import { ORDRE_ACTIONS } from "@/lib/ordre-actions";
 import { dateHeureParis, dateParis } from "@/lib/date-paris";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRightIcon, CircleDashedIcon, FileTextIcon, PlusIcon, SendIcon } from "lucide-react";
+import { ChevronRightIcon, CircleDashedIcon, DownloadIcon, ExternalLinkIcon, FileTextIcon, PlusIcon, SendIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import {
   ORIGINE_REX_LABELS,
@@ -64,6 +64,8 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
       fichesSSE: { orderBy: { reference: "asc" }, select: { id: true, reference: true, nomChantier: true } },
       ecartsAmiante: { orderBy: { reference: "asc" }, select: { id: true, reference: true, nomChantier: true } },
       remontees: { orderBy: { reference: "asc" }, select: { id: true, reference: true, objet: true } },
+      // Le nom et la taille seulement : le contenu du fichier est servi par /rex/[id]/fiche-externe.
+      ficheExterne: { select: { nom: true, taille: true } },
       // `select` : jamais `preuve` (photo/PDF en data URL), inutile ici.
       actions: {
         orderBy: ORDRE_ACTIONS,
@@ -214,6 +216,24 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
             </Carte>
           ) : (
             <EtatVide>Thèmes, destinataires et canaux de diffusion non renseignés.</EtatVide>
+          )}
+
+          {rex.ficheExterne && (
+            <Carte className="flex flex-wrap items-center gap-3 p-4">
+              <FileTextIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fiche de diffusion jointe</p>
+                <p className="truncate text-sm font-medium">{rex.ficheExterne.nom}</p>
+              </div>
+              <span data-no-print className="flex flex-wrap gap-2">
+                <a href={`/rex/${rex.id}/fiche-externe`} target="_blank" rel="noopener" className={lienAjout}>
+                  <ExternalLinkIcon /> Ouvrir
+                </a>
+                <a href={`/rex/${rex.id}/fiche-externe?telecharger=1`} className={lienAjout}>
+                  <DownloadIcon /> Télécharger
+                </a>
+              </span>
+            </Carte>
           )}
 
           <Carte className="p-5">

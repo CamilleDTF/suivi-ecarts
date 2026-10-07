@@ -434,11 +434,32 @@ model Rex {
   remontees                  RemonteeInfo[]
   // Les actions préventives du REX sont des actions du plan d'action.
   actions                    Action[]
+  // Fiche de diffusion apportée par l'utilisateur (document externe), à la place ou en
+  // plus de la fiche générée par l'application.
+  ficheExterne               RexDocument?
   createdAt                  DateTime       @default(now())
   updatedAt                  DateTime       @updatedAt
   modifiePar                 String?
   modifieLe                  DateTime?
   archiveLe                  DateTime?
+}
+
+// Fiche de diffusion déposée par l'utilisateur : un document externe (PDF, Word,
+// PowerPoint, Excel, image). Table à part de Rex : le contenu pèse plusieurs
+// mégaoctets et ne doit jamais être relu avec la liste ou la fiche du REX — il n'est
+// lu que pour servir le fichier (route /rex/[id]/fiche-externe). Un seul document par
+// REX : en déposer un second remplace le premier.
+model RexDocument {
+  id        String   @id @default(cuid())
+  rex       Rex      @relation(fields: [rexId], references: [id], onDelete: Cascade)
+  rexId     String   @unique
+  nom       String
+  type      String
+  taille    Int
+  contenu   Bytes
+  ajoutePar String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // Plan d'action du Document Unique. Table autonome plutôt qu'un rattachement

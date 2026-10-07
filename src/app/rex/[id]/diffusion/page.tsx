@@ -5,6 +5,7 @@ import { Badge } from "@/components/badge";
 import { BoutonRetour } from "@/components/bouton-retour";
 import { BoutonExportPDF } from "@/components/bouton-export-pdf";
 import { ImpressionAutomatique } from "@/components/impression-automatique";
+import { FicheDiffusionExterne } from "@/components/fiche-diffusion-externe";
 import {
   ORIGINE_REX_LABELS,
   NATURE_REX_LABELS,
@@ -51,6 +52,8 @@ export default async function DiffusionRexPage({
       fichesSSE: { orderBy: { reference: "asc" }, select: { id: true, reference: true, nomChantier: true } },
       ecartsAmiante: { orderBy: { reference: "asc" }, select: { id: true, reference: true, nomChantier: true } },
       remontees: { orderBy: { reference: "asc" }, select: { id: true, reference: true, objet: true } },
+      // Le nom et la taille seulement : le contenu du fichier est servi par /rex/[id]/fiche-externe.
+      ficheExterne: { select: { nom: true, taille: true, ajoutePar: true, updatedAt: true } },
       actions: {
         orderBy: { createdAt: "asc" },
         select: { id: true, action: true, responsable: true, echeance: true },
@@ -67,6 +70,20 @@ export default async function DiffusionRexPage({
         <BoutonRetour href={`/rex/${rex.id}`} label="Retour au REX" />
         <BoutonExportPDF />
       </div>
+
+      <FicheDiffusionExterne
+        rexId={rex.id}
+        fiche={
+          rex.ficheExterne
+            ? {
+                nom: rex.ficheExterne.nom,
+                taille: rex.ficheExterne.taille,
+                ajoutePar: rex.ficheExterne.ajoutePar,
+                ajouteLe: rex.ficheExterne.updatedAt.toISOString(),
+              }
+            : null
+        }
+      />
 
       <div className="mb-2 flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-semibold text-slate-900">Fiche de diffusion — {rex.reference}</h1>

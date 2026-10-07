@@ -10,6 +10,7 @@ import { OrigineREX, NatureREX, StatutREX } from "@/generated/prisma/enums";
 import { nomAuteur } from "@/lib/audit";
 import { dateFacultative } from "@/lib/validation";
 import { NATURES_REX_REQUERANT_ACTION, NATURES_REX_REQUERANT_DESCRIPTION } from "@/lib/labels";
+import { FORMATS_FICHE_EXTERNE, TAILLE_MAX_FICHE_EXTERNE, formaterTaille, lireDataUrl } from "@/lib/fiche-externe";
 
 // Parcours de création du REX : trois façons d'y arriver, qui ne demandent
 // pas les mêmes champs. "unique" rattache un seul élément, de l'un des quatre
@@ -359,4 +360,65 @@ export async function supprimerRex(formData: FormData) {
   revalidatePath("/plan-action");
   revalidatePath("/synthese");
   redirect("/rex");
+}
+
+// Fiche de diffusion apportée par l'utilisateur (document externe).
+
+const ficheExterneSchema = z.object({
+  rexId: z.string().min(1),
+  nom: z.string().trim().min(1, "Nom de fichier requis").max(200),
+  contenu: z.string().min(1, "Fichier vide"),
+});
+
+export type ResultatFicheExterne = { erreur?: string };
+
+export async function joindreFicheDiffusion(input: z.input<typeof ficheExterneSchema>): Promise<ResultatFicheExterne> {
+  const session = await auth();
+  if (!session?.user) redirect("/connexion");
+
+  const parsed = ficheExterneSchema.safeParse(input);
+  if (!parsed.success) return { erreur: "Fichier invalide." };
+
+  const fichier = lireDataUrl(parsed.data.contenu);
+  if (!fichier || fichier.octets.length === 0) {
+    return { erreur: `Format non pris en charge. Formats acceptés : ${FORMATS_FICHE_EXTERNE}.` };
+  }
+  if (fichier.octets.length > TAILLE_MAX_FICHE_EXTERNE) {
+    return { erreur: `Fichier trop lourd (${formaterTaille(fichier.octets.length)}). Maximum ${formaterTaille(TAILLE_MAX_FICHE_EXTERNE)}.` };
+  }
+
+  const rex = await prisma.rex.findUnique({ where: { id: parsed.data.rexId }, select: { id: true } });
+  if (!rex) return { erreur: "REX introuvable." };
+
+  const auteur = nomAuteur(session);
+  const donnees = {
+    nom: parsed.data.nom,
+    type: fichier.type,
+    taille: fichier.octets.length,
+    contenu: fichier.octets,
+    ajoutePar: auteur,
+  };
+  // Un seul document par REX : en déposer un second remplace le premier.
+  await prisma.rexDocument.upsert({
+    where: { rexId: rex.id },
+    create: { rexId: rex.id, ...donnees },
+    update: donnees,
+  });
+  await prisma.rex.update({ where: { id: rex.id }, data: { modifiePar: auteur, modifieLe: new Date() } });
+
+  revalidatePath(`/rex/${rex.id}`);
+  revalidatePath(`/rex/${rex.id}/diffusion`);
+  return {};
+}
+
+export async function retirerFicheDiffusion(rexId: string): Promise<ResultatFicheExterne> {
+  const session = await auth();
+  if (!session?.user) redirect("/connexion");
+
+  await prisma.rexDocument.deleteMany({ where: { rexId } });
+  await prisma.rex.update({ where: { id: rexId }, data: { modifiePar: nomAuteur(session), modifieLe: new Date() } });
+
+  revalidatePath(`/rex/${rexId}`);
+  revalidatePath(`/rex/${rexId}/diffusion`);
+  return {};
 }

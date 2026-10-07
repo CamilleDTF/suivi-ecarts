@@ -8,7 +8,7 @@ import { useTraitementEnCours } from "@/components/formulaire-editable";
  * formulaire, elle dépasserait la limite de taille des Server Actions et
  * l'enregistrement échouerait. On la réduit donc avant de l'envoyer.
  */
-async function imageVersDataUrl(file: File): Promise<string> {
+export async function imageVersDataUrl(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
   const maxDim = 1600;
   const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
@@ -20,7 +20,7 @@ async function imageVersDataUrl(file: File): Promise<string> {
   return canvas.toDataURL("image/jpeg", 0.8);
 }
 
-function documentVersDataUrl(file: File): Promise<string> {
+export function documentVersDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const lecteur = new FileReader();
     lecteur.onload = () => resolve(String(lecteur.result));
