@@ -376,16 +376,10 @@ export const THEMES_REX_OPTIONS = [
 export const DESTINATAIRES_ROLES_REX_OPTIONS = [
   "Chefs de chantier",
   "Conducteurs de travaux",
-  "Encadrement chantier",
   "Tout le personnel",
   "QHSE",
-  "Personnel concerné uniquement",
   "Direction",
-  "Chefs d'équipe",
-  "Opérateurs / compagnons",
-  "Intérimaires et nouveaux arrivants",
   "Sous-traitants",
-  "Bureau d'études / méthodes",
   "Logistique / magasin",
   "Client / maître d'ouvrage",
 ];
