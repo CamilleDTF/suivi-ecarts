@@ -32,8 +32,8 @@ import {
 
 export const metadata = { title: "Réunion QHSE" };
 
-// Une action close n'a plus sa place dans un ordre du jour, sauf si elle a été
-// close pendant la période — c'est justement ce qu'on annonce en réunion.
+// Une action réalisée ou annulée n'a plus sa place dans la réunion : on ne
+// suit que ce qui reste à faire.
 const CLOSES: StatutAction[] = [StatutAction.REALISEE, StatutAction.ANNULEE];
 // Les états qui soldent une remontée : tout le reste est encore à traiter.
 const REMONTEES_CLOSES: StatutRemontee[] = [
@@ -47,6 +47,9 @@ const REMONTEES_CLOSES: StatutRemontee[] = [
 // saurait plus lire l'URL.
 const TOUS = "tous";
 const NON_CLOTURES = "non-clotures";
+// Ancienne valeur « À l'ordre du jour », qui laissait passer les actions
+// réalisées pendant la période. Un lien enregistré qui la porte encore retombe
+// sur « Non clôturées ».
 const ORDRE_DU_JOUR = "ordre-du-jour";
 
 // Le formulaire de filtre vit dans l'entête, mais les listes déroulantes d'état
@@ -177,7 +180,10 @@ export default async function ReunionPage({
   // la matière de la réunion. « Tous les états » reste à un clic pour revoir
   // aussi ce qui a été soldé pendant la période.
   const etatEvenement = params.etatEvenement ?? (tout ? TOUS : NON_CLOTURES);
-  const etatAction = params.etatAction ?? (tout ? TOUS : NON_CLOTURES);
+  const etatAction =
+    params.etatAction === ORDRE_DU_JOUR
+      ? NON_CLOTURES
+      : (params.etatAction ?? (tout ? TOUS : NON_CLOTURES));
   const etatAmiante = params.etatAmiante ?? (tout ? TOUS : NON_CLOTURES);
   const etatEcart = params.etatEcart ?? (tout ? TOUS : NON_CLOTURES);
   const etatRemontee = params.etatRemontee ?? (tout ? TOUS : NON_CLOTURES);
@@ -191,36 +197,13 @@ export default async function ReunionPage({
   }
 
   /**
-   * « À l'ordre du jour » : ce qui est encore ouvert, plus ce qui vient d'être
-   * soldé pendant la période — dans les deux cas il y a quelque chose à dire.
-   * Sans période (historique complet), il ne reste que ce qui est ouvert, d'où
-   * le défaut sur « tous » dans ce mode.
+   * Sert aussi aux actions listées dans la ligne d'un écart : une action est
+   * une action, le même réglage vaut partout.
    */
   function whereAction(choix: string) {
     const exact = filtreStatutAction(choix);
     if (exact) return { statut: exact };
     if (choix === NON_CLOTURES) return { statut: { notIn: CLOSES } };
-    if (choix === ORDRE_DU_JOUR) {
-      return {
-        OR: [
-          { statut: { notIn: CLOSES } },
-          ...(periode ? [{ realiseeLe: periode }, { modifieLe: periode }] : []),
-        ],
-      };
-    }
-    return {};
-  }
-
-  /**
-   * Même filtre, pour les actions listées dans la ligne d'un écart. La clause
-   * imbriquée ne peut pas porter le « ou close pendant la période » sans
-   * alourdir la requête pour un gain nul : dans cette colonne on veut ce qui
-   * reste à faire.
-   */
-  function whereActionImbriquee(choix: string) {
-    const exact = filtreStatutAction(choix);
-    if (exact) return { statut: exact };
-    if (choix === ORDRE_DU_JOUR || choix === NON_CLOTURES) return { statut: { notIn: CLOSES } };
     return {};
   }
 
@@ -280,7 +263,7 @@ export default async function ReunionPage({
         statut: true,
         dossier: { select: { chantier: true } },
         actions: {
-          where: whereActionImbriquee(etatAction),
+          where: whereAction(etatAction),
           orderBy: { reference: "asc" },
           select: { id: true, reference: true, action: true, responsable: true, statut: true },
         },
@@ -297,7 +280,7 @@ export default async function ReunionPage({
         typeEcart: true,
         statut: true,
         actions: {
-          where: whereActionImbriquee(etatAction),
+          where: whereAction(etatAction),
           orderBy: { reference: "asc" },
           select: { id: true, reference: true, action: true, responsable: true, statut: true },
         },
@@ -552,7 +535,6 @@ export default async function ReunionPage({
             options={optionsEtat(
               [
                 { value: NON_CLOTURES, label: "Non clôturées" },
-                { value: ORDRE_DU_JOUR, label: "À l'ordre du jour" },
                 { value: TOUS, label: "Tous les états" },
               ],
               Object.values(StatutAction),
