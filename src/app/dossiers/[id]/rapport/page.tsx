@@ -237,7 +237,6 @@ export default async function RapportDossierPage({
               </dl>
               <dl className="mt-4 grid gap-4">
                 <Champ libelle="Description">{ecart.description}</Champ>
-                <Champ libelle="Mesure immédiate">{ecart.mesureImmediate}</Champ>
                 <Champ libelle="Cause">{ecart.cause}</Champ>
               </dl>
             </div>

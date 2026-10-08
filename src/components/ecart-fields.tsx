@@ -28,7 +28,6 @@ type EcartValues = {
   frequence?: string | null;
   criticite?: string | null;
   description?: string | null;
-  mesureImmediate?: string | null;
   cause?: string | null;
 };
 
@@ -177,11 +176,6 @@ export function EcartFields({ v = {}, identiteSeule = false }: { v?: EcartValues
       <div>
         <label className={labelCls}>Description</label>
         <textarea name="description" defaultValue={v.description ?? ""} rows={3} className={inputCls} />
-      </div>
-
-      <div>
-        <label className={labelCls}>Mesure immédiate</label>
-        <textarea name="mesureImmediate" defaultValue={v.mesureImmediate ?? ""} rows={2} className={inputCls} />
       </div>
 
       <div>

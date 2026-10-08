@@ -22,7 +22,6 @@ const ecartSchema = z.object({
   declarant: z.string().min(1, "Déclarant requis"),
   typeActivite: z.string().optional(),
   description: z.string().optional(),
-  mesureImmediate: z.string().optional(),
   gravite: z.string().optional(),
   frequence: z.string().optional(),
   cause: z.string().optional(),
@@ -39,7 +38,6 @@ export async function creerEcart(formData: FormData) {
     declarant: formData.get("declarant"),
     typeActivite: formData.get("typeActivite") || undefined,
     description: formData.get("description") || undefined,
-    mesureImmediate: formData.get("mesureImmediate") || undefined,
     gravite: formData.get("gravite") || undefined,
     frequence: formData.get("frequence") || undefined,
     cause: formData.get("cause") || undefined,
@@ -105,7 +103,6 @@ export async function creerEcart(formData: FormData) {
         domaines,
         theme,
         description: parsed.description,
-        mesureImmediate: parsed.mesureImmediate,
         cause: parsed.cause,
         gravite: parsed.gravite,
         frequence: parsed.frequence,
@@ -152,7 +149,6 @@ const ecartEditSchema = z.object({
   gravite: z.string().optional(),
   frequence: z.string().optional(),
   description: z.string().optional(),
-  mesureImmediate: z.string().optional(),
   cause: z.string().optional(),
 });
 
@@ -169,7 +165,6 @@ export async function mettreAJourEcart(formData: FormData) {
     gravite: formData.get("gravite") || undefined,
     frequence: formData.get("frequence") || undefined,
     description: formData.get("description") || undefined,
-    mesureImmediate: formData.get("mesureImmediate") || undefined,
     cause: formData.get("cause") || undefined,
   });
 
@@ -196,7 +191,6 @@ export async function mettreAJourEcart(formData: FormData) {
       // ?? null : sans ça, vider le champ dans le formulaire ne l'effaçait pas,
       // Prisma ignorant les champs à undefined.
       description: parsed.description ?? null,
-      mesureImmediate: parsed.mesureImmediate ?? null,
       cause: parsed.cause ?? null,
       modifiePar: nomAuteur(session),
       modifieLe: new Date(),

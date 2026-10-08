@@ -122,7 +122,6 @@ export default async function EcartDetailPage({
     select: { id: true, reference: true, chantier: true },
   });
 
-  const aMesure = !!ecart.mesureImmediate?.trim();
   const aCause = !!ecart.cause?.trim();
   const actionsSoldees = ecart.actions.filter((a) => a.statut === "REALISEE" || a.statut === "ANNULEE").length;
   const parcours: EtapeParcours[] = [
@@ -131,7 +130,6 @@ export default async function EcartDetailPage({
       legende: `${ecart.dateDetection.toLocaleDateString("fr-FR")}${ecart.declarant ? ` · ${ecart.declarant}` : ""}`,
       fait: true,
     },
-    { label: "Mesure immédiate", legende: aMesure ? "Renseignée" : "À renseigner", fait: aMesure },
     { label: "Analyse des causes", legende: aCause ? "Renseignée" : "À analyser", fait: aCause },
     {
       label: "Actions",
@@ -263,19 +261,18 @@ export default async function EcartDetailPage({
 
       <ZoneLecture>
       {/* PDF : l'identité de l'écart (date, origine, déclarant, activité, natures, domaines, thèmes)
-          vient juste après le parcours, avant les cartes mesure immédiate et cause. */}
+          vient juste après le parcours, avant la carte cause. */}
       <div className="mb-8 hidden print:block">
         <ModeLecture>
           <EcartFields v={ecart} identiteSeule />
         </ModeLecture>
       </div>
       {/* Sur papier, la grille devient une colonne et ses deux moitiés se mêlent (display: contents) :
-          chaque bloc prend sa place par « order » — 2 mesure et cause, 3 propriétés, 4 risque, 5 le reste. */}
+          chaque bloc prend sa place par « order » — 2 cause, 3 propriétés, 4 risque, 5 le reste. */}
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_21rem] print:flex print:flex-col print:gap-6">
         <div className="space-y-8 print:contents">
-          <div className="grid gap-4 sm:grid-cols-2 print:order-2 print:break-inside-avoid">
+          <div className="grid gap-4 print:order-2 print:break-inside-avoid">
             {[
-              { titre: "Mesure immédiate", valeur: ecart.mesureImmediate, vide: "Aucune mesure immédiate n’est enregistrée." },
               { titre: "Cause", valeur: ecart.cause, vide: "La cause n’a pas encore été analysée." },
             ].map((b) => (
               <Carte key={b.titre} className="p-5">

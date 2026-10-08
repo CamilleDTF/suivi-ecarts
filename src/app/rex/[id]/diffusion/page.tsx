@@ -45,7 +45,6 @@ export default async function DiffusionRexPage({
           theme: true,
           description: true,
           cause: true,
-          mesureImmediate: true,
           dossier: { select: { chantier: true } },
         },
       },
@@ -159,12 +158,6 @@ export default async function DiffusionRexPage({
                     <p className="mt-1.5 whitespace-pre-line text-slate-700">
                       <span className="font-medium">Cause : </span>
                       {e.cause}
-                    </p>
-                  )}
-                  {e.mesureImmediate && (
-                    <p className="mt-1.5 whitespace-pre-line text-slate-700">
-                      <span className="font-medium">Mesure immédiate : </span>
-                      {e.mesureImmediate}
                     </p>
                   )}
                   {classement && <p className="mt-1.5 text-xs text-slate-400">{classement}</p>}

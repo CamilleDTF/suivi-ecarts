@@ -64,7 +64,6 @@ export default async function EcartsPage({
           { reference: contient },
           { description: contient },
           { declarant: contient },
-          { mesureImmediate: contient },
           { cause: contient },
           { criticite: contient },
           { dossier: { chantier: contient } },
