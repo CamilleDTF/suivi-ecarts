@@ -35,6 +35,11 @@ export const metadata = { title: "Réunion QHSE" };
 // Une action close n'a plus sa place dans un ordre du jour, sauf si elle a été
 // close pendant la période — c'est justement ce qu'on annonce en réunion.
 const CLOSES: StatutAction[] = [StatutAction.REALISEE, StatutAction.ANNULEE];
+// Les états qui soldent une remontée : tout le reste est encore à traiter.
+const REMONTEES_CLOSES: StatutRemontee[] = [
+  StatutRemontee.TRAITEE,
+  StatutRemontee.TRANSFORMEE_EN_ECART,
+];
 
 // Les deux valeurs de filtre qui ne désignent pas un état précis. Chacune garde
 // le même sens quel que soit l'écran : sans ça, « tous » voudrait dire une
@@ -168,11 +173,14 @@ export default async function ReunionPage({
   const jusqua = tout ? undefined : jour(au, true);
   const periode = depuis || jusqua ? { gte: depuis, lte: jusqua } : undefined;
 
-  const etatEvenement = params.etatEvenement ?? TOUS;
-  const etatAction = params.etatAction ?? (tout ? TOUS : ORDRE_DU_JOUR);
+  // En mode période, chaque section s'ouvre sur ce qui n'est pas clôturé : c'est
+  // la matière de la réunion. « Tous les états » reste à un clic pour revoir
+  // aussi ce qui a été soldé pendant la période.
+  const etatEvenement = params.etatEvenement ?? (tout ? TOUS : NON_CLOTURES);
+  const etatAction = params.etatAction ?? (tout ? TOUS : NON_CLOTURES);
   const etatAmiante = params.etatAmiante ?? (tout ? TOUS : NON_CLOTURES);
   const etatEcart = params.etatEcart ?? (tout ? TOUS : NON_CLOTURES);
-  const etatRemontee = params.etatRemontee ?? TOUS;
+  const etatRemontee = params.etatRemontee ?? (tout ? TOUS : NON_CLOTURES);
 
   /** Écarts et écarts amiante partagent le même jeu d'états. */
   function whereEcart(choix: string) {
@@ -191,6 +199,7 @@ export default async function ReunionPage({
   function whereAction(choix: string) {
     const exact = filtreStatutAction(choix);
     if (exact) return { statut: exact };
+    if (choix === NON_CLOTURES) return { statut: { notIn: CLOSES } };
     if (choix === ORDRE_DU_JOUR) {
       return {
         OR: [
@@ -211,17 +220,32 @@ export default async function ReunionPage({
   function whereActionImbriquee(choix: string) {
     const exact = filtreStatutAction(choix);
     if (exact) return { statut: exact };
-    if (choix === ORDRE_DU_JOUR) return { statut: { notIn: CLOSES } };
+    if (choix === ORDRE_DU_JOUR || choix === NON_CLOTURES) return { statut: { notIn: CLOSES } };
     return {};
   }
 
+  // Évènements et remontées : « non clôturés » montre tout ce qui reste ouvert,
+  // quelle que soit sa date — un évènement de mars pas encore finalisé doit
+  // revenir en juillet, comme un écart. Les autres choix restent bornés à la
+  // période.
+  const whereEvenement =
+    etatEvenement === NON_CLOTURES
+      ? { statutFiche: { not: StatutFiche.FINALISEE } }
+      : {
+          ...(periode ? { dateHeure: periode } : {}),
+          statutFiche: filtreStatutFiche(etatEvenement),
+        };
+  const whereRemontee =
+    etatRemontee === NON_CLOTURES
+      ? { statut: { notIn: REMONTEES_CLOSES } }
+      : {
+          ...(periode ? { dateRemontee: periode } : {}),
+          statut: filtreStatutRemontee(etatRemontee),
+        };
+
   const [evenements, actionsEvenements, ecarts, ecartsAmiante, remontees] = await Promise.all([
     prisma.ficheSSE.findMany({
-      where: {
-        ...filtreArchive(undefined),
-        ...(periode ? { dateHeure: periode } : {}),
-        statutFiche: filtreStatutFiche(etatEvenement),
-      },
+      where: { ...filtreArchive(undefined), ...whereEvenement },
       orderBy: { dateHeure: "asc" },
       select: {
         id: true,
@@ -280,11 +304,7 @@ export default async function ReunionPage({
       },
     }),
     prisma.remonteeInfo.findMany({
-      where: {
-        ...filtreArchive(undefined),
-        ...(periode ? { dateRemontee: periode } : {}),
-        statut: filtreStatutRemontee(etatRemontee),
-      },
+      where: { ...filtreArchive(undefined), ...whereRemontee },
       orderBy: { dateRemontee: "asc" },
       select: {
         id: true,
@@ -365,6 +385,19 @@ export default async function ReunionPage({
     !!params.du ||
     !!params.au;
 
+  const videEvenements =
+    etatEvenement === NON_CLOTURES
+      ? "Aucun évènement en cours."
+      : tout
+        ? "Aucun évènement."
+        : "Aucun évènement sur la période.";
+  const videRemontees =
+    etatRemontee === NON_CLOTURES
+      ? "Aucune remontée en cours."
+      : tout
+        ? "Aucune remontée."
+        : "Aucune remontée sur la période.";
+
   return (
     <div className="mx-auto max-w-[100rem] px-4 py-10 lg:px-8">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -430,15 +463,22 @@ export default async function ReunionPage({
         </div>
       </div>
 
-      {/* Les évènements, les remontées : ce qui s'est produit pendant la
-          période. Les écarts et leurs actions : ce qui reste ouvert, quelle que
-          soit la date — un écart de mars non soldé se represente en juillet. */}
+      {/* Par défaut, chaque section montre ce qui reste ouvert, quelle que soit
+          la date — un point de mars non soldé se represente en juillet. Les
+          évènements et remontées en « Tous les états » ou à un état précis
+          reviennent à ce qui s'est produit pendant la période. */}
       <Section
-        titre={tout ? "Évènements SSE" : "Évènements SSE de la période"}
+        titre={
+          etatEvenement === NON_CLOTURES
+            ? "Évènements SSE non clôturés"
+            : tout
+              ? "Évènements SSE"
+              : "Évènements SSE de la période"
+        }
         compte={evenements.length}
         bilan={bilan}
         lignes={lignesEvenements}
-        vide={tout ? "Aucun évènement." : "Aucun évènement sur la période."}
+        vide={videEvenements}
         filtre={
           <SelectAutoSubmit
             name="etatEvenement"
@@ -446,7 +486,10 @@ export default async function ReunionPage({
             defaultValue={etatEvenement}
             className={selectFiltre}
             options={optionsEtat(
-              [{ value: TOUS, label: "Tous les états" }],
+              [
+                { value: NON_CLOTURES, label: "Non clôturés" },
+                { value: TOUS, label: "Tous les états" },
+              ],
               Object.values(StatutFiche),
               STATUT_FICHE_LABELS,
             )}
@@ -485,7 +528,7 @@ export default async function ReunionPage({
               </tr>
             ))}
             {evenements.length === 0 && (
-              <Vide colonnes={6} texte={tout ? "Aucun évènement." : "Aucun évènement sur la période."} />
+              <Vide colonnes={6} texte={videEvenements} />
             )}
           </tbody>
         </table>
@@ -508,6 +551,7 @@ export default async function ReunionPage({
             className={selectFiltre}
             options={optionsEtat(
               [
+                { value: NON_CLOTURES, label: "Non clôturées" },
                 { value: ORDRE_DU_JOUR, label: "À l'ordre du jour" },
                 { value: TOUS, label: "Tous les états" },
               ],
@@ -684,11 +728,17 @@ export default async function ReunionPage({
       </Section>
 
       <Section
-        titre={tout ? "Remontées d'information" : "Remontées d'information de la période"}
+        titre={
+          etatRemontee === NON_CLOTURES
+            ? "Remontées d'information non clôturées"
+            : tout
+              ? "Remontées d'information"
+              : "Remontées d'information de la période"
+        }
         compte={remontees.length}
         bilan={bilan}
         lignes={lignesRemontees}
-        vide={tout ? "Aucune remontée." : "Aucune remontée sur la période."}
+        vide={videRemontees}
         filtre={
           <SelectAutoSubmit
             name="etatRemontee"
@@ -696,7 +746,10 @@ export default async function ReunionPage({
             defaultValue={etatRemontee}
             className={selectFiltre}
             options={optionsEtat(
-              [{ value: TOUS, label: "Tous les états" }],
+              [
+                { value: NON_CLOTURES, label: "Non clôturées" },
+                { value: TOUS, label: "Tous les états" },
+              ],
               Object.values(StatutRemontee),
               STATUT_REMONTEE_LABELS,
             )}
@@ -735,7 +788,7 @@ export default async function ReunionPage({
               </tr>
             ))}
             {remontees.length === 0 && (
-              <Vide colonnes={6} texte={tout ? "Aucune remontée." : "Aucune remontée sur la période."} />
+              <Vide colonnes={6} texte={videRemontees} />
             )}
           </tbody>
         </table>
