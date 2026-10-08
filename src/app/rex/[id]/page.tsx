@@ -12,7 +12,7 @@ import {
   TYPE_ACTION_LABELS,
   STATUT_ACTION_LABELS,
 } from "@/lib/labels";
-import { mettreAJourRex, changerStatutRex, publierRex, supprimerRex } from "@/app/rex/actions";
+import { mettreAJourRex, changerStatutRex, marquerRexDiffuse, publierRex, supprimerRex } from "@/app/rex/actions";
 import { StatutREX } from "@/generated/prisma/enums";
 import { archiver, desarchiver } from "@/app/archivage/actions";
 import { BadgeStatut, type TonStatut } from "@/components/badge-statut";
@@ -76,6 +76,8 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
 
   if (!rex) notFound();
 
+  // Jour courant à Paris, au format attendu par le champ date (le serveur tourne en UTC).
+  const aujourdhui = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
   const nbSources = rex.ecarts.length + rex.fichesSSE.length + rex.ecartsAmiante.length + rex.remontees.length;
   const lienAjout = buttonVariants({ variant: "outline", size: "sm" });
   const aDiffusion = rex.themes.length > 0 || rex.destinatairesRoles.length > 0 || rex.canaux.length > 0;
@@ -137,7 +139,38 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
             </p>
           </Carte>
         ) : (
-          <StatutParcours action={changerStatutRex} id={rex.id} etapes={ETAPES_STATUT} courant={rex.statut} />
+          <div className="space-y-3">
+            <StatutParcours action={changerStatutRex} id={rex.id} etapes={ETAPES_STATUT} courant={rex.statut} />
+            {rex.statut === "REDIGE" && (
+              <Carte data-no-print className="flex flex-wrap items-end gap-4 p-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">À diffuser</p>
+                  <p className="text-sm text-muted-foreground">
+                    {rex.dateDiffusionPlanifiee
+                      ? `Diffusion prévue le ${dateParis(rex.dateDiffusionPlanifiee)}. `
+                      : "Aucune date de diffusion prévue. "}
+                    Ce REX est publié mais pas encore diffusé : une fois la diffusion faite, marquez-le comme diffusé.
+                  </p>
+                </div>
+                <form action={marquerRexDiffuse} className="flex flex-wrap items-end gap-2">
+                  <input type="hidden" name="id" value={rex.id} />
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Diffusé le
+                    <input
+                      type="date"
+                      name="date"
+                      defaultValue={aujourdhui}
+                      max={aujourdhui}
+                      className="mt-1 block rounded-lg border border-input bg-transparent px-2.5 py-1.5 text-sm text-foreground"
+                    />
+                  </label>
+                  <button type="submit" className={buttonVariants({ size: "lg" })}>
+                    <SendIcon /> Marquer comme diffusé
+                  </button>
+                </form>
+              </Carte>
+            )}
+          </div>
         )}
       </div>
 
@@ -289,10 +322,10 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
               {(rex.sousTypeSSE || rex.origine === "EVENEMENT_SSE") && (
                 <Propriete label="Sous-type SSE">{rex.sousTypeSSE || "—"}</Propriete>
               )}
-              {!rex.dateDiffusion && rex.dateDiffusionPlanifiee && (
-                <Propriete label="Diffusion planifiée">{rex.dateDiffusionPlanifiee.toLocaleDateString("fr-FR")}</Propriete>
+              {rex.statut === "REDIGE" && rex.dateDiffusionPlanifiee && (
+                <Propriete label="Diffusion prévue">{rex.dateDiffusionPlanifiee.toLocaleDateString("fr-FR")}</Propriete>
               )}
-              {rex.dateDiffusion && (
+              {rex.statut !== "REDIGE" && rex.dateDiffusion && (
                 <Propriete label="Diffusé le">{rex.dateDiffusion.toLocaleDateString("fr-FR")}</Propriete>
               )}
               {rex.dateVerificationEfficacite && (

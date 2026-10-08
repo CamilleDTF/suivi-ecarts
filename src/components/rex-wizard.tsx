@@ -27,6 +27,7 @@ import {
   THEMES_REX_OPTIONS,
   DESTINATAIRES_ROLES_REX_OPTIONS,
   CANAUX_DIFFUSION_REX_OPTIONS,
+  avecValeursExistantes,
   POINTS_COMMUNS_REX_OPTIONS,
   SOUS_TYPE_SSE_REX_OPTIONS,
   RESPONSABLES,
@@ -171,6 +172,9 @@ export function RexWizard({
   const [themes, setThemes] = useState<string[]>(depart?.themes ?? []);
   const [destinatairesRoles, setDestinatairesRoles] = useState<string[]>([]);
   const [canaux, setCanaux] = useState<string[]>([]);
+  // Un destinataire ou un canal absent des listes : saisi à la main, il rejoint la sélection.
+  const [autreDestinataire, setAutreDestinataire] = useState("");
+  const [autreCanal, setAutreCanal] = useState("");
   const [modalite, setModalite] = useState<ModaliteDiffusion>("immediate");
   const [dateDiffusionPlanifiee, setDateDiffusionPlanifiee] = useState("");
   const [actionResponsable, setActionResponsable] = useState("");
@@ -302,6 +306,16 @@ export function RexWizard({
     setNouvelleActionResponsable("");
     setNouvelleActionEcheance("");
     setNouvelleActionRefDoc("");
+  }
+  function ajouterPersonnalise(
+    valeur: string,
+    liste: string[],
+    changerListe: (l: string[]) => void,
+    vider: () => void,
+  ) {
+    const propre = valeur.trim();
+    if (propre && !liste.includes(propre)) changerListe([...liste, propre]);
+    vider();
   }
   function retirerActionPreventive(index: number) {
     setActionsPreventives(actionsPreventives.filter((_, i) => i !== index));
@@ -961,7 +975,7 @@ export function RexWizard({
               <fieldset>
                 <legend className="mb-2 text-sm font-medium text-foreground">Qui doit recevoir ce REX ? *</legend>
                 <div className="flex flex-col gap-2">
-                  {DESTINATAIRES_ROLES_REX_OPTIONS.map((d) => (
+                  {avecValeursExistantes(DESTINATAIRES_ROLES_REX_OPTIONS, destinatairesRoles).map((d) => (
                     <CaseACocher
                       key={d}
                       label={d}
@@ -970,11 +984,32 @@ export function RexWizard({
                     />
                   ))}
                 </div>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    value={autreDestinataire}
+                    onChange={(e) => setAutreDestinataire(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter") return;
+                      e.preventDefault();
+                      ajouterPersonnalise(autreDestinataire, destinatairesRoles, setDestinatairesRoles, () => setAutreDestinataire(""));
+                    }}
+                    placeholder="Autre destinataire…"
+                    className={inputCls}
+                  />
+                  <button
+                    type="button"
+                    disabled={!autreDestinataire.trim()}
+                    onClick={() => ajouterPersonnalise(autreDestinataire, destinatairesRoles, setDestinatairesRoles, () => setAutreDestinataire(""))}
+                    className={buttonVariants({ variant: "outline" })}
+                  >
+                    Ajouter
+                  </button>
+                </div>
               </fieldset>
               <fieldset>
                 <legend className="mb-2 text-sm font-medium text-foreground">Canaux de diffusion *</legend>
                 <div className="flex flex-col gap-2">
-                  {CANAUX_DIFFUSION_REX_OPTIONS.map((c) => (
+                  {avecValeursExistantes(CANAUX_DIFFUSION_REX_OPTIONS, canaux).map((c) => (
                     <CaseACocher
                       key={c}
                       label={c}
@@ -983,24 +1018,45 @@ export function RexWizard({
                     />
                   ))}
                 </div>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    value={autreCanal}
+                    onChange={(e) => setAutreCanal(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter") return;
+                      e.preventDefault();
+                      ajouterPersonnalise(autreCanal, canaux, setCanaux, () => setAutreCanal(""));
+                    }}
+                    placeholder="Autre canal…"
+                    className={inputCls}
+                  />
+                  <button
+                    type="button"
+                    disabled={!autreCanal.trim()}
+                    onClick={() => ajouterPersonnalise(autreCanal, canaux, setCanaux, () => setAutreCanal(""))}
+                    className={buttonVariants({ variant: "outline" })}
+                  >
+                    Ajouter
+                  </button>
+                </div>
               </fieldset>
             </div>
 
             <fieldset>
-              <legend className="mb-2 text-sm font-medium text-foreground">Modalités de diffusion</legend>
+              <legend className="mb-2 text-sm font-medium text-foreground">Quand diffuser ?</legend>
               <div className={`grid grid-cols-1 gap-3 ${natureRequiertAction ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
                 <ModaliteCard
                   actif={modalite === "immediate"}
                   icone={<IconSend className="h-4 w-4" />}
-                  titre="Diffusion immédiate"
-                  description="Le REX sera diffusé dès validation."
+                  titre="À diffuser dès validation"
+                  description="Le REX est publié, prêt à être diffusé. Vous le marquerez « Diffusé » une fois la diffusion faite."
                   onClick={() => setModalite("immediate")}
                 />
                 <ModaliteCard
                   actif={modalite === "planifiee"}
                   icone={<IconClock className="h-4 w-4" />}
-                  titre="Planifier plus tard"
-                  description="Choisissez une date de diffusion."
+                  titre="Planifier la diffusion"
+                  description="Choisissez la date prévue."
                   onClick={() => setModalite("planifiee")}
                 />
                 {/* Redondant quand la nature exige déjà une action préventive
@@ -1120,10 +1176,10 @@ export function RexWizard({
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
-                {modalite === "immediate" && "Diffusion immédiate à l'enregistrement."}
+                {modalite === "immediate" && "À diffuser dès validation."}
                 {modalite === "planifiee" &&
                   (dateDiffusionPlanifiee
-                    ? `Diffusion planifiée le ${new Date(dateDiffusionPlanifiee).toLocaleDateString("fr-FR")}.`
+                    ? `Diffusion prévue le ${new Date(dateDiffusionPlanifiee).toLocaleDateString("fr-FR")}.`
                     : "Diffusion planifiée.")}
                 {modalite === "action" && `Diffusion liée à une action associée${actionResponsable ? ` (${actionResponsable})` : ""}.`}
               </p>

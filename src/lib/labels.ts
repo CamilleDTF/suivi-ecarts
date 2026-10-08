@@ -380,6 +380,14 @@ export const DESTINATAIRES_ROLES_REX_OPTIONS = [
   "Tout le personnel",
   "QHSE",
   "Personnel concerné uniquement",
+  "Direction",
+  "Chefs d'équipe",
+  "Opérateurs / compagnons",
+  "Intérimaires et nouveaux arrivants",
+  "Sous-traitants",
+  "Bureau d'études / méthodes",
+  "Logistique / magasin",
+  "Client / maître d'ouvrage",
 ];
 
 export const CANAUX_DIFFUSION_REX_OPTIONS = [
@@ -389,4 +397,10 @@ export const CANAUX_DIFFUSION_REX_OPTIONS = [
   "Reporting interne (WhatsApp)",
   "Mise à jour documentaire",
   "Formation / accueil",
+  "Réunion de chantier",
+  "Réunion QHSE",
+  "Mail",
+  "Note de service",
+  "Livret d'accueil",
+  "Intranet / newsletter",
 ];

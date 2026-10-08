@@ -139,10 +139,9 @@ export async function creerRex(input: RexWizardInput) {
   const origine = deduireOrigine(parsed);
   const reference = await generateReference("Rex", "REX");
 
-  // Brouillon : on enregistre l'intention (date planifiée éventuelle) mais on
-  // n'applique aucun effet de diffusion tant que le REX n'est pas publié.
-  const maintenant = new Date();
-  const diffusionImmediate = parsed.publier && parsed.modaliteDiffusion === "immediate";
+  // Publier un REX n'est pas le diffuser : il reste « Rédigé » tant que personne ne l'a marqué
+  // « Diffusé » après l'avoir réellement diffusé (cf. marquerRexDiffuse). La date prévue, elle,
+  // s'enregistre dès la publication ; un brouillon n'en garde aucune.
 
   const rex = await prisma.rex.create({
     data: {
@@ -161,8 +160,6 @@ export async function creerRex(input: RexWizardInput) {
       canaux: parsed.canaux,
       noteInterne: parsed.noteInterne,
       brouillon: !parsed.publier,
-      statut: diffusionImmediate ? "DIFFUSE" : "REDIGE",
-      dateDiffusion: diffusionImmediate ? maintenant : undefined,
       dateDiffusionPlanifiee:
         parsed.publier && parsed.modaliteDiffusion === "planifiee" && parsed.dateDiffusionPlanifiee
           ? new Date(parsed.dateDiffusionPlanifiee)
@@ -302,24 +299,39 @@ export async function changerStatutRex(formData: FormData) {
   revalidatePath("/rex");
 }
 
-// Publication d'un brouillon : diffusion immédiate par défaut, comme le
-// bouton "Enregistrer et publier" du parcours de création.
+// Publication d'un brouillon : il sort des brouillons et compte dans les indicateurs, mais reste
+// « Rédigé » — publier n'est pas diffuser.
 export async function publierRex(formData: FormData) {
   const session = await auth();
   if (!session?.user) redirect("/connexion");
 
   const id = String(formData.get("id"));
-  const actuel = await prisma.rex.findUniqueOrThrow({ where: { id }, select: { dateDiffusion: true } });
-
   await prisma.rex.update({
     where: { id },
-    data: {
-      brouillon: false,
-      statut: "DIFFUSE",
-      dateDiffusion: actuel.dateDiffusion ?? new Date(),
-      modifiePar: nomAuteur(session),
-      modifieLe: new Date(),
-    },
+    data: { brouillon: false, modifiePar: nomAuteur(session), modifieLe: new Date() },
+  });
+
+  revalidatePath(`/rex/${id}`);
+  revalidatePath("/rex");
+  revalidatePath("/synthese");
+}
+
+// La diffusion a eu lieu : le REX passe « Diffusé », à la date où elle s'est faite (aujourd'hui par
+// défaut, jamais dans le futur).
+export async function marquerRexDiffuse(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) redirect("/connexion");
+
+  const id = String(formData.get("id"));
+  const brut = String(formData.get("date") ?? "");
+  // Midi : un décalage de fuseau ne doit pas faire changer le jour affiché.
+  const saisie = brut ? new Date(`${brut}T12:00:00`) : null;
+  const date = saisie && !Number.isNaN(saisie.getTime()) && saisie.getTime() <= Date.now() ? saisie : new Date();
+
+  // Seulement depuis « Rédigé » : un double clic ne doit pas ramener un REX déjà vérifié en arrière.
+  await prisma.rex.updateMany({
+    where: { id, statut: "REDIGE" },
+    data: { statut: "DIFFUSE", brouillon: false, dateDiffusion: date, modifiePar: nomAuteur(session), modifieLe: new Date() },
   });
 
   revalidatePath(`/rex/${id}`);
