@@ -32,7 +32,6 @@ function parseFiche(formData: FormData) {
     personnesImpliquees: str(formData.get("personnesImpliquees")),
     temoins: str(formData.get("temoins")),
     descriptionFactuelle: str(formData.get("descriptionFactuelle")),
-    mesuresImmediatesPrises: str(formData.get("mesuresImmediatesPrises")),
     gravite: str(formData.get("gravite")),
     frequence: str(formData.get("frequence")),
     criticite: str(formData.get("criticite")),

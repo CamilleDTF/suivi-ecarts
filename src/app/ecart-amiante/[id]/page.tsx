@@ -36,7 +36,7 @@ const TON_STATUT: Record<string, TonStatut> = {
   EN_COURS: "bleu",
   CLOTURE: "vert",
 };
-const TON_FICHE: Record<string, TonStatut> = { BROUILLON: "neutre", EN_COURS: "bleu", FINALISEE: "vert" };
+const TON_FICHE: Record<string, TonStatut> = { EN_COURS: "bleu", FINALISEE: "vert" };
 const TON_ACTION: Record<string, TonStatut> = {
   A_FAIRE: "neutre",
   EN_COURS: "bleu",

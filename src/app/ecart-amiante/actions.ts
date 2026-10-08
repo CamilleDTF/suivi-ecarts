@@ -125,7 +125,7 @@ export async function creerFicheSSEDepuisAmiante(formData: FormData) {
     data: {
       reference,
       ecartAmianteId,
-      statutFiche: "BROUILLON",
+      statutFiche: "EN_COURS",
       nomChantier: ecartAmiante.nomChantier,
       lieuZone: ecartAmiante.zone,
       personnesImpliquees: ecartAmiante.personneConcernee,

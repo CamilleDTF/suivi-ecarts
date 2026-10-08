@@ -67,7 +67,6 @@ enum TypeActivite {
 }
 
 enum StatutFiche {
-  BROUILLON
   EN_COURS
   FINALISEE
 }
@@ -242,7 +241,7 @@ model FicheSSE {
   ecartAmianteId               String?
   typeEvenement                String?
   numeroInterne                String?
-  statutFiche                  StatutFiche    @default(BROUILLON)
+  statutFiche                  StatutFiche    @default(EN_COURS)
   emetteur                     String?
   nomChantier                  String?
   dateHeure                    DateTime?

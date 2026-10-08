@@ -273,7 +273,6 @@ export default async function RapportDossierPage({
                     </div>
                     <dl className="grid gap-3">
                       <Champ libelle="Description factuelle">{f.descriptionFactuelle}</Champ>
-                      <Champ libelle="Mesures immédiates">{f.mesuresImmediatesPrises}</Champ>
                       <Champ libelle="Criticité">
                         {f.criticite
                           ? `${f.criticite} (G${f.gravite ?? "—"} × F${f.frequence ?? "—"})`

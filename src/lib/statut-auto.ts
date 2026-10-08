@@ -59,18 +59,18 @@ export async function recalculerStatutEcartAmiante(ecartAmianteId: string) {
   revalidatePath("/ecart-amiante");
 }
 
-// Le brouillon reste une étape manuelle (bouton "Finaliser l'évènement") ;
-// une fois la fiche sortie du brouillon, son statut suit ensuite ses actions.
+// Un évènement naît "En cours" ; son statut suit ensuite ses actions. Sans
+// action rattachée, rien ne le fait changer : il se clôture à la main avec le
+// bouton "Finaliser l'évènement".
 export async function recalculerStatutFicheSSE(ficheSSEId: string) {
   const fiche = await prisma.ficheSSE.findUnique({
     where: { id: ficheSSEId },
     select: { statutFiche: true, ecartId: true },
   });
-  if (!fiche || fiche.statutFiche === "BROUILLON") return;
+  if (!fiche) return;
 
-  // Sans action rattachée, plus rien ne bloque : la fiche retrouve l'état
-  // "Finalisée" voulu par l'utilisateur quand il a cliqué sur "Finaliser".
   const actions = await prisma.action.findMany({ where: { ficheSSEId }, select: { statut: true } });
+  if (actions.length === 0) return;
 
   const nouveauStatut: StatutFiche = aUneActionOuverte(actions) ? "EN_COURS" : "FINALISEE";
   if (fiche.statutFiche === nouveauStatut) return;

@@ -1,4 +1,4 @@
-// Script ponctuel : recalcule le statut de chaque Fiche SSE non-brouillon en
+// Script ponctuel : recalcule le statut de chaque Fiche SSE en
 // fonction de ses actions rattachées (repasse "Finalisée" -> "En cours" si au
 // moins une action n'est pas terminée). À exécuter une fois après déploiement
 // avec : npx tsx prisma/recheck-statuts-fiches.ts
@@ -13,7 +13,6 @@ const STATUTS_ACTION_OUVERTS = ["A_FAIRE", "EN_COURS", "EN_RETARD"];
 
 async function main() {
   const fiches = await prisma.ficheSSE.findMany({
-    where: { statutFiche: { not: "BROUILLON" } },
     select: { id: true, reference: true, statutFiche: true },
   });
 

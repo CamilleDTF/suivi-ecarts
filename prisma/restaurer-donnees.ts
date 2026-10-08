@@ -53,7 +53,13 @@ async function main() {
   await prisma.dossier.createMany({ data: d.dossiers });
   await prisma.ecart.createMany({ data: d.ecarts });
   await prisma.ecartAmiante.createMany({ data: d.ecartsAmiante });
-  await prisma.ficheSSE.createMany({ data: d.fichesSSE });
+  // Une sauvegarde antérieure peut encore contenir des évènements "Brouillon",
+  // statut qui n'existe plus : ils reviennent "En cours".
+  await prisma.ficheSSE.createMany({
+    data: d.fichesSSE.map((f: { statutFiche: string }) =>
+      f.statutFiche === "BROUILLON" ? { ...f, statutFiche: "EN_COURS" } : f,
+    ),
+  });
   await prisma.remonteeInfo.createMany({ data: d.remontees });
   await prisma.action.createMany({ data: d.actions });
   await prisma.referenceCounter.createMany({ data: d.compteurs });

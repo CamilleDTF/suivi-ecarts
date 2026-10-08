@@ -33,7 +33,6 @@ const COLONNES_TRI = {
 const COLONNES_NULLABLES = ["date", "type", "chantier", "emetteur"];
 
 const TON_STATUT: Record<string, TonStatut> = {
-  BROUILLON: "neutre",
   EN_COURS: "bleu",
   FINALISEE: "vert",
 };
@@ -93,7 +92,6 @@ export default async function FichesSSEPage({
           { personnesImpliquees: contient },
           { temoins: contient },
           { descriptionFactuelle: contient },
-          { mesuresImmediatesPrises: contient },
           { typeAnalyse: contient },
           { criticite: contient },
           { declarationExterneA: contient },

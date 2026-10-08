@@ -24,7 +24,6 @@ export default async function NouvelleFicheSSEPage({
           domaines: true,
           theme: true,
           description: true,
-          mesureImmediate: true,
           dossier: { select: { chantier: true } },
         },
       })
@@ -56,7 +55,7 @@ export default async function NouvelleFicheSSEPage({
         {ecartId && <input type="hidden" name="ecartId" value={ecartId} />}
 
         {/* Un évènement rattaché à un écart décrit le même fait : il reprend la
-            description, la mesure immédiate, les domaines, les thèmes et la
+            description, les domaines, les thèmes et la
             cotation de l'écart. Tout reste modifiable avant enregistrement. */}
         <FicheSSEFields
           v={{
@@ -64,7 +63,6 @@ export default async function NouvelleFicheSSEPage({
             domaine: ecart?.domaines,
             theme: ecart?.theme,
             descriptionFactuelle: ecart?.description,
-            mesuresImmediatesPrises: ecart?.mesureImmediate,
             gravite: ecart?.gravite,
             frequence: ecart?.frequence,
             criticite: criticiteHeritee || undefined,
@@ -75,12 +73,8 @@ export default async function NouvelleFicheSSEPage({
           nouveau
         />
 
-        <p className="text-xs text-muted-foreground">
-          L&apos;évènement est créé en brouillon. Tu pourras le finaliser depuis sa page de détail.
-        </p>
-
         <div className="flex justify-end gap-3 pt-2">
-          <BoutonCreer>Enregistrer le brouillon</BoutonCreer>
+          <BoutonCreer>Enregistrer l&apos;évènement</BoutonCreer>
         </div>
       </form>
     </ConteneurPage>

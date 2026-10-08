@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { aUneActionOuverte } from "@/lib/statut-auto";
 import {
   STATUT_FICHE_LABELS,
   TYPE_ACTION_LABELS,
@@ -34,7 +35,7 @@ import { ParcoursTraitement, type EtapeParcours } from "@/components/parcours-tr
 import { buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
-const TON_FICHE: Record<string, TonStatut> = { BROUILLON: "neutre", EN_COURS: "bleu", FINALISEE: "vert" };
+const TON_FICHE: Record<string, TonStatut> = { EN_COURS: "bleu", FINALISEE: "vert" };
 const TON_CRITICITE: Record<string, TonStatut> = { Faible: "vert", Moyenne: "ambre", Élevée: "rouge" };
 const TON_ACTION: Record<string, TonStatut> = {
   A_FAIRE: "neutre",
@@ -84,7 +85,6 @@ export default async function FicheSSEDetailPage({
   });
 
   if (!fiche) notFound();
-  const estBrouillon = fiche.statutFiche === "BROUILLON";
 
   const rattachements: {
     ficheSSEId?: string;
@@ -139,8 +139,10 @@ export default async function FicheSSEDetailPage({
   const titre = fiche.typeEvenement?.trim() || "Évènement SSE sans type";
   const sousTitre = [fiche.nomChantier?.trim(), fiche.dateHeure && dateHeure(fiche.dateHeure)].filter(Boolean).join(" · ");
 
-  const aMesure = !!fiche.mesuresImmediatesPrises?.trim();
   const aTypeAnalyse = !!fiche.typeAnalyse?.trim();
+  // Tant qu'aucune action de l'évènement n'est ouverte, il peut être clôturé à la main.
+  const peutFinaliser =
+    fiche.statutFiche === "EN_COURS" && !aUneActionOuverte(actions.filter((a) => a.ficheSSEId === ficheId));
   const actionsSoldees = actions.filter((a) => a.statut === "REALISEE" || a.statut === "ANNULEE").length;
   const parcours: EtapeParcours[] = [
     {
@@ -148,7 +150,6 @@ export default async function FicheSSEDetailPage({
       legende: `${fiche.dateHeure ? jour(fiche.dateHeure) : "Date non saisie"}${fiche.emetteur ? ` · ${fiche.emetteur}` : ""}`,
       fait: true,
     },
-    { label: "Mesures immédiates", legende: aMesure ? "Renseignées" : "À renseigner", fait: aMesure },
     {
       label: "Analyse des causes",
       legende: fiche.causes.length > 0 ? `${fiche.causes.length} cause${fiche.causes.length > 1 ? "s" : ""}` : (fiche.typeAnalyse?.trim() || "À analyser"),
@@ -161,7 +162,7 @@ export default async function FicheSSEDetailPage({
     },
     {
       label: "Clôture",
-      legende: fiche.statutFiche === "FINALISEE" ? "Finalisé" : fiche.statutFiche === "EN_COURS" ? "Actions en cours" : "Brouillon",
+      legende: fiche.statutFiche === "FINALISEE" ? "Finalisé" : "En cours",
       fait: fiche.statutFiche === "FINALISEE",
     },
   ];
@@ -269,11 +270,11 @@ export default async function FicheSSEDetailPage({
           <BoutonModifier />
           <Link
             href={`/plan-action/nouveau?ficheSSEId=${fiche.id}`}
-            className={buttonVariants({ variant: estBrouillon ? "outline" : "default", size: "lg" })}
+            className={buttonVariants({ variant: peutFinaliser ? "outline" : "default", size: "lg" })}
           >
             <PlusIcon /> Action
           </Link>
-          {estBrouillon && (
+          {peutFinaliser && (
             <form action={finaliserFicheSSE}>
               <input type="hidden" name="id" value={fiche.id} />
               <button type="submit" className={buttonVariants({ size: "lg" })}>
@@ -290,11 +291,7 @@ export default async function FicheSSEDetailPage({
 
       <ZoneEdition
         titre={`Modifier ${fiche.reference}`}
-        description={
-          estBrouillon
-            ? "L'évènement reste en brouillon tant qu'il n'est pas finalisé."
-            : "Les changements sont enregistrés pour tous."
-        }
+        description="Les changements sont enregistrés pour tous."
         action={mettreAJourFicheSSE}
         hiddenFields={{ id: fiche.id }}
       >
@@ -333,13 +330,7 @@ export default async function FicheSSEDetailPage({
             </Carte>
           </FicheSection>
 
-          <FicheSection titre="2. Mesures immédiates">
-            <Carte className="p-5">
-              <TexteLong label="Mesures prises" valeur={fiche.mesuresImmediatesPrises} />
-            </Carte>
-          </FicheSection>
-
-          <FicheSection titre="3. Évaluation du risque">
+          <FicheSection titre="2. Évaluation du risque">
             <Carte className="grid sm:grid-cols-[minmax(0,1fr)_16rem]">
               <Proprietes>
                 <Propriete label="Type d'évènement">{fiche.typeEvenement || "—"}</Propriete>
@@ -355,7 +346,7 @@ export default async function FicheSSEDetailPage({
             </Carte>
           </FicheSection>
 
-          <FicheSection titre="4. Communication (déclaration externe)">
+          <FicheSection titre="3. Communication (déclaration externe)">
             <Carte>
               <Proprietes>
                 <Propriete label="Déclaration externe nécessaire">{ouiNon(fiche.declarationExterneNecessaire)}</Propriete>
@@ -365,7 +356,7 @@ export default async function FicheSSEDetailPage({
             </Carte>
           </FicheSection>
 
-          <FicheSection titre="5. Type d'analyse des causes">
+          <FicheSection titre="4. Type d'analyse des causes">
             <Carte className="divide-y">
               <Proprietes>
                 <Propriete label="Type d'analyse">{fiche.typeAnalyse || "—"}</Propriete>
@@ -410,7 +401,7 @@ export default async function FicheSSEDetailPage({
             </Carte>
           </FicheSection>
 
-          <FicheSection titre="8. Validation & clôture">
+          <FicheSection titre="7. Validation & clôture">
             <Carte>
               <Proprietes>
                 <Propriete label="Nom (validation)">{fiche.validationNom || "—"}</Propriete>

@@ -43,7 +43,6 @@ type FicheSSEValues = {
   personnesImpliquees?: string | null;
   temoins?: string | null;
   descriptionFactuelle?: string | null;
-  mesuresImmediatesPrises?: string | null;
   gravite?: string | null;
   frequence?: string | null;
   criticite?: string | null;
@@ -241,17 +240,7 @@ export function FicheSSEFields({
       </div>
 
       <div>
-        <h2 className={titreSectionCls}>2. Mesures immédiates</h2>
-        <textarea
-          name="mesuresImmediatesPrises"
-          rows={2}
-          defaultValue={v.mesuresImmediatesPrises ?? ""}
-          className={inputCls}
-        />
-      </div>
-
-      <div>
-        <h2 className={titreSectionCls}>3. Évaluation du risque</h2>
+        <h2 className={titreSectionCls}>2. Évaluation du risque</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Type d&apos;événement</label>
@@ -288,7 +277,7 @@ export function FicheSSEFields({
       </div>
 
       <div>
-        <h2 className={titreSectionCls}>4. Communication (déclaration externe)</h2>
+        <h2 className={titreSectionCls}>3. Communication (déclaration externe)</h2>
         <label className="mb-3 flex items-center gap-2 text-sm">
           <input
             type="checkbox"
@@ -310,7 +299,7 @@ export function FicheSSEFields({
       </div>
 
       <div>
-        <h2 className={titreSectionCls}>5. Type d&apos;analyse des causes</h2>
+        <h2 className={titreSectionCls}>4. Type d&apos;analyse des causes</h2>
         <select
           name="typeAnalyse"
           defaultValue={v.typeAnalyse ?? ""}
@@ -416,7 +405,7 @@ export function FicheSSEFields({
       </div>
 
       <div>
-        <h2 className={titreSectionCls}>8. Validation &amp; clôture</h2>
+        <h2 className={titreSectionCls}>7. Validation &amp; clôture</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Nom (validation)</label>
