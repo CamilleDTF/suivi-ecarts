@@ -379,6 +379,8 @@ export const DESTINATAIRES_ROLES_REX_OPTIONS = [
   "Tout le personnel",
   "QHSE",
   "Direction",
+  "Opérateurs",
+  "Nouveaux arrivants",
   "Sous-traitants",
   "Logistique / magasin",
   "Client / maître d'ouvrage",
