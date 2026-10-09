@@ -11,6 +11,7 @@ import {
   STATUT_FICHE_LABELS,
   TYPE_ACTION_LABELS,
   STATUT_ACTION_LABELS,
+  STATUT_REX_LABELS,
 } from "@/lib/labels";
 import {
   mettreAJourReclamation,
@@ -87,6 +88,10 @@ export default async function ReclamationDetailPage({ params }: { params: Promis
           realiseeLe: true,
         },
       },
+      rex: {
+        orderBy: { createdAt: "desc" },
+        select: { id: true, reference: true, titre: true, statut: true, createdAt: true },
+      },
     },
   });
 
@@ -157,6 +162,14 @@ export default async function ReclamationDetailPage({ params }: { params: Promis
     ...(reclamation.dateReponse
       ? [{ date: reclamation.dateReponse, titre: "Réponse apportée", rang: 5, ton: "violet" as const }]
       : []),
+    ...reclamation.rex.map<EvenementChrono>((r) => ({
+      date: r.createdAt,
+      titre: `${r.reference} créé`,
+      detail: r.titre,
+      href: `/rex/${r.id}`,
+      rang: 5,
+      ton: "violet",
+    })),
     ...(reclamation.modifieLe
       ? [
           {
@@ -378,6 +391,38 @@ export default async function ReclamationDetailPage({ params }: { params: Promis
                       </TableBody>
                     </Table>
                   </Carte>
+                )}
+              </FicheSection>
+
+              <FicheSection
+                titre="Retour d’expérience"
+                compteur={reclamation.rex.length}
+                action={
+                  reclamation.rex.length === 0 ? (
+                    <Link href={`/rex/nouveau?reclamationId=${reclamation.id}`} className={lienAjout} data-no-print>
+                      <PlusIcon /> REX
+                    </Link>
+                  ) : undefined
+                }
+              >
+                {reclamation.rex.length === 0 ? (
+                  <EtatVide>Aucun REX pour cette réclamation.</EtatVide>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {reclamation.rex.map((r) => (
+                      <Link
+                        key={r.id}
+                        href={`/rex/${r.id}`}
+                        className="rounded-xl border bg-card p-4 transition-colors hover:bg-muted/50"
+                      >
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <span className="text-sm font-medium">{r.reference}</span>
+                          <BadgeStatut label={STATUT_REX_LABELS[r.statut]} ton="violet" />
+                        </div>
+                        <p className="text-sm text-muted-foreground">{r.titre}</p>
+                      </Link>
+                    ))}
+                  </div>
                 )}
               </FicheSection>
 

@@ -102,6 +102,7 @@ enum OrigineREX {
   EVENEMENT_SSE
   ECART_AMIANTE
   ECART_TERRAIN
+  RECLAMATION
   // REX spontané ou bonne pratique : aucun écart, évènement ou remontée
   // source, capitalisé hors de toute non-conformité constatée.
   SPONTANE
@@ -436,6 +437,7 @@ model Reclamation {
   points            ReclamationPoint[]
   actions           Action[]
   fichesSSE         FicheSSE[]
+  rex               Rex[]
 }
 
 // Un point soulevé par la réclamation, évalué à part : un manquement de
@@ -505,6 +507,7 @@ model Rex {
   fichesSSE                  FicheSSE[]
   ecartsAmiante              EcartAmiante[]
   remontees                  RemonteeInfo[]
+  reclamations               Reclamation[]
   // Les actions préventives du REX sont des actions du plan d'action.
   actions                    Action[]
   // Fiche de diffusion apportée par l'utilisateur (document externe), à la place ou en

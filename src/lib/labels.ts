@@ -289,6 +289,7 @@ export const ORIGINE_REX_LABELS: Record<string, string> = {
   EVENEMENT_SSE: "Évènement SSE",
   ECART_AMIANTE: "Écart amiante",
   ECART_TERRAIN: "Écart terrain",
+  RECLAMATION: "Réclamation",
   SPONTANE: "REX spontané / bonne pratique",
   PLUSIEURS_SOURCES: "Plusieurs sources",
 };

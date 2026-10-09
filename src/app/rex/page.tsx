@@ -68,6 +68,7 @@ export default async function RexPage({
         fichesSSE: { select: { id: true, reference: true } },
         ecartsAmiante: { select: { id: true, reference: true } },
         remontees: { select: { id: true, reference: true } },
+        reclamations: { select: { id: true, reference: true } },
       },
       skip: (page - 1) * taillePage,
       take: taillePage,
@@ -217,6 +218,7 @@ export default async function RexPage({
                       ...r.fichesSSE.map((e) => ({ id: e.id, reference: e.reference, href: `/fiches-sse/${e.id}` })),
                       ...r.ecartsAmiante.map((e) => ({ id: e.id, reference: e.reference, href: `/ecart-amiante/${e.id}` })),
                       ...r.remontees.map((e) => ({ id: e.id, reference: e.reference, href: `/remontees/${e.id}` })),
+                      ...r.reclamations.map((e) => ({ id: e.id, reference: e.reference, href: `/reclamations/${e.id}` })),
                     ];
                     if (sources.length === 0) return <span className="text-muted-foreground">—</span>;
                     const visibles = sources.slice(0, 4);

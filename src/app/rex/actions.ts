@@ -13,12 +13,19 @@ import { NATURES_REX_REQUERANT_ACTION, NATURES_REX_REQUERANT_DESCRIPTION } from 
 import { FORMATS_FICHE_EXTERNE, TAILLE_MAX_FICHE_EXTERNE, formaterTaille, lireDataUrl } from "@/lib/fiche-externe";
 
 // Parcours de création du REX : trois façons d'y arriver, qui ne demandent
-// pas les mêmes champs. "unique" rattache un seul élément, de l'un des quatre
+// pas les mêmes champs. "unique" rattache un seul élément, de l'un des cinq
 // types ; "recurrents" en rattache plusieurs, de types mêlés (écarts, évènements
-// SSE, écarts amiante, remontées) ; "spontane" ne rattache rien du tout
+// SSE, écarts amiante, remontées, réclamations) ; "spontane" ne rattache rien du tout
 // (origine SPONTANE).
-type Sources = { ecartIds: string[]; ficheSSEIds: string[]; ecartAmianteIds: string[]; remonteeIds: string[] };
-const nbSources = (v: Sources) => v.ecartIds.length + v.ficheSSEIds.length + v.ecartAmianteIds.length + v.remonteeIds.length;
+type Sources = {
+  ecartIds: string[];
+  ficheSSEIds: string[];
+  ecartAmianteIds: string[];
+  remonteeIds: string[];
+  reclamationIds: string[];
+};
+const nbSources = (v: Sources) =>
+  v.ecartIds.length + v.ficheSSEIds.length + v.ecartAmianteIds.length + v.remonteeIds.length + v.reclamationIds.length;
 
 const rexWizardSchema = z
   .object({
@@ -27,6 +34,7 @@ const rexWizardSchema = z
     ficheSSEIds: z.array(z.string()).default([]),
     ecartAmianteIds: z.array(z.string()).default([]),
     remonteeIds: z.array(z.string()).default([]),
+    reclamationIds: z.array(z.string()).default([]),
 
     titre: z.string().min(1, "Titre requis"),
     sousTypeSSE: z.string().optional(),
@@ -118,6 +126,7 @@ function deduireOrigine(v: Sources & { mode: string }): OrigineREX {
     ...(v.ficheSSEIds.length > 0 ? (["EVENEMENT_SSE"] as const) : []),
     ...(v.ecartAmianteIds.length > 0 ? (["ECART_AMIANTE"] as const) : []),
     ...(v.remonteeIds.length > 0 ? (["REMONTEE"] as const) : []),
+    ...(v.reclamationIds.length > 0 ? (["RECLAMATION"] as const) : []),
   ];
   return types.length === 1 ? types[0] : "PLUSIEURS_SOURCES";
 }
@@ -128,6 +137,7 @@ function cheminsParents(p: Sources) {
     ...p.ficheSSEIds.map((id) => `/fiches-sse/${id}`),
     ...p.ecartAmianteIds.map((id) => `/ecart-amiante/${id}`),
     ...p.remonteeIds.map((id) => `/remontees/${id}`),
+    ...p.reclamationIds.map((id) => `/reclamations/${id}`),
   ];
 }
 
@@ -168,6 +178,7 @@ export async function creerRex(input: RexWizardInput) {
       fichesSSE: { connect: parsed.ficheSSEIds.map((id) => ({ id })) },
       ecartsAmiante: { connect: parsed.ecartAmianteIds.map((id) => ({ id })) },
       remontees: { connect: parsed.remonteeIds.map((id) => ({ id })) },
+      reclamations: { connect: parsed.reclamationIds.map((id) => ({ id })) },
     },
   });
 
@@ -351,6 +362,7 @@ export async function supprimerRex(formData: FormData) {
       fichesSSE: { select: { id: true } },
       ecartsAmiante: { select: { id: true } },
       remontees: { select: { id: true } },
+      reclamations: { select: { id: true } },
     },
   });
 
@@ -366,6 +378,7 @@ export async function supprimerRex(formData: FormData) {
     ficheSSEIds: avant.fichesSSE.map((e) => e.id),
     ecartAmianteIds: avant.ecartsAmiante.map((e) => e.id),
     remonteeIds: avant.remontees.map((e) => e.id),
+    reclamationIds: avant.reclamations.map((e) => e.id),
   });
   for (const chemin of chemins) revalidatePath(chemin);
   revalidatePath("/rex");

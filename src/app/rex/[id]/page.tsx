@@ -64,6 +64,7 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
       fichesSSE: { orderBy: { reference: "asc" }, select: { id: true, reference: true, nomChantier: true } },
       ecartsAmiante: { orderBy: { reference: "asc" }, select: { id: true, reference: true, nomChantier: true } },
       remontees: { orderBy: { reference: "asc" }, select: { id: true, reference: true, objet: true } },
+      reclamations: { orderBy: { reference: "asc" }, select: { id: true, reference: true, objet: true } },
       // Le nom et la taille seulement : le contenu du fichier est servi par /rex/[id]/fiche-externe.
       ficheExterne: { select: { nom: true, taille: true } },
       // `select` : jamais `preuve` (photo/PDF en data URL), inutile ici.
@@ -78,7 +79,8 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
 
   // Jour courant à Paris, au format attendu par le champ date (le serveur tourne en UTC).
   const aujourdhui = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
-  const nbSources = rex.ecarts.length + rex.fichesSSE.length + rex.ecartsAmiante.length + rex.remontees.length;
+  const nbSources =
+    rex.ecarts.length + rex.fichesSSE.length + rex.ecartsAmiante.length + rex.remontees.length + rex.reclamations.length;
   const lienAjout = buttonVariants({ variant: "outline", size: "sm" });
   const aDiffusion = rex.themes.length > 0 || rex.destinatairesRoles.length > 0 || rex.canaux.length > 0;
   const affichePratique =
@@ -219,6 +221,13 @@ export default async function RexDetailPage({ params }: { params: Promise<{ id: 
                   <li key={r.id}>
                     <Link href={`/remontees/${r.id}`} className={LIEN_ORIGINE}>
                       Remontée {r.reference} — {r.objet}
+                    </Link>
+                  </li>
+                ))}
+                {rex.reclamations.map((r) => (
+                  <li key={r.id}>
+                    <Link href={`/reclamations/${r.id}`} className={LIEN_ORIGINE}>
+                      Réclamation {r.reference} — {r.objet}
                     </Link>
                   </li>
                 ))}

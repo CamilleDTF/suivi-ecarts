@@ -51,6 +51,7 @@ export default async function DiffusionRexPage({
       fichesSSE: { orderBy: { reference: "asc" }, select: { id: true, reference: true, nomChantier: true } },
       ecartsAmiante: { orderBy: { reference: "asc" }, select: { id: true, reference: true, nomChantier: true } },
       remontees: { orderBy: { reference: "asc" }, select: { id: true, reference: true, objet: true } },
+      reclamations: { orderBy: { reference: "asc" }, select: { id: true, reference: true } },
       // Le nom et la taille seulement : le contenu du fichier est servi par /rex/[id]/fiche-externe.
       ficheExterne: { select: { nom: true, taille: true, ajoutePar: true, updatedAt: true } },
       actions: {
@@ -103,6 +104,8 @@ export default async function DiffusionRexPage({
             .join(", ")}`}
         {rex.remontees.length > 0 &&
           ` — ${rex.remontees.length > 1 ? "Remontées" : "Remontée"} ${rex.remontees.map((r) => r.reference).join(", ")}`}
+        {rex.reclamations.length > 0 &&
+          ` — ${rex.reclamations.length > 1 ? "Réclamations" : "Réclamation"} ${rex.reclamations.map((r) => r.reference).join(", ")}`}
       </p>
 
       {rex.pratiqueDescription && (

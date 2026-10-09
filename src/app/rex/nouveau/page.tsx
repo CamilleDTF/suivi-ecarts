@@ -11,6 +11,7 @@ export default async function NouveauRexPage({
     ficheSSEId?: string;
     ecartAmianteId?: string;
     remonteeId?: string;
+    reclamationId?: string;
     // Venue de l'outil de propositions : un sujet et la période analysée.
     proposition?: string;
     periode?: string;
@@ -27,12 +28,17 @@ export default async function NouveauRexPage({
   const ecartAmianteId = parent?.parametre === "ecartAmianteId" ? parent.id : params.ecartAmianteId;
   const remonteeId = parent?.parametre === "remonteeId" ? parent.id : params.remonteeId;
 
-  const [fiche, ecartAmiante, remontee] = await Promise.all([
+  const reclamationId = params.reclamationId;
+
+  const [fiche, ecartAmiante, remontee, reclamation] = await Promise.all([
     ficheSSEId ? prisma.ficheSSE.findUnique({ where: { id: ficheSSEId } }) : null,
     ecartAmianteId ? prisma.ecartAmiante.findUnique({ where: { id: ecartAmianteId } }) : null,
     remonteeId ? prisma.remonteeInfo.findUnique({ where: { id: remonteeId } }) : null,
+    reclamationId
+      ? prisma.reclamation.findUnique({ where: { id: reclamationId }, select: { id: true, reference: true, objet: true } })
+      : null,
   ]);
-  const ecartImpose = !fiche && !ecartAmiante && !remontee && ecartId
+  const ecartImpose = !fiche && !ecartAmiante && !remontee && !reclamation && ecartId
     ? await prisma.ecart.findUnique({
         where: { id: ecartId },
         select: { id: true, reference: true, dossier: { select: { chantier: true } } },
@@ -45,7 +51,9 @@ export default async function NouveauRexPage({
       ? { type: "amiante" as const, id: ecartAmiante.id, libelle: `Écart amiante ${ecartAmiante.reference} — ${ecartAmiante.nomChantier}` }
       : remontee
         ? { type: "remontee" as const, id: remontee.id, libelle: `Remontée ${remontee.reference} — ${remontee.objet}` }
-        : ecartImpose
+        : reclamation
+          ? { type: "reclamation" as const, id: reclamation.id, libelle: `Réclamation ${reclamation.reference} — ${reclamation.objet}` }
+          : ecartImpose
           ? {
               type: "ecart" as const,
               id: ecartImpose.id,
@@ -53,8 +61,8 @@ export default async function NouveauRexPage({
             }
           : null;
 
-  const [ecarts, evenements, amiantes, remontees] = parentImpose
-    ? [[], [], [], []]
+  const [ecarts, evenements, amiantes, remontees, reclamations] = parentImpose
+    ? [[], [], [], [], []]
     : await Promise.all([
         prisma.ecart.findMany({
           where: { archiveLe: null },
@@ -75,6 +83,11 @@ export default async function NouveauRexPage({
           where: { archiveLe: null },
           orderBy: { reference: "asc" },
           select: { id: true, reference: true, chantierService: true, objet: true, dateRemontee: true },
+        }),
+        prisma.reclamation.findMany({
+          where: { archiveLe: null },
+          orderBy: { reference: "asc" },
+          select: { id: true, reference: true, chantier: true, emetteur: true, objet: true, dateReception: true },
         }),
       ]);
   const court = (texte: string | null | undefined) => texte?.trim().replace(/\s+/g, " ").slice(0, 90) || "—";
@@ -126,6 +139,14 @@ export default async function NouveauRexPage({
         intitule: court(r.objet),
         date: r.dateRemontee.toISOString(),
         chantier: r.chantierService ?? null,
+      }))}
+      reclamations={reclamations.map((r) => ({
+        id: r.id,
+        reference: r.reference,
+        libelle: libelleRattachement(r.reference, r.chantier ?? r.emetteur, r.objet),
+        intitule: court(r.objet),
+        date: r.dateReception.toISOString(),
+        chantier: r.chantier ?? null,
       }))}
     />
   );

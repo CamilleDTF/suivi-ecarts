@@ -38,7 +38,7 @@ import {
 } from "@/lib/labels";
 
 type Mode = "unique" | "recurrents" | "spontane";
-type TypeUnique = "ecart" | "evenement" | "amiante" | "remontee";
+type TypeUnique = "ecart" | "evenement" | "amiante" | "remontee" | "reclamation";
 type ModaliteDiffusion = "immediate" | "planifiee" | "action";
 
 export type SourceOption = {
@@ -60,6 +60,7 @@ const TYPES_SOURCE: Record<TypeUnique, { label: string; classe: string }> = {
   evenement: { label: "Évènement SSE", classe: "bg-blue-100 text-blue-800" },
   amiante: { label: "Écart amiante", classe: "bg-teal-100 text-teal-800" },
   remontee: { label: "Remontée", classe: "bg-violet-100 text-violet-800" },
+  reclamation: { label: "Réclamation", classe: "bg-rose-100 text-rose-800" },
 };
 
 export type ParentImpose = {
@@ -129,6 +130,7 @@ export function RexWizard({
   evenements,
   amiantes,
   remontees,
+  reclamations,
   parentImpose,
   depart,
 }: {
@@ -136,6 +138,7 @@ export function RexWizard({
   evenements: SourceOption[];
   amiantes: SourceOption[];
   remontees: SourceOption[];
+  reclamations: SourceOption[];
   parentImpose?: ParentImpose | null;
   depart?: DepartRex | null;
 }) {
@@ -152,6 +155,7 @@ export function RexWizard({
   const [evenementId, setEvenementId] = useState(parentImpose?.type === "evenement" ? parentImpose.id : "");
   const [amianteId, setAmianteId] = useState(parentImpose?.type === "amiante" ? parentImpose.id : "");
   const [remonteeId, setRemonteeId] = useState(parentImpose?.type === "remontee" ? parentImpose.id : "");
+  const [reclamationId, setReclamationId] = useState(parentImpose?.type === "reclamation" ? parentImpose.id : "");
   const [elementsRecurrents, setElementsRecurrents] = useState<string[]>(depart?.elements ?? []);
   const [filtreSources, setFiltreSources] = useState("");
   const [filtreType, setFiltreType] = useState<TypeUnique | "tous">("tous");
@@ -205,8 +209,9 @@ export function RexWizard({
       ...avecType(evenements, "evenement"),
       ...avecType(amiantes, "amiante"),
       ...avecType(remontees, "remontee"),
+      ...avecType(reclamations, "reclamation"),
     ].sort((a, b) => (b.date ?? "").localeCompare(a.date ?? ""));
-  }, [ecarts, evenements, amiantes, remontees]);
+  }, [ecarts, evenements, amiantes, remontees, reclamations]);
   const sourcesParCle = useMemo(() => new Map(toutesSources.map((o) => [o.cle, o])), [toutesSources]);
   const recurrentsDuType = (type: TypeUnique) =>
     elementsRecurrents.filter((cle) => cle.startsWith(`${type}:`)).map((cle) => cle.slice(type.length + 1));
@@ -216,6 +221,8 @@ export function RexWizard({
   const ficheSSEIdsFinal = mode === "recurrents" ? recurrentsDuType("evenement") : unique("evenement", evenementId);
   const ecartAmianteIdsFinal = mode === "recurrents" ? recurrentsDuType("amiante") : unique("amiante", amianteId);
   const remonteeIdsFinal = mode === "recurrents" ? recurrentsDuType("remontee") : unique("remontee", remonteeId);
+  const reclamationIdsFinal =
+    mode === "recurrents" ? recurrentsDuType("reclamation") : unique("reclamation", reclamationId);
 
   const sourcesOk =
     mode === "spontane" ||
@@ -224,7 +231,8 @@ export function RexWizard({
       ((typeUnique === "ecart" && !!ecartUniqueId) ||
         (typeUnique === "evenement" && !!evenementId) ||
         (typeUnique === "amiante" && !!amianteId) ||
-        (typeUnique === "remontee" && !!remonteeId)));
+        (typeUnique === "remontee" && !!remonteeId) ||
+        (typeUnique === "reclamation" && !!reclamationId)));
 
   const step2Ok =
     titre.trim().length > 0 &&
@@ -357,6 +365,7 @@ export function RexWizard({
           ficheSSEIds: ficheSSEIdsFinal,
           ecartAmianteIds: ecartAmianteIdsFinal,
           remonteeIds: remonteeIdsFinal,
+          reclamationIds: reclamationIdsFinal,
           titre,
           sousTypeSSE: sousTypeSSE || undefined,
           enseignementsTires: enseignementPrincipal,
@@ -544,6 +553,7 @@ export function RexWizard({
                     ["evenement", "Évènement SSE"],
                     ["amiante", "Écart amiante"],
                     ["remontee", "Remontée"],
+                    ["reclamation", "Réclamation"],
                   ] as [TypeUnique, string][]
                 ).map(([t, libelle]) => (
                   <label key={t} className="flex items-center gap-1.5">
@@ -584,6 +594,14 @@ export function RexWizard({
                   ))}
                 </select>
               )}
+              {typeUnique === "reclamation" && (
+                <select value={reclamationId} onChange={(e) => setReclamationId(e.target.value)} className={inputCls}>
+                  <option value="">Sélectionner une réclamation</option>
+                  {reclamations.map((o) => (
+                    <option key={o.id} value={o.id}>{o.libelle}</option>
+                  ))}
+                </select>
+              )}
             </div>
           ) : (
             <div className="rounded-xl border bg-card p-6">
@@ -591,7 +609,7 @@ export function RexWizard({
                 <div>
                   <h2 className="text-base font-semibold text-foreground">Sélection des éléments sources</h2>
                   <p className="text-sm text-muted-foreground">
-                    Cochez les écarts, évènements, écarts amiante ou remontées qui sont à l&apos;origine de ce REX, tous types
+                    Cochez les écarts, évènements, écarts amiante, remontées ou réclamations qui sont à l&apos;origine de ce REX, tous types
                     confondus. Au moins un élément est requis.
                   </p>
                 </div>
@@ -690,6 +708,7 @@ export function RexWizard({
                     {typeUnique === "evenement" && evenements.find((e) => e.id === evenementId)?.libelle}
                     {typeUnique === "amiante" && amiantes.find((e) => e.id === amianteId)?.libelle}
                     {typeUnique === "remontee" && remontees.find((e) => e.id === remonteeId)?.libelle}
+                    {typeUnique === "reclamation" && reclamations.find((e) => e.id === reclamationId)?.libelle}
                   </p>
                 )}
               </RecapCard>
@@ -1134,6 +1153,7 @@ export function RexWizard({
                   {typeUnique === "evenement" && evenements.find((e) => e.id === evenementId)?.libelle}
                   {typeUnique === "amiante" && amiantes.find((e) => e.id === amianteId)?.libelle}
                   {typeUnique === "remontee" && remontees.find((e) => e.id === remonteeId)?.libelle}
+                  {typeUnique === "reclamation" && reclamations.find((e) => e.id === reclamationId)?.libelle}
                 </p>
               )}
             </RecapCard>
