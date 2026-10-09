@@ -11,9 +11,9 @@ import { ConteneurPage, EntetePage } from "@/components/page-liste";
 export default async function NouvelleFicheSSEPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ecartId?: string }>;
+  searchParams: Promise<{ ecartId?: string; reclamationId?: string }>;
 }) {
-  const { ecartId } = await searchParams;
+  const { ecartId, reclamationId } = await searchParams;
   const ecart = ecartId
     ? await prisma.ecart.findUnique({
         where: { id: ecartId },
@@ -28,6 +28,14 @@ export default async function NouvelleFicheSSEPage({
         },
       })
     : null;
+  // Un évènement né d'une réclamation reprend son chantier, ses domaines et
+  // ses thèmes ; la cotation, elle, se fait sur l'évènement lui-même.
+  const reclamation = !ecart && reclamationId
+    ? await prisma.reclamation.findUnique({
+        where: { id: reclamationId },
+        select: { id: true, reference: true, chantier: true, objet: true, description: true, domaines: true, theme: true },
+      })
+    : null;
 
   // La cotation de l'écart est reprise telle quelle : c'est le même fait, coté
   // une fois. La criticité qui en découle pré-sélectionne le type d'analyse —
@@ -38,21 +46,24 @@ export default async function NouvelleFicheSSEPage({
   return (
     <ConteneurPage largeur="formulaire">
       <BoutonRetour
-        href={ecartId && ecart ? `/ecarts/${ecartId}` : "/fiches-sse"}
-        label={ecartId && ecart ? `Écart ${ecart.reference}` : "Évènements SSE"}
+        href={ecart ? `/ecarts/${ecartId}` : reclamation ? `/reclamations/${reclamation.id}` : "/fiches-sse"}
+        label={ecart ? `Écart ${ecart.reference}` : reclamation ? `Réclamation ${reclamation.reference}` : "Évènements SSE"}
       />
       <EntetePage
         titre="Nouvel évènement SSE"
         sousTitre={
           ecart
             ? `Rattaché à l'écart ${ecart.reference}${ecart.dossier ? ` (${ecart.dossier.chantier})` : ""}`
-            : undefined
+            : reclamation
+              ? `Rattaché à la réclamation ${reclamation.reference} — ${reclamation.objet}`
+              : undefined
         }
       />
 
       <form action={creerFicheSSE} className="space-y-6 rounded-xl border bg-card p-6">
         <AvertissementNonEnregistre />
-        {ecartId && <input type="hidden" name="ecartId" value={ecartId} />}
+        {ecart && <input type="hidden" name="ecartId" value={ecartId} />}
+        {reclamation && <input type="hidden" name="reclamationId" value={reclamation.id} />}
 
         {/* Un évènement rattaché à un écart décrit le même fait : il reprend la
             description, les domaines, les thèmes et la
@@ -60,15 +71,17 @@ export default async function NouvelleFicheSSEPage({
         <FicheSSEFields
           v={{
             dateHeure: new Date(),
-            domaine: ecart?.domaines,
-            theme: ecart?.theme,
-            descriptionFactuelle: ecart?.description,
+            domaine: ecart?.domaines ?? reclamation?.domaines,
+            theme: ecart?.theme ?? reclamation?.theme,
+            descriptionFactuelle:
+              ecart?.description ??
+              (reclamation ? [reclamation.objet, reclamation.description].filter(Boolean).join("\n\n") : undefined),
             gravite: ecart?.gravite,
             frequence: ecart?.frequence,
             criticite: criticiteHeritee || undefined,
             typeAnalyse: CRITICITE_VERS_TYPE_ANALYSE[criticiteHeritee],
           }}
-          defaultNomChantier={ecart?.dossier?.chantier}
+          defaultNomChantier={ecart?.dossier?.chantier ?? reclamation?.chantier ?? undefined}
           apresTypeAnalyse={<ArbreCausesEditeur />}
           nouveau
         />

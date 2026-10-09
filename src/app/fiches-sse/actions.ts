@@ -94,11 +94,13 @@ export async function creerFicheSSE(formData: FormData) {
   if (!session?.user) redirect("/connexion");
 
   const ecartId = str(formData.get("ecartId"));
+  // Un seul parent : l'écart l'emporte si les deux arrivaient.
+  const reclamationId = ecartId ? null : str(formData.get("reclamationId"));
   const data = parseFiche(formData);
   const reference = await generateReference("FicheSSE", "EV");
 
   const fiche = await prisma.ficheSSE.create({
-    data: { reference, ecartId, ...data, numeroInterne: reference },
+    data: { reference, ecartId, reclamationId, ...data, numeroInterne: reference },
   });
 
   await creerCausesDepuisJson(fiche.id, str(formData.get("causesJson")));
@@ -107,6 +109,7 @@ export async function creerFicheSSE(formData: FormData) {
     await marquerFicheSSECreee(ecartId);
     revalidatePath(`/ecarts/${ecartId}`);
   }
+  if (reclamationId) revalidatePath(`/reclamations/${reclamationId}`);
 
   redirect(`/fiches-sse/${fiche.id}`);
 }
@@ -125,6 +128,7 @@ export async function mettreAJourFicheSSE(formData: FormData) {
 
   revalidatePath(`/fiches-sse/${id}`);
   if (fiche.ecartId) revalidatePath(`/ecarts/${fiche.ecartId}`);
+  if (fiche.reclamationId) revalidatePath(`/reclamations/${fiche.reclamationId}`);
 }
 
 // Correction d'un rattachement erroné. Le lien est normalement fixé à la
@@ -139,18 +143,24 @@ export async function changerRattachementFicheSSE(formData: FormData) {
   const type = String(formData.get("typeRattachement") ?? "aucun");
   const ecartId = type === "ecart" ? texte(formData.get("ecartId")) : null;
   const ecartAmianteId = type === "amiante" ? texte(formData.get("ecartAmianteId")) : null;
+  const reclamationId = type === "reclamation" ? texte(formData.get("reclamationId")) : null;
 
   // Un type choisi sans cible : on ne détache pas la fiche par inadvertance.
-  if ((type === "ecart" && !ecartId) || (type === "amiante" && !ecartAmianteId)) return;
+  if (
+    (type === "ecart" && !ecartId) ||
+    (type === "amiante" && !ecartAmianteId) ||
+    (type === "reclamation" && !reclamationId)
+  )
+    return;
 
   const avant = await prisma.ficheSSE.findUniqueOrThrow({
     where: { id },
-    select: { ecartId: true, ecartAmianteId: true },
+    select: { ecartId: true, ecartAmianteId: true, reclamationId: true },
   });
 
   await prisma.ficheSSE.update({
     where: { id },
-    data: { ecartId, ecartAmianteId, modifiePar: nomAuteur(session), modifieLe: new Date() },
+    data: { ecartId, ecartAmianteId, reclamationId, modifiePar: nomAuteur(session), modifieLe: new Date() },
   });
 
   if (ecartId) await marquerFicheSSECreee(ecartId);
@@ -162,6 +172,8 @@ export async function changerRattachementFicheSSE(formData: FormData) {
     avant.ecartAmianteId && `/ecart-amiante/${avant.ecartAmianteId}`,
     ecartId && `/ecarts/${ecartId}`,
     ecartAmianteId && `/ecart-amiante/${ecartAmianteId}`,
+    avant.reclamationId && `/reclamations/${avant.reclamationId}`,
+    reclamationId && `/reclamations/${reclamationId}`,
   ]) {
     if (chemin) revalidatePath(chemin);
   }
@@ -213,6 +225,7 @@ export async function finaliserFicheSSE(formData: FormData) {
 
   revalidatePath(`/fiches-sse/${id}`);
   if (fiche.ecartId) revalidatePath(`/ecarts/${fiche.ecartId}`);
+  if (fiche.reclamationId) revalidatePath(`/reclamations/${fiche.reclamationId}`);
 }
 
 export async function supprimerFicheSSE(formData: FormData) {
@@ -222,7 +235,7 @@ export async function supprimerFicheSSE(formData: FormData) {
   const id = String(formData.get("id"));
   const fiche = await prisma.ficheSSE.findUniqueOrThrow({
     where: { id },
-    select: { ecartId: true, ecartAmianteId: true },
+    select: { ecartId: true, ecartAmianteId: true, reclamationId: true },
   });
 
   await supprimerFicheSSECascade(id);
@@ -233,5 +246,9 @@ export async function supprimerFicheSSE(formData: FormData) {
 
   if (fiche.ecartId) redirect(`/ecarts/${fiche.ecartId}`);
   if (fiche.ecartAmianteId) redirect(`/ecart-amiante/${fiche.ecartAmianteId}`);
+  if (fiche.reclamationId) {
+    revalidatePath(`/reclamations/${fiche.reclamationId}`);
+    redirect(`/reclamations/${fiche.reclamationId}`);
+  }
   redirect("/fiches-sse");
 }

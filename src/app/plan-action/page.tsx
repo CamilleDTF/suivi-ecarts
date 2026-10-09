@@ -73,6 +73,8 @@ export default async function PlanActionPage({
           { remontee: { objet: contient } },
           { rex: { reference: contient } },
           { rex: { titre: contient } },
+          { reclamation: { reference: contient } },
+          { reclamation: { objet: contient } },
         ]
       : undefined,
   };
@@ -99,6 +101,7 @@ export default async function PlanActionPage({
         ecartAmiante: { select: { id: true, reference: true } },
         remontee: { select: { id: true, reference: true } },
         rex: { select: { id: true, reference: true } },
+        reclamation: { select: { id: true, reference: true } },
       },
       skip: (page - 1) * taillePage,
       take: taillePage,
@@ -202,6 +205,10 @@ export default async function PlanActionPage({
                   ) : a.rex ? (
                     <Link href={`/rex/${a.rex.id}`} title="REX" className={LIEN_RATTACHEMENT}>
                       {a.rex.reference}
+                    </Link>
+                  ) : a.reclamation ? (
+                    <Link href={`/reclamations/${a.reclamation.id}`} title="Réclamation" className={LIEN_RATTACHEMENT}>
+                      {a.reclamation.reference}
                     </Link>
                   ) : (
                     <span className="text-muted-foreground">—</span>

@@ -30,7 +30,6 @@ enum Origine {
   CONTROLE_TERRAIN
   RONDE_SECURITE
   INCIDENT_ACCIDENT
-  RECLAMATION_PLAINTE
   AUTRE
 }
 
@@ -39,6 +38,19 @@ enum StatutDossierEcart {
   OUVERT
   EN_COURS
   CLOTURE
+}
+
+// Une réclamation se clôt quand le plaignant a reçu sa réponse et que les
+// actions sont soldées : la fin des actions ne suffit pas.
+enum StatutReclamation {
+  OUVERTE
+  EN_COURS
+  CLOTUREE
+}
+
+enum TypeReclamation {
+  RECLAMATION
+  PLAINTE
 }
 
 enum OrigineRemontee {
@@ -239,6 +251,8 @@ model FicheSSE {
   ecartId                      String?
   ecartAmiante                 EcartAmiante?  @relation(fields: [ecartAmianteId], references: [id])
   ecartAmianteId               String?
+  reclamation                  Reclamation?   @relation(fields: [reclamationId], references: [id])
+  reclamationId                String?
   typeEvenement                String?
   numeroInterne                String?
   statutFiche                  StatutFiche    @default(EN_COURS)
@@ -362,6 +376,8 @@ model Action {
   // autres, et se rattachent au REX comme les autres à leur écart ou évènement.
   rex            Rex?          @relation(fields: [rexId], references: [id])
   rexId          String?
+  reclamation    Reclamation?  @relation(fields: [reclamationId], references: [id])
+  reclamationId  String?
   type           TypeAction
   action         String
   responsable    String
@@ -379,6 +395,64 @@ model Action {
   archiveLe      DateTime?
 
   @@index([rexId])
+  @@index([reclamationId])
+}
+
+// Plainte ou réclamation adressée par un client, un maître d'ouvrage, un
+// riverain… Entité à part des écarts : un écart est une non-conformité que l'on
+// constate, une réclamation est ce qu'un tiers nous reproche — elle appelle une
+// réponse, et se suit dans ses propres indicateurs. Un même courrier soulève
+// souvent plusieurs points : ils sont listés dans ReclamationPoint plutôt
+// qu'éclatés en autant de fiches, pour que le courrier se traite et reçoive sa
+// réponse d'un seul tenant.
+model Reclamation {
+  id                String             @id @default(cuid())
+  reference         String             @unique
+  type              TypeReclamation    @default(RECLAMATION)
+  dateReception     DateTime
+  // Qui se plaint. Texte libre, comme le chantier d'une remontée.
+  emetteur          String
+  canal             String?
+  chantier          String?
+  typeActivite      TypeActivite?
+  objet             String
+  description       String?
+  domaines          String[]           @default([])
+  theme             String[]           @default([])
+  analyse           String?
+  reponse           String?
+  dateReponse       DateTime?
+  statut            StatutReclamation  @default(OUVERTE)
+  personneSaisie    String?
+  // Le courrier ou le mail du plaignant : photo ou PDF en data URL, comme
+  // l'enregistrement d'un dossier.
+  enregistrement    String?
+  enregistrementNom String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  modifiePar        String?
+  modifieLe         DateTime?
+  archiveLe         DateTime?
+  points            ReclamationPoint[]
+  actions           Action[]
+  fichesSSE         FicheSSE[]
+}
+
+// Un point soulevé par la réclamation, évalué à part : un manquement de
+// sécurité n'a pas la gravité d'une vidéo d'avancement manquante.
+model ReclamationPoint {
+  id            String      @id @default(cuid())
+  reclamation   Reclamation @relation(fields: [reclamationId], references: [id], onDelete: Cascade)
+  reclamationId String
+  ordre         Int
+  description   String
+  gravite       String?
+  frequence     String?
+  criticite     String?
+  cause         String?
+  createdAt     DateTime    @default(now())
+
+  @@index([reclamationId])
 }
 
 // Retour d'expérience MASE : capitalise un enseignement transverse, distinct du plan

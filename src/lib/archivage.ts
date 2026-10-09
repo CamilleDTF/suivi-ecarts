@@ -19,6 +19,7 @@ export const ENTITES_ARCHIVABLES = {
   action: prisma.action,
   actionDU: prisma.actionDU,
   remontee: prisma.remonteeInfo,
+  reclamation: prisma.reclamation,
   rex: prisma.rex,
 } as const;
 

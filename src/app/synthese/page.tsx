@@ -20,7 +20,9 @@ import {
   STATUT_DOSSIER_ECART_LABELS,
   STATUT_ACTION_LABELS,
   STATUT_REMONTEE_LABELS,
+  STATUT_RECLAMATION_LABELS,
 } from "@/lib/labels";
+import { criticiteMax } from "@/lib/reclamations";
 
 // Le navigateur nomme le PDF d'après le titre du document : la date évite que
 // deux exports pris à des moments différents portent le même nom.
@@ -45,6 +47,8 @@ const TON_STATUT_REMONTEE: Record<string, TonSynthese> = {
   TRAITEE: "vert",
   TRANSFORMEE_EN_ECART: "violet",
 };
+const STATUT_RECLAMATION = ["OUVERTE", "EN_COURS", "CLOTUREE"] as const;
+const TON_STATUT_RECLAMATION: Record<string, TonSynthese> = { OUVERTE: "ambre", EN_COURS: "bleu", CLOTUREE: "vert" };
 // Ordre de gravité croissante : un classement, pas un alphabet.
 const CRITICITES = ["Faible", "Moyenne", "Élevée"] as const;
 const TON_CRITICITE: Record<string, TonSynthese> = { Faible: "vert", Moyenne: "ambre", Élevée: "rouge" };
@@ -269,6 +273,29 @@ export default async function SynthesePage({
         : Promise.resolve(null),
     ]);
 
+  // Les réclamations portent le nom du chantier, pas un dossier : le filtre
+  // chantier les retrouve par ce nom.
+  const chantierFiltre = dossierId ? (dossiers.find((d) => d.id === dossierId)?.chantier ?? "") : undefined;
+  const parChantierReclamation = chantierFiltre !== undefined ? { chantier: chantierFiltre } : {};
+  const [reclamationsPeriode, reclamationsPrecedent, reclamationsSansReponse] = await Promise.all([
+    prisma.reclamation.findMany({
+      where: { archiveLe: null, ...parChantierReclamation, ...intervalle("dateReception", depuis) },
+      select: { dateReception: true, statut: true, emetteur: true },
+    }),
+    debutPrecedent && depuis
+      ? prisma.reclamation.count({
+          where: { archiveLe: null, ...parChantierReclamation, ...intervalle("dateReception", debutPrecedent, depuis) },
+        })
+      : Promise.resolve(null),
+    // Toutes périodes confondues : une réclamation sans réponse reste due,
+    // qu'elle date de ce mois-ci ou du précédent.
+    prisma.reclamation.findMany({
+      where: { archiveLe: null, ...parChantierReclamation, dateReponse: null },
+      orderBy: { dateReception: "asc" },
+      select: { id: true, reference: true, objet: true, emetteur: true, dateReception: true, points: { select: { criticite: true } } },
+    }),
+  ]);
+
   const [amiantePeriode, rexTotal, rexBrouillons, rexParStatut] = await Promise.all([
     dossierId
       ? Promise.resolve(null)
@@ -331,6 +358,13 @@ export default async function SynthesePage({
   // Une catégorie qui revient au moins deux fois est candidate à un REX.
   const repetitions = categorieRepartition.filter((c) => c.valeur >= 2).length;
 
+  // ——— Réclamations ———
+  const reclamationsStatutCounts = Object.fromEntries(
+    STATUT_RECLAMATION.map((s) => [s, reclamationsPeriode.filter((r) => r.statut === s).length]),
+  );
+  const parEmetteur = compterOccurrences(reclamationsPeriode.map((r) => r.emetteur)).slice(0, 8);
+  const attenteAffichees = reclamationsSansReponse.slice(0, 6);
+
   // ——— REX ———
   const rexStatutCounts = Object.fromEntries(rexParStatut.map((r) => [r.statut, r._count._all]));
   const rexDiffuses = (rexStatutCounts.DIFFUSE ?? 0) + (rexStatutCounts.EFFICACITE_VERIFIEE ?? 0);
@@ -356,10 +390,14 @@ export default async function SynthesePage({
         mois,
         remonteesPeriode.map((r) => r.dateRemontee).filter((d) => d >= debutGraphique),
       )[i],
+      repartirParMois(
+        mois,
+        reclamationsPeriode.map((r) => r.dateReception).filter((d) => d >= debutGraphique),
+      )[i],
     ],
   }));
 
-  const [dossiersRecents, ecartsRecents, fichesRecentes, ecartAmianteRecents] = await Promise.all([
+  const [dossiersRecents, ecartsRecents, fichesRecentes, ecartAmianteRecents, reclamationsRecentes] = await Promise.all([
     prisma.dossier.findMany({ orderBy: { createdAt: "desc" }, take: 5, select: { id: true, reference: true, createdAt: true } }),
     prisma.ecart.findMany({ orderBy: { createdAt: "desc" }, take: 5, select: { id: true, reference: true, createdAt: true } }),
     prisma.ficheSSE.findMany({
@@ -372,6 +410,7 @@ export default async function SynthesePage({
       take: 5,
       select: { id: true, reference: true, createdAt: true, updatedAt: true, statut: true },
     }),
+    prisma.reclamation.findMany({ orderBy: { createdAt: "desc" }, take: 5, select: { id: true, reference: true, createdAt: true } }),
   ]);
 
   const activites: ActiviteItem[] = [
@@ -411,6 +450,15 @@ export default async function SynthesePage({
       couleurBg: "bg-teal-50",
       couleurTexte: "text-teal-600",
     })),
+    ...reclamationsRecentes.map((r) => ({
+      label: "Réclamation reçue",
+      reference: r.reference,
+      href: `/reclamations/${r.id}`,
+      date: r.createdAt,
+      icon: <IconAlertTriangle className="h-4 w-4" />,
+      couleurBg: "bg-rose-50",
+      couleurTexte: "text-rose-600",
+    })),
   ]
     .sort((a, b) => b.date.getTime() - a.date.getTime())
     .slice(0, 6);
@@ -445,7 +493,7 @@ export default async function SynthesePage({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-7">
         <Indicateur
           label="Écarts ouverts"
           valeur={ecartsOuverts.length}
@@ -482,6 +530,14 @@ export default async function SynthesePage({
           detail={`${remonteesStatutCounts.A_TRAITER ?? 0} à traiter`}
           ton="violet"
           href="/remontees"
+        />
+        <Indicateur
+          label="Réclamations"
+          valeur={reclamationsPeriode.length}
+          variation={variation(reclamationsPeriode.length, reclamationsPrecedent, "baisse")}
+          detail={`${reclamationsSansReponse.length} en attente de réponse`}
+          ton={reclamationsSansReponse.length > 0 ? "rouge" : "vert"}
+          href="/reclamations"
         />
         <Indicateur
           label="REX diffusés"
@@ -543,6 +599,7 @@ export default async function SynthesePage({
             { nom: "Écarts", ton: "primaire" },
             { nom: "Évènements SSE", ton: "bleu" },
             { nom: "Remontées", ton: "violet" },
+            { nom: "Réclamations", ton: "rouge" },
           ]}
         />
       </Bloc>
@@ -592,6 +649,51 @@ export default async function SynthesePage({
         </Bloc>
         <Bloc titre="Par domaine" complement={libellePeriode}>
           <BarresClassees donnees={domaineRepartition} ton="vert" />
+        </Bloc>
+      </div>
+
+      <TitreSection>Plaintes et réclamations</TitreSection>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Bloc titre="Réclamations par statut" complement={libellePeriode}>
+          <Anneau
+            segments={STATUT_RECLAMATION.map((s) => ({
+              label: STATUT_RECLAMATION_LABELS[s],
+              valeur: reclamationsStatutCounts[s] ?? 0,
+              ton: TON_STATUT_RECLAMATION[s],
+            }))}
+          />
+        </Bloc>
+        <Bloc titre="Par émetteur" complement={libellePeriode}>
+          <BarresClassees donnees={parEmetteur} ton="rouge" vide="Aucune réclamation sur la période." />
+        </Bloc>
+        <Bloc
+          titre="En attente de réponse"
+          complement={
+            reclamationsSansReponse.length > attenteAffichees.length
+              ? `${attenteAffichees.length} sur ${reclamationsSansReponse.length}`
+              : undefined
+          }
+        >
+          {attenteAffichees.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">Toutes les réclamations ont eu leur réponse.</p>
+          ) : (
+            <ul className="divide-y">
+              {attenteAffichees.map((r) => {
+                const jours = Math.max(0, Math.floor((maintenant.getTime() - r.dateReception.getTime()) / JOUR));
+                const criticite = criticiteMax(r.points);
+                return (
+                  <LignePoint
+                    key={r.id}
+                    href={`/reclamations/${r.id}`}
+                    reference={r.reference}
+                    texte={`${r.objet} — ${r.emetteur}`}
+                    droite={`reçue il y a ${jours} j`}
+                    ton={TON_CRITICITE[criticite ?? ""] ?? "neutre"}
+                  />
+                );
+              })}
+            </ul>
+          )}
         </Bloc>
       </div>
 

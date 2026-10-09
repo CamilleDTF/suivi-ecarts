@@ -43,6 +43,7 @@ async function main() {
     await prisma.action.deleteMany();
     await prisma.remonteeInfo.deleteMany();
     await prisma.ficheSSE.deleteMany();
+    await prisma.reclamation.deleteMany();
     await prisma.ecartAmiante.deleteMany();
     await prisma.ecart.deleteMany();
     await prisma.dossier.deleteMany();
@@ -50,9 +51,17 @@ async function main() {
   }
 
   // Ordre des dépendances : un enfant ne peut pas être inséré avant son parent.
-  await prisma.dossier.createMany({ data: d.dossiers });
-  await prisma.ecart.createMany({ data: d.ecarts });
+  // L'origine « Réclamation / plainte » n'existe plus depuis que les
+  // réclamations ont leur module : une sauvegarde antérieure la ramène à « Autre ».
+  // Le type de retour reste celui, non typé, du fichier relu.
+  const sansOrigineReclamation = (lignes: { origine: string }[]): typeof d.dossiers =>
+    lignes.map((l) => (l.origine === "RECLAMATION_PLAINTE" ? { ...l, origine: "AUTRE" } : l));
+  await prisma.dossier.createMany({ data: sansOrigineReclamation(d.dossiers) });
+  await prisma.ecart.createMany({ data: sansOrigineReclamation(d.ecarts) });
   await prisma.ecartAmiante.createMany({ data: d.ecartsAmiante });
+  // Absentes des sauvegardes antérieures au module.
+  await prisma.reclamation.createMany({ data: d.reclamations ?? [] });
+  await prisma.reclamationPoint.createMany({ data: d.pointsReclamation ?? [] });
   // Une sauvegarde antérieure peut encore contenir des évènements "Brouillon",
   // statut qui n'existe plus : ils reviennent "En cours".
   await prisma.ficheSSE.createMany({

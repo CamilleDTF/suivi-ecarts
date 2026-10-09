@@ -109,6 +109,7 @@ export default async function FichesSSEPage({
           { ecart: { reference: contient } },
           { ecartAmiante: { reference: contient } },
           { ecartAmiante: { nomChantier: contient } },
+          { reclamation: { reference: contient } },
           ...(themesTrouves.length ? [{ theme: { hasSome: themesTrouves } }] : []),
           ...(domainesTrouves.length ? [{ domaine: { hasSome: domainesTrouves } }] : []),
         ]
@@ -133,6 +134,7 @@ export default async function FichesSSEPage({
         statutFiche: true,
         ecart: { select: { id: true, reference: true } },
         ecartAmiante: { select: { id: true, reference: true } },
+        reclamation: { select: { id: true, reference: true } },
       },
       skip: (page - 1) * taillePage,
       take: taillePage,
@@ -218,6 +220,13 @@ export default async function FichesSSEPage({
                     >
                       {f.ecartAmiante.reference}
                       <span className="ml-1 text-xs">(amiante)</span>
+                    </Link>
+                  ) : f.reclamation ? (
+                    <Link
+                      href={`/reclamations/${f.reclamation.id}`}
+                      className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                    >
+                      {f.reclamation.reference}
                     </Link>
                   ) : (
                     <span className="text-muted-foreground">Aucun</span>

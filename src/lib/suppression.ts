@@ -51,6 +51,26 @@ async function ecartDans(tx: TxClient, ecartId: string) {
   await tx.ecart.delete({ where: { id: ecartId } });
 }
 
+async function reclamationDans(tx: TxClient, reclamationId: string) {
+  const fiches = await tx.ficheSSE.findMany({ where: { reclamationId }, select: { id: true } });
+  for (const f of fiches) await ficheSSEDans(tx, f.id);
+  await tx.action.deleteMany({ where: { reclamationId } });
+  // Les points partent en cascade avec la réclamation.
+  await tx.reclamation.delete({ where: { id: reclamationId } });
+}
+
+export async function supprimerReclamationCascade(reclamationId: string) {
+  await prisma.$transaction((tx) => reclamationDans(tx, reclamationId), OPTIONS_TX);
+}
+
+export async function compterImpactSuppressionReclamation(reclamationId: string) {
+  const fiches = await prisma.ficheSSE.findMany({ where: { reclamationId }, select: { id: true } });
+  const actions = await prisma.action.count({
+    where: { OR: [{ reclamationId }, { ficheSSEId: { in: fiches.map((f) => f.id) } }] },
+  });
+  return { fiches: fiches.length, actions };
+}
+
 export async function supprimerFicheSSECascade(ficheSSEId: string) {
   await prisma.$transaction((tx) => ficheSSEDans(tx, ficheSSEId), OPTIONS_TX);
 }

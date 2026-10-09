@@ -19,6 +19,7 @@ const actionSchema = z
     ecartAmianteId: z.string().optional(),
     remonteeId: z.string().optional(),
     rexId: z.string().optional(),
+    reclamationId: z.string().optional(),
     type: z.enum(Object.values(TypeAction) as [string, ...string[]]),
     action: z.string().min(1, "Description de l'action requise"),
     responsable: z.string().min(1, "Responsable requis"),
@@ -34,11 +35,11 @@ const actionSchema = z
   // ambigus.
   .refine(
     (v) =>
-      [v.ecartIds.length > 0, !!v.ficheSSEId, !!v.ecartAmianteId, !!v.remonteeId, !!v.rexId].filter(Boolean)
+      [v.ecartIds.length > 0, !!v.ficheSSEId, !!v.ecartAmianteId, !!v.remonteeId, !!v.rexId, !!v.reclamationId].filter(Boolean)
         .length === 1,
     {
       message:
-        "Une action doit être rattachée soit à un ou plusieurs écarts, soit à un évènement SSE, soit à un écart amiante, soit à une remontée, soit à un REX",
+        "Une action doit être rattachée soit à un ou plusieurs écarts, soit à un évènement SSE, soit à un écart amiante, soit à une remontée, soit à un REX, soit à une réclamation",
     },
   );
 
@@ -52,6 +53,7 @@ export async function creerAction(formData: FormData) {
     ecartAmianteId: formData.get("ecartAmianteId") || undefined,
     remonteeId: formData.get("remonteeId") || undefined,
     rexId: formData.get("rexId") || undefined,
+    reclamationId: formData.get("reclamationId") || undefined,
     type: formData.get("type"),
     action: formData.get("action"),
     responsable: formData.get("responsable"),
@@ -72,6 +74,7 @@ export async function creerAction(formData: FormData) {
       ecartAmianteId: parsed.ecartAmianteId,
       remonteeId: parsed.remonteeId,
       rexId: parsed.rexId,
+      reclamationId: parsed.reclamationId,
       type: parsed.type as TypeAction,
       action: parsed.action,
       responsable: parsed.responsable,
@@ -90,6 +93,7 @@ export async function creerAction(formData: FormData) {
   if (parsed.ecartAmianteId) revalidatePath(`/ecart-amiante/${parsed.ecartAmianteId}`);
   if (parsed.remonteeId) revalidatePath(`/remontees/${parsed.remonteeId}`);
   if (parsed.rexId) revalidatePath(`/rex/${parsed.rexId}`);
+  if (parsed.reclamationId) revalidatePath(`/reclamations/${parsed.reclamationId}`);
   await recalculerStatutsParents({ ...action, ecartIds: parsed.ecartIds });
   redirect(`/plan-action/${action.id}`);
 }
@@ -157,6 +161,7 @@ export async function mettreAJourAction(formData: FormData) {
   if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
   if (action.remonteeId) revalidatePath(`/remontees/${action.remonteeId}`);
   if (action.rexId) revalidatePath(`/rex/${action.rexId}`);
+  if (action.reclamationId) revalidatePath(`/reclamations/${action.reclamationId}`);
   // Le formulaire peut désormais faire passer l'action à "Réalisée" via la date
   // de réalisation : le statut de l'écart ou de l'évènement parent doit suivre.
   await recalculerStatutsParents({ ...action, ecartIds: action.ecarts.map((e) => e.id) });
@@ -181,6 +186,7 @@ export async function mettreAJourStatutAction(formData: FormData) {
   if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
   if (action.remonteeId) revalidatePath(`/remontees/${action.remonteeId}`);
   if (action.rexId) revalidatePath(`/rex/${action.rexId}`);
+  if (action.reclamationId) revalidatePath(`/reclamations/${action.reclamationId}`);
   await recalculerStatutsParents({ ...action, ecartIds: action.ecarts.map((e) => e.id) });
 }
 
@@ -197,6 +203,7 @@ export async function changerRattachementAction(formData: FormData) {
     amiante: "ecartAmianteId",
     remontee: "remonteeId",
     rex: "rexId",
+    reclamation: "reclamationId",
   };
   const ecartIds = formData.getAll("ecartIds").map(String).filter(Boolean);
   const cible = texte(formData.get(CHAMPS[type] ?? ""));
@@ -214,6 +221,7 @@ export async function changerRattachementAction(formData: FormData) {
       ecartAmianteId: true,
       remonteeId: true,
       rexId: true,
+      reclamationId: true,
     },
   });
 
@@ -228,6 +236,7 @@ export async function changerRattachementAction(formData: FormData) {
       ecartAmianteId: type === "amiante" ? cible : null,
       remonteeId: type === "remontee" ? cible : null,
       rexId: type === "rex" ? cible : null,
+      reclamationId: type === "reclamation" ? cible : null,
       modifiePar: nomAuteur(session),
       modifieLe: new Date(),
     },
@@ -251,6 +260,8 @@ export async function changerRattachementAction(formData: FormData) {
     action.remonteeId && `/remontees/${action.remonteeId}`,
     avant.rexId && `/rex/${avant.rexId}`,
     action.rexId && `/rex/${action.rexId}`,
+    avant.reclamationId && `/reclamations/${avant.reclamationId}`,
+    action.reclamationId && `/reclamations/${action.reclamationId}`,
   ]) {
     if (chemin) revalidatePath(chemin);
   }
@@ -278,6 +289,7 @@ export async function supprimerAction(formData: FormData) {
   if (action.ecartAmianteId) revalidatePath(`/ecart-amiante/${action.ecartAmianteId}`);
   if (action.remonteeId) revalidatePath(`/remontees/${action.remonteeId}`);
   if (action.rexId) revalidatePath(`/rex/${action.rexId}`);
+  if (action.reclamationId) revalidatePath(`/reclamations/${action.reclamationId}`);
   await recalculerStatutsParents({ ...action, ecartIds });
 
   if (ecartIds.length > 0) redirect(`/ecarts/${ecartIds[0]}`);
@@ -285,5 +297,6 @@ export async function supprimerAction(formData: FormData) {
   if (action.ecartAmianteId) redirect(`/ecart-amiante/${action.ecartAmianteId}`);
   if (action.remonteeId) redirect(`/remontees/${action.remonteeId}`);
   if (action.rexId) redirect(`/rex/${action.rexId}`);
+  if (action.reclamationId) redirect(`/reclamations/${action.reclamationId}`);
   redirect("/plan-action");
 }

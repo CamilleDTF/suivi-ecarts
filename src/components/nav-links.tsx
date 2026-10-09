@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-// Libellés courts : dix entrées doivent tenir sur une seule ligne dans la barre du haut.
+// Libellés courts : onze entrées doivent tenir sur une seule ligne dans la barre du haut.
 const LIENS = [
   { href: "/dossiers", label: "Dossiers" },
   { href: "/ecarts", label: "Écarts" },
   { href: "/fiches-sse", label: "SSE", titre: "Évènements SSE" },
   { href: "/ecart-amiante", label: "Amiante", titre: "Écart amiante" },
   { href: "/remontees", label: "Remontées" },
+  { href: "/reclamations", label: "Réclamations", titre: "Plaintes et réclamations" },
   { href: "/rex", label: "REX" },
   { href: "/plan-action", label: "Actions", titre: "Plan d'action" },
   { href: "/plan-action-du", label: "Actions DU", titre: "Plan d'action DU" },

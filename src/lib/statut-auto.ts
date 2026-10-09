@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import type { StatutAction, StatutDossierEcart, StatutFiche } from "@/generated/prisma/enums";
+import type { StatutAction, StatutDossierEcart, StatutFiche, StatutReclamation } from "@/generated/prisma/enums";
 
 const STATUTS_ACTION_OUVERTS: StatutAction[] = ["A_FAIRE", "EN_COURS", "EN_RETARD"];
 
@@ -65,7 +65,7 @@ export async function recalculerStatutEcartAmiante(ecartAmianteId: string) {
 export async function recalculerStatutFicheSSE(ficheSSEId: string) {
   const fiche = await prisma.ficheSSE.findUnique({
     where: { id: ficheSSEId },
-    select: { statutFiche: true, ecartId: true },
+    select: { statutFiche: true, ecartId: true, reclamationId: true },
   });
   if (!fiche) return;
 
@@ -78,6 +78,26 @@ export async function recalculerStatutFicheSSE(ficheSSEId: string) {
   await prisma.ficheSSE.update({ where: { id: ficheSSEId }, data: { statutFiche: nouveauStatut } });
   revalidatePath(`/fiches-sse/${ficheSSEId}`);
   if (fiche.ecartId) revalidatePath(`/ecarts/${fiche.ecartId}`);
+  if (fiche.reclamationId) revalidatePath(`/reclamations/${fiche.reclamationId}`);
+}
+
+// Une réclamation n'est close que lorsque le plaignant a eu sa réponse : des
+// actions soldées sans réponse la laissent en cours. Sans action, rien ne la
+// fait bouger : elle se clôt à la main. Une clôture n'est jamais rouverte ici.
+export async function recalculerStatutReclamation(reclamationId: string) {
+  const [actions, reclamation] = await Promise.all([
+    prisma.action.findMany({ where: { reclamationId }, select: { statut: true } }),
+    prisma.reclamation.findUnique({ where: { id: reclamationId }, select: { statut: true, dateReponse: true } }),
+  ]);
+  if (!reclamation || reclamation.statut === "CLOTUREE" || actions.length === 0) return;
+
+  const nouveauStatut: StatutReclamation =
+    !aUneActionOuverte(actions) && reclamation.dateReponse ? "CLOTUREE" : "EN_COURS";
+  if (reclamation.statut === nouveauStatut) return;
+
+  await prisma.reclamation.update({ where: { id: reclamationId }, data: { statut: nouveauStatut } });
+  revalidatePath(`/reclamations/${reclamationId}`);
+  revalidatePath("/reclamations");
 }
 
 // `ecartIds` au pluriel : une action peut couvrir plusieurs écarts, et chacun
@@ -86,11 +106,13 @@ export async function recalculerStatutsParents(parents: {
   ecartIds?: string[] | null;
   ficheSSEId?: string | null;
   ecartAmianteId?: string | null;
+  reclamationId?: string | null;
 }) {
   await Promise.all([
     ...(parents.ecartIds ?? []).map((id) => recalculerStatutEcart(id)),
     parents.ficheSSEId ? recalculerStatutFicheSSE(parents.ficheSSEId) : Promise.resolve(),
     parents.ecartAmianteId ? recalculerStatutEcartAmiante(parents.ecartAmianteId) : Promise.resolve(),
+    parents.reclamationId ? recalculerStatutReclamation(parents.reclamationId) : Promise.resolve(),
   ]);
 }
 

@@ -11,12 +11,14 @@ import {
   StatutAction,
   StatutDossierEcart,
   StatutFiche,
+  StatutReclamation,
   StatutRemontee,
 } from "@/generated/prisma/enums";
 import {
   filtreStatutAction,
   filtreStatutDossierEcart,
   filtreStatutFiche,
+  filtreStatutReclamation,
   filtreStatutRemontee,
 } from "@/lib/validation";
 import {
@@ -28,6 +30,8 @@ import {
   STATUT_FICHE_LABELS,
   STATUT_REMONTEE_COLORS,
   STATUT_REMONTEE_LABELS,
+  STATUT_RECLAMATION_COLORS,
+  STATUT_RECLAMATION_LABELS,
 } from "@/lib/labels";
 
 export const metadata = { title: "Réunion QHSE" };
@@ -149,6 +153,7 @@ export default async function ReunionPage({
     etatAmiante?: string;
     etatEcart?: string;
     etatRemontee?: string;
+    etatReclamation?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -187,6 +192,7 @@ export default async function ReunionPage({
   const etatAmiante = params.etatAmiante ?? (tout ? TOUS : NON_CLOTURES);
   const etatEcart = params.etatEcart ?? (tout ? TOUS : NON_CLOTURES);
   const etatRemontee = params.etatRemontee ?? (tout ? TOUS : NON_CLOTURES);
+  const etatReclamation = params.etatReclamation ?? (tout ? TOUS : NON_CLOTURES);
 
   /** Écarts et écarts amiante partagent le même jeu d'états. */
   function whereEcart(choix: string) {
@@ -226,7 +232,16 @@ export default async function ReunionPage({
           statut: filtreStatutRemontee(etatRemontee),
         };
 
-  const [evenements, actionsEvenements, ecarts, ecartsAmiante, remontees] = await Promise.all([
+  // Une réclamation se suit comme un écart : ouverte, elle revient à chaque
+  // réunion quelle que soit sa date.
+  const whereReclamation = (() => {
+    const exact = filtreStatutReclamation(etatReclamation);
+    if (exact) return { statut: exact };
+    if (etatReclamation === NON_CLOTURES) return { statut: { not: StatutReclamation.CLOTUREE } };
+    return {};
+  })();
+
+  const [evenements, actionsEvenements, ecarts, ecartsAmiante, remontees, reclamations] = await Promise.all([
     prisma.ficheSSE.findMany({
       where: { ...filtreArchive(undefined), ...whereEvenement },
       orderBy: { dateHeure: "asc" },
@@ -299,6 +314,25 @@ export default async function ReunionPage({
         statut: true,
       },
     }),
+    prisma.reclamation.findMany({
+      where: { ...filtreArchive(undefined), ...whereReclamation },
+      orderBy: { reference: "asc" },
+      select: {
+        id: true,
+        reference: true,
+        dateReception: true,
+        emetteur: true,
+        chantier: true,
+        objet: true,
+        dateReponse: true,
+        statut: true,
+        actions: {
+          where: whereAction(etatAction),
+          orderBy: { reference: "asc" },
+          select: { id: true, reference: true, action: true, responsable: true, statut: true },
+        },
+      },
+    }),
   ]);
 
   // Les lignes du bilan, à la forme du support de réunion. Une section porte
@@ -351,6 +385,13 @@ export default async function ReunionPage({
   const lignesEcarts = lignesDeco(
     ecarts.map((e) => ({ ...e, contexte: e.dossier?.chantier ?? null })),
   );
+  const lignesReclamations = lignesDeco(
+    reclamations.map((r) => ({
+      ...r,
+      contexte: [r.emetteur, r.chantier].filter(Boolean).join(" — "),
+      description: r.objet,
+    })),
+  );
   const lignesRemontees = remontees.map((r) =>
     ligneBilan({ reference: r.reference, contexte: r.chantierService, texte: r.objet }),
   );
@@ -365,6 +406,7 @@ export default async function ReunionPage({
     !!params.etatAmiante ||
     !!params.etatEcart ||
     !!params.etatRemontee ||
+    !!params.etatReclamation ||
     !!params.du ||
     !!params.au;
 
@@ -705,6 +747,73 @@ export default async function ReunionPage({
               </tr>
             ))}
             {ecarts.length === 0 && <Vide colonnes={5} texte="Aucun écart." />}
+          </tbody>
+        </table>
+      </Section>
+
+      <Section
+        titre="Suivi des réclamations"
+        compte={reclamations.length}
+        bilan={bilan}
+        lignes={lignesReclamations}
+        vide="Aucune réclamation."
+        filtre={
+          <SelectAutoSubmit
+            name="etatReclamation"
+            form={FORM}
+            defaultValue={etatReclamation}
+            className={selectFiltre}
+            options={optionsEtat(
+              [
+                { value: NON_CLOTURES, label: "Non clôturées" },
+                { value: TOUS, label: "Tous les états" },
+              ],
+              Object.values(StatutReclamation),
+              STATUT_RECLAMATION_LABELS,
+            )}
+          />
+        }
+      >
+        <table className="w-full text-sm">
+          <thead className="border-b border-slate-200 bg-slate-50 text-slate-500">
+            <tr>
+              <th className={th}>Référence</th>
+              <th className={th}>Émetteur</th>
+              <th className={th}>Objet</th>
+              <th className={th}>Réponse</th>
+              <th className={th}>Actions</th>
+              <th className={th}>État</th>
+            </tr>
+          </thead>
+          <tbody>
+            {reclamations.map((r) => (
+              <tr key={r.id} className="border-b border-slate-100 last:border-0">
+                <td className={tdCompact}>
+                  <Link href={`/reclamations/${r.id}`} className="font-medium text-blue-700 hover:underline">
+                    {r.reference}
+                  </Link>
+                  <span className="block text-xs text-slate-400">reçue le {fr(r.dateReception)}</span>
+                </td>
+                <td className={`${td} text-slate-700`}>
+                  {r.emetteur}
+                  {r.chantier && <span className="block text-xs text-slate-400">{r.chantier}</span>}
+                </td>
+                <td className={`${td} max-w-sm text-slate-700`}>{r.objet}</td>
+                <td className={`${td} whitespace-nowrap text-slate-700`}>
+                  {r.dateReponse ? fr(r.dateReponse) : <span className="text-red-700">En attente</span>}
+                </td>
+                <td className={td}>
+                  <ListeActions actions={r.actions} />
+                </td>
+                <td className={tdCompact}>
+                  <Badge
+                    label={STATUT_RECLAMATION_LABELS[r.statut]}
+                    colorClass={STATUT_RECLAMATION_COLORS[r.statut]}
+                  />
+                </td>
+              </tr>
+            ))}
+            {reclamations.length === 0 && <Vide colonnes={6} texte="Aucune réclamation." />}
           </tbody>
         </table>
       </Section>

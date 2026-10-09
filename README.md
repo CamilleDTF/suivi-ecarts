@@ -15,6 +15,7 @@ entrées autonomes : **Écarts amiante** et **Remontées d'informations**.
 | Évènements SSE | Fiche de déclaration, arbre des causes, validation. |
 | Écarts amiante | Analyses, cause, exposition, nouvelle analyse, clôture. Indépendant des dossiers. |
 | Remontées d'informations | Saisie interne rapide, transformable en écart. |
+| Plaintes et réclamations | Ce qu'un client, un maître d'ouvrage ou un riverain nous reproche : points soulevés (gravité × fréquence), analyse, réponse, plan d'action, évènements SSE. Séparé des écarts, avec ses propres indicateurs. |
 | Plan d'action | Actions curatives / correctives / préventives, validation, preuve photo. |
 | Synthèse | Tuiles, graphiques, activité récente. |
 

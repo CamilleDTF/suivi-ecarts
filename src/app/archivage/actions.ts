@@ -13,6 +13,7 @@ const CHEMINS: Record<EntiteArchivable, string> = {
   action: "/plan-action",
   actionDU: "/plan-action-du",
   remontee: "/remontees",
+  reclamation: "/reclamations",
   rex: "/rex",
 };
 

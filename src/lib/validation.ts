@@ -3,6 +3,7 @@ import {
   StatutAction,
   StatutDossierEcart,
   StatutFiche,
+  StatutReclamation,
   StatutRemontee,
 } from "@/generated/prisma/enums";
 
@@ -17,6 +18,7 @@ export const statutDossierEcartSchema = schemaEnum(StatutDossierEcart);
 export const statutActionSchema = schemaEnum(StatutAction);
 export const statutFicheSchema = schemaEnum(StatutFiche);
 export const statutRemonteeSchema = schemaEnum(StatutRemontee);
+export const statutReclamationSchema = schemaEnum(StatutReclamation);
 
 /** Valide une valeur de formulaire, en levant une erreur si elle est invalide. */
 export function lireStatutDossierEcart(v: FormDataEntryValue | null): StatutDossierEcart {
@@ -35,6 +37,16 @@ export function filtreStatutRemontee(v: string | undefined): StatutRemontee | un
   if (!v) return undefined;
   const r = statutRemonteeSchema.safeParse(v);
   return r.success ? (r.data as StatutRemontee) : undefined;
+}
+
+export function lireStatutReclamation(v: FormDataEntryValue | null): StatutReclamation {
+  return statutReclamationSchema.parse(String(v ?? "")) as StatutReclamation;
+}
+
+export function filtreStatutReclamation(v: string | undefined): StatutReclamation | undefined {
+  if (!v) return undefined;
+  const r = statutReclamationSchema.safeParse(v);
+  return r.success ? (r.data as StatutReclamation) : undefined;
 }
 
 /**

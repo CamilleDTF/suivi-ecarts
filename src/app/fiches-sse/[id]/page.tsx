@@ -78,6 +78,7 @@ export default async function FicheSSEDetailPage({
       // en data URL) du dossier de l'écart.
       ecart: { select: { id: true, reference: true, dossier: { select: { chantier: true } } } },
       ecartAmiante: { select: { id: true, reference: true, nomChantier: true } },
+      reclamation: { select: { id: true, reference: true, objet: true, chantier: true } },
       causes: { orderBy: { createdAt: "asc" } },
       remontees: { orderBy: { reference: "asc" }, select: { id: true, reference: true, objet: true, dateRemontee: true } },
       rex: { orderBy: { createdAt: "desc" }, select: { id: true, reference: true, titre: true, statut: true, createdAt: true } },
@@ -90,9 +91,11 @@ export default async function FicheSSEDetailPage({
     ficheSSEId?: string;
     ecarts?: { some: { id: string } };
     ecartAmianteId?: string;
+    reclamationId?: string;
   }[] = [{ ficheSSEId: fiche.id }];
   if (fiche.ecartId) rattachements.push({ ecarts: { some: { id: fiche.ecartId } } });
   if (fiche.ecartAmianteId) rattachements.push({ ecartAmianteId: fiche.ecartAmianteId });
+  if (fiche.reclamationId) rattachements.push({ reclamationId: fiche.reclamationId });
 
   const actions = await prisma.action.findMany({
     where: { OR: rattachements },
@@ -111,6 +114,7 @@ export default async function FicheSSEDetailPage({
       realiseeLe: true,
       ficheSSEId: true,
       ecartAmianteId: true,
+      reclamationId: true,
       ecarts: { select: { id: true } },
     },
   });
@@ -121,11 +125,12 @@ export default async function FicheSSEDetailPage({
     if (a.ficheSSEId === ficheId) return "Évènement";
     if (a.ecarts.length > 0) return "Écart";
     if (a.ecartAmianteId) return "Écart amiante";
+    if (a.reclamationId) return "Réclamation";
     return "—";
   }
 
   // Listes proposées pour corriger un rattachement erroné.
-  const [ecartsChoix, amianteChoix] = await Promise.all([
+  const [ecartsChoix, amianteChoix, reclamationsChoix] = await Promise.all([
     prisma.ecart.findMany({
       orderBy: { reference: "asc" },
       select: { id: true, reference: true, description: true, dossier: { select: { chantier: true } } },
@@ -133,6 +138,10 @@ export default async function FicheSSEDetailPage({
     prisma.ecartAmiante.findMany({
       orderBy: { reference: "asc" },
       select: { id: true, reference: true, nomChantier: true, numeroChantier: true, description: true },
+    }),
+    prisma.reclamation.findMany({
+      orderBy: { reference: "asc" },
+      select: { id: true, reference: true, chantier: true, objet: true },
     }),
   ]);
 
@@ -245,6 +254,14 @@ export default async function FicheSSEDetailPage({
             <ChevronRightIcon className="size-3.5" aria-hidden />
             <Link href={`/ecart-amiante/${fiche.ecartAmiante.id}`} className="hover:text-foreground hover:underline">
               Écart amiante {fiche.ecartAmiante.reference}
+            </Link>
+          </>
+        )}
+        {fiche.reclamation && (
+          <>
+            <ChevronRightIcon className="size-3.5" aria-hidden />
+            <Link href={`/reclamations/${fiche.reclamation.id}`} className="hover:text-foreground hover:underline">
+              Réclamation {fiche.reclamation.reference}
             </Link>
           </>
         )}
@@ -521,6 +538,13 @@ export default async function FicheSSEDetailPage({
                     </Link>
                     <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{fiche.ecartAmiante.nomChantier}</span>
                   </>
+                ) : fiche.reclamation ? (
+                  <>
+                    <Link href={`/reclamations/${fiche.reclamation.id}`} className="underline-offset-4 hover:underline">
+                      Réclamation {fiche.reclamation.reference}
+                    </Link>
+                    <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{fiche.reclamation.objet}</span>
+                  </>
                 ) : (
                   "Aucun écart"
                 )}
@@ -559,6 +583,16 @@ export default async function FicheSSEDetailPage({
                     options: amianteChoix.map((e) => ({
                       id: e.id,
                       libelle: libelleRattachement(e.reference, `${e.nomChantier} (${e.numeroChantier})`, e.description),
+                    })),
+                  },
+                  {
+                    cle: "reclamation",
+                    libelle: "Réclamation",
+                    champ: "reclamationId",
+                    valeurActuelle: fiche.reclamationId,
+                    options: reclamationsChoix.map((r) => ({
+                      id: r.id,
+                      libelle: libelleRattachement(r.reference, r.chantier, r.objet),
                     })),
                   },
                 ]}

@@ -25,9 +25,10 @@ export default async function NouvelleActionPage({
     ecartAmianteId?: string;
     remonteeId?: string;
     rexId?: string;
+    reclamationId?: string;
   }>;
 }) {
-  const { ecartId, ficheSSEId, ecartAmianteId, remonteeId, rexId } = await searchParams;
+  const { ecartId, ficheSSEId, ecartAmianteId, remonteeId, rexId, reclamationId } = await searchParams;
 
   const fiche = ficheSSEId
     ? await prisma.ficheSSE.findUnique({ where: { id: ficheSSEId } })
@@ -44,11 +45,15 @@ export default async function NouvelleActionPage({
     ? await prisma.rex.findUnique({ where: { id: rexId }, select: { id: true, reference: true, titre: true } })
     : null;
 
-  // Sans parent imposé par l'URL, les cinq rattachements possibles sont
+  const reclamation = !fiche && !ecartAmiante && !remontee && !rex && reclamationId
+    ? await prisma.reclamation.findUnique({ where: { id: reclamationId }, select: { id: true, reference: true, objet: true } })
+    : null;
+
+  // Sans parent imposé par l'URL, tous les rattachements possibles sont
   // proposés : l'écran n'offrait que les écarts.
-  const parentImpose = fiche || ecartAmiante || remontee || rex;
-  const [ecarts, evenements, amiantes, remontees, rexListe] = parentImpose
-    ? [[], [], [], [], []]
+  const parentImpose = fiche || ecartAmiante || remontee || rex || reclamation;
+  const [ecarts, evenements, amiantes, remontees, rexListe, reclamations] = parentImpose
+    ? [[], [], [], [], [], []]
     : await Promise.all([
         prisma.ecart.findMany({
           orderBy: { reference: "asc" },
@@ -70,6 +75,10 @@ export default async function NouvelleActionPage({
           orderBy: { reference: "asc" },
           select: { id: true, reference: true, titre: true },
         }),
+        prisma.reclamation.findMany({
+          orderBy: { reference: "asc" },
+          select: { id: true, reference: true, chantier: true, objet: true },
+        }),
       ]);
 
   // Le retour mène au parent quand l'URL en désigne un (« + Action » depuis sa
@@ -82,7 +91,9 @@ export default async function NouvelleActionPage({
         ? { href: `/remontees/${remontee.id}`, label: "Retour à la remontée" }
         : rex
           ? { href: `/rex/${rex.id}`, label: "Retour au REX" }
-          : ecartId
+          : reclamation
+            ? { href: `/reclamations/${reclamation.id}`, label: "Retour à la réclamation" }
+            : ecartId
             ? { href: `/ecarts/${ecartId}`, label: "Retour à l'écart" }
             : { href: "/plan-action", label: "Retour au plan d'action" };
 
@@ -124,6 +135,14 @@ export default async function NouvelleActionPage({
             <label className={labelCls}>Rattachée à</label>
             <p className={parentCls}>
               {rex.reference} — {rex.titre}
+            </p>
+          </div>
+        ) : reclamation ? (
+          <div>
+            <input type="hidden" name="reclamationId" value={reclamation.id} />
+            <label className={labelCls}>Rattachée à</label>
+            <p className={parentCls}>
+              Réclamation {reclamation.reference} — {reclamation.objet}
             </p>
           </div>
         ) : (
@@ -175,6 +194,15 @@ export default async function NouvelleActionPage({
                 options: rexListe.map((r) => ({
                   id: r.id,
                   libelle: libelleRattachement(r.reference, null, r.titre),
+                })),
+              },
+              {
+                cle: "reclamation",
+                libelle: "Réclamation",
+                champ: "reclamationId",
+                options: reclamations.map((r) => ({
+                  id: r.id,
+                  libelle: libelleRattachement(r.reference, r.chantier, r.objet),
                 })),
               },
             ]}

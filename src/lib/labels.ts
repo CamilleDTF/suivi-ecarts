@@ -6,7 +6,6 @@ export const ORIGINE_LABELS: Record<string, string> = {
   CONTROLE_TERRAIN: "Contrôle terrain",
   RONDE_SECURITE: "Ronde sécurité",
   INCIDENT_ACCIDENT: "Incident / accident",
-  RECLAMATION_PLAINTE: "Réclamation / plainte",
   AUTRE: "Autre",
 };
 
@@ -36,12 +35,12 @@ export const TYPE_ACTIVITE_LABELS: Record<string, string> = {
 };
 
 // Nature d'un écart : ce qui constate un manquement. Ce qui relève de
-// l'information ou de l'amélioration est passé aux remontées, ci-dessous.
+// l'information ou de l'amélioration est passé aux remontées, ci-dessous ; les
+// plaintes et réclamations ont leur propre module.
 export const NATURES_OPTIONS = [
   "Remarque",
   "Non-conformité",
   "Non-conformité critique",
-  "Réclamation",
 ];
 
 // Nature d'une remontée d'information : ce que le terrain signale sans que ce
@@ -215,6 +214,26 @@ export const CATEGORIES_REMONTEE = [
   "Relation client / Fournisseur",
   "Autre",
 ];
+
+export const TYPE_RECLAMATION_LABELS: Record<string, string> = {
+  RECLAMATION: "Réclamation",
+  PLAINTE: "Plainte",
+};
+
+export const STATUT_RECLAMATION_LABELS: Record<string, string> = {
+  OUVERTE: "Ouverte",
+  EN_COURS: "En cours",
+  CLOTUREE: "Clôturée",
+};
+
+export const STATUT_RECLAMATION_COLORS: Record<string, string> = {
+  OUVERTE: "bg-amber-100 text-amber-800",
+  EN_COURS: "bg-blue-100 text-blue-800",
+  CLOTUREE: "bg-green-100 text-green-800",
+};
+
+// Suggestions, pas une liste fermée : la saisie reste libre.
+export const CANAUX_RECLAMATION = ["Courrier", "E-mail", "Téléphone", "Oral sur chantier", "Réunion de chantier"];
 
 export const RESPONSABLES = [
   "Brahim", "Mohamed", "Said", "Amine", "Kasso", "Ayoub", "Ahmed", "Ilias",

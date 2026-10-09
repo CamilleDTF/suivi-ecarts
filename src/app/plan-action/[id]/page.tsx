@@ -86,13 +86,14 @@ export default async function ActionDetailPage({
       },
       remontee: { select: { id: true, reference: true, chantierService: true, objet: true } },
       rex: { select: { id: true, reference: true, titre: true } },
+      reclamation: { select: { id: true, reference: true, chantier: true, objet: true } },
     },
   });
 
   if (!action) notFound();
 
   // Listes proposées pour corriger un rattachement erroné.
-  const [ecartsChoix, evenementsChoix, amianteChoix, remonteesChoix, rexChoix] = await Promise.all([
+  const [ecartsChoix, evenementsChoix, amianteChoix, remonteesChoix, rexChoix, reclamationsChoix] = await Promise.all([
     prisma.ecart.findMany({
       orderBy: { reference: "asc" },
       select: { id: true, reference: true, description: true, dossier: { select: { chantier: true } } },
@@ -113,6 +114,10 @@ export default async function ActionDetailPage({
       orderBy: { reference: "asc" },
       select: { id: true, reference: true, titre: true },
     }),
+    prisma.reclamation.findMany({
+      orderBy: { reference: "asc" },
+      select: { id: true, reference: true, chantier: true, objet: true },
+    }),
   ]);
 
   // Plusieurs écarts possibles : le retour va au premier, faute de mieux — le
@@ -128,7 +133,9 @@ export default async function ActionDetailPage({
           ? `/remontees/${action.remontee.id}`
           : action.rex
             ? `/rex/${action.rex.id}`
-            : "/plan-action";
+            : action.reclamation
+              ? `/reclamations/${action.reclamation.id}`
+              : "/plan-action";
   const retourLabel = premierEcart
     ? action.ecarts.length > 1
       ? "Retour aux écarts"
@@ -141,7 +148,9 @@ export default async function ActionDetailPage({
           ? "Retour à la remontée"
           : action.rex
             ? "Retour au REX"
-            : "Retour au plan d'action";
+            : action.reclamation
+              ? "Retour à la réclamation"
+              : "Retour au plan d'action";
 
   // Tous les écarts couverts sont listés : n'en montrer qu'un laisserait
   // croire à un rattachement unique.
@@ -197,6 +206,17 @@ export default async function ActionDetailPage({
             href: `/rex/${action.rex.id}`,
             reference: action.rex.reference,
             detail: action.rex.titre,
+          },
+        ]
+      : []),
+    ...(action.reclamation
+      ? [
+          {
+            cle: "reclamation",
+            type: "Réclamation",
+            href: `/reclamations/${action.reclamation.id}`,
+            reference: action.reclamation.reference,
+            detail: joindre(action.reclamation.chantier, action.reclamation.objet),
           },
         ]
       : []),
@@ -349,6 +369,16 @@ export default async function ActionDetailPage({
                       options: rexChoix.map((r) => ({
                         id: r.id,
                         libelle: libelleRattachement(r.reference, null, r.titre),
+                      })),
+                    },
+                    {
+                      cle: "reclamation",
+                      libelle: "Réclamation",
+                      champ: "reclamationId",
+                      valeurActuelle: action.reclamationId,
+                      options: reclamationsChoix.map((r) => ({
+                        id: r.id,
+                        libelle: libelleRattachement(r.reference, r.chantier, r.objet),
                       })),
                     },
                   ]}
